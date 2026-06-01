@@ -1,0 +1,77 @@
+.system-monitor {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.monitor-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.monitor-label {
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  min-width: 32px;
+  text-align: right;
+}
+
+.monitor-bar {
+  width: 50px;
+  height: 6px;
+  background-color: var(--color-bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--color-border-primary);
+}
+
+.monitor-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-success) 0%, #82e0ba 100%);
+  transition: width 0.5s ease, background 0.3s ease;
+  border-radius: 2px;
+}
+
+.monitor-bar-fill.high {
+  background: linear-gradient(90deg, var(--color-warning) 0%, #ffd391 100%);
+}
+
+.monitor-bar-fill.critical {
+  background: linear-gradient(90deg, var(--color-error) 0%, #ff9aa3 100%);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.monitor-value {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* 悬停效果 */
+.monitor-item:hover .monitor-label {
+  color: var(--color-text-secondary);
+}
+
+.monitor-item:hover .monitor-value {
+  color: var(--color-text-primary);
+}
+
+.monitor-item:hover .monitor-bar {
+  border-color: var(--color-border-secondary);
+}

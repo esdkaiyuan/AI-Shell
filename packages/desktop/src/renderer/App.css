@@ -1,0 +1,416 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  background-color: var(--color-bg-primary);
+}
+
+/* 顶部工具栏 */
+.app-toolbar {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  background: linear-gradient(180deg, #17202a 0%, #101720 100%);
+  border-bottom: 1px solid var(--color-border-primary);
+  padding: 0 6px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 176px;
+  height: 26px;
+  padding: 0 8px 0 4px;
+  border: 1px solid rgba(47, 140, 255, 0.22);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #05080d 0%, #071733 54%, #0c2656 100%);
+  box-shadow: inset 0 0 0 1px rgba(98, 166, 255, 0.08);
+}
+
+.toolbar-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #02050a 0%, #071a3b 55%, #123a83 100%);
+  border: 1px solid rgba(85, 152, 255, 0.55);
+  color: #f5f9ff;
+  font-size: 10px;
+  font-weight: 900;
+  text-shadow:
+    -1px 0 #001029,
+    0 1px #001029,
+    1px 0 #001029,
+    0 -1px #001029;
+}
+
+.toolbar-brand-text {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.toolbar-signature {
+  color: #67a8ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background-color: #2d3946;
+  margin: 0 4px;
+}
+
+.toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.toolbar-button:hover {
+  background-color: #22303e;
+  border-color: var(--color-border-secondary);
+  color: var(--color-text-primary);
+}
+
+.toolbar-button.active {
+  background-color: #1c344f;
+  border-color: var(--color-accent);
+  color: var(--color-accent-hover);
+}
+
+/* 主内容区 */
+.app-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 左侧边栏 */
+.app-sidebar {
+  width: 46px;
+  background: #10161e;
+  border-right: 1px solid var(--color-border-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sidebar-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s;
+}
+
+.sidebar-button:hover {
+  background-color: #1d2834;
+  border-color: var(--color-border-secondary);
+  color: var(--color-text-primary);
+}
+
+.sidebar-button.active {
+  background-color: #172b42;
+  border-color: rgba(47, 140, 255, 0.36);
+  color: var(--color-accent-hover);
+}
+
+.sidebar-button.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background-color: var(--color-accent);
+  border-radius: 0 2px 2px 0;
+}
+
+.sidebar-label {
+  font-size: 10px;
+  margin-top: 2px;
+  color: inherit;
+}
+
+/* 内容区域 */
+.app-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 终端视图 */
+.terminal-view-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.terminal-view-container.with-ai-right {
+  flex-direction: row;
+}
+
+.terminal-view-container.with-ai-bottom {
+  flex-direction: column;
+}
+
+.terminal-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background-color: var(--color-bg-primary);
+}
+
+.terminal-view-container.with-ai-right .terminal-view {
+  width: 60%;
+}
+
+.terminal-view-container.with-ai-bottom .terminal-view {
+  height: 60%;
+}
+
+.terminal-view-container.with-ai-right .ai-assistant-panel {
+  width: 40%;
+  min-width: 300px;
+  max-width: 600px;
+}
+
+.terminal-view-container.with-ai-bottom .ai-assistant-panel {
+  height: 40%;
+  min-height: 200px;
+  max-height: 500px;
+}
+
+/* 终端标签栏 */
+.terminal-tabs {
+  display: flex;
+  align-items: center;
+  background-color: #0f151d;
+  border-bottom: 1px solid var(--color-border-primary);
+  padding: 0 6px;
+  gap: 1px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.terminal-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 27px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px 2px 0 0;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.terminal-tab:hover {
+  background-color: #1a2430;
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
+}
+
+.terminal-tab.active {
+  background-color: #0b0f14;
+  color: var(--color-text-primary);
+  border-top: 2px solid var(--color-accent);
+  border-bottom-color: #0b0f14;
+}
+
+.terminal-tab-icon {
+  font-size: 14px;
+}
+
+.terminal-tab-title {
+  font-size: 12px;
+}
+
+.terminal-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: all 0.15s;
+}
+
+.terminal-tab:hover .terminal-tab-close {
+  opacity: 1;
+}
+
+.terminal-tab-close:hover {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.add-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+}
+
+.add-tab-btn:hover {
+  background-color: var(--color-accent-muted);
+  color: var(--color-accent-hover);
+}
+
+/* 终端容器 */
+.terminal-container {
+  flex: 1;
+  overflow: hidden;
+  background-color: #070a0e;
+  position: relative;
+}
+
+/* 底部状态栏 */
+.app-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+  background-color: #101720;
+  border-top: 1px solid var(--color-border-primary);
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.statusbar-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.statusbar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: default;
+}
+
+.statusbar-item:hover {
+  color: var(--color-text-secondary);
+}
+
+.statusbar-signature {
+  color: #7fb6ff;
+}
+
+.statusbar-signature strong {
+  color: #dceaff;
+  font-weight: 800;
+}
+
+.statusbar-icon {
+  font-size: 12px;
+}
+
+/* 系统监控面板 */
+.system-monitor {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.monitor-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.monitor-label {
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+}
+
+.monitor-value {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-family: 'Consolas', monospace;
+}
+
+.monitor-bar {
+  width: 40px;
+  height: 4px;
+  background-color: var(--color-bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.monitor-bar-fill {
+  height: 100%;
+  background-color: var(--color-success);
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+.monitor-bar-fill.high {
+  background-color: var(--color-warning);
+}
+
+.monitor-bar-fill.critical {
+  background-color: var(--color-error);
+}

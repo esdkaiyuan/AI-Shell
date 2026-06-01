@@ -1,0 +1,31 @@
+packages:
+  - 'packages/*'
+allowBuilds:
+  '2': true
+  '3': true
+  ' ': true
+  '-': true
+  a: true
+  b: true
+  better-sqlite3: false
+  c: true
+  cpu-features: false
+  d: true
+  e: true
+  electron: false
+  esbuild: false
+  f: true
+  h: true
+  i: true
+  l: true
+  n: true
+  node-pty: false
+  o: true
+  p: true
+  q: true
+  r: true
+  s: true
+  ssh2: false
+  t: true
+  u: true
+  y: true

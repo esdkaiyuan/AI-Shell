@@ -1,0 +1,151 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Xshell-inspired terminal client theme */
+  --color-bg-primary: #0b0f14;
+  --color-bg-secondary: #121820;
+  --color-bg-tertiary: #18212b;
+  --color-bg-elevated: #151c25;
+  --color-bg-hover: #1e2a36;
+  --color-bg-active: #253343;
+
+  --color-border-primary: #25303b;
+  --color-border-secondary: #354454;
+  --color-border-strong: #4b6075;
+
+  --color-text-primary: #dce6f1;
+  --color-text-secondary: #aeb9c7;
+  --color-text-tertiary: #7e8a99;
+  --color-text-disabled: #596574;
+  --color-text-inverse: #07101b;
+
+  --color-accent: #2f8cff;
+  --color-accent-hover: #63a9ff;
+  --color-accent-active: #1f73d3;
+  --color-accent-muted: rgba(47, 140, 255, 0.16);
+
+  /* Semantic states */
+  --color-success: #35c26b;
+  --color-success-bg: rgba(53, 194, 107, 0.12);
+  --color-warning: #d9a441;
+  --color-warning-bg: rgba(217, 164, 65, 0.13);
+  --color-error: #ef5964;
+  --color-error-bg: rgba(239, 89, 100, 0.13);
+  --color-info: #4da0ff;
+  --color-info-bg: rgba(77, 160, 255, 0.12);
+  --color-focus-ring: rgba(47, 140, 255, 0.34);
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.48);
+
+  /* 圆角 */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+}
+
+body {
+  font-family: 'Segoe UI', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #070a0e;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  font-size: 13px;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+code {
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-bg-active);
+}
+
+/* 选中文本 */
+::selection {
+  background: var(--color-bg-active);
+  color: var(--color-text-primary);
+}
+
+/* 输入框通用样式 */
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: all 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--color-accent);
+  background-color: var(--color-bg-secondary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+input:disabled, textarea:disabled, select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 按钮通用样式 */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, transform 0.12s ease;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}

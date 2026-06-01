@@ -1,0 +1,66 @@
+.command-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.command-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.command-action-btn:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-border-secondary);
+  color: var(--color-text-primary);
+}
+
+.command-action-btn:active {
+  background-color: var(--color-bg-active);
+  transform: translateY(1px);
+}
+
+.command-action-btn.insert {
+  color: var(--color-accent-hover);
+}
+
+.command-action-btn.insert:hover {
+  color: var(--color-accent-hover);
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-muted);
+}
+
+.command-action-btn.execute {
+  color: var(--color-success);
+}
+
+.command-action-btn.execute:hover {
+  color: var(--color-success);
+  border-color: rgba(100, 210, 163, 0.55);
+  background-color: var(--color-success-bg);
+}
+
+.command-action-btn.copy {
+  color: var(--color-warning);
+}
+
+.command-action-btn.copy:hover {
+  color: var(--color-warning);
+  border-color: rgba(244, 191, 117, 0.55);
+  background-color: var(--color-warning-bg);
+}
+
+.command-action-btn span {
+  font-weight: 500;
+}

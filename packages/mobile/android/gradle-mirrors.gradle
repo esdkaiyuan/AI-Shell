@@ -1,0 +1,27 @@
+def mirrorRepos = { RepositoryHandler repos ->
+    repos.maven { url 'https://maven.aliyun.com/repository/google' }
+    repos.maven { url 'https://maven.aliyun.com/repository/public' }
+    repos.maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+    repos.google()
+    repos.mavenCentral()
+    repos.gradlePluginPortal()
+}
+
+settingsEvaluated { settings ->
+    settings.pluginManagement {
+        repositories {
+            mirrorRepos(delegate)
+        }
+    }
+}
+
+allprojects { project ->
+    project.buildscript {
+        repositories {
+            mirrorRepos(delegate)
+        }
+    }
+    project.repositories {
+        mirrorRepos(delegate)
+    }
+}

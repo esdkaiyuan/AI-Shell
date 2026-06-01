@@ -1,0 +1,35 @@
+.terminal-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.terminal {
+  flex: 1;
+  width: 100%;
+  padding: var(--spacing-sm);
+  background-color: var(--color-bg-primary);
+  overflow: hidden;
+}
+
+.xterm {
+  height: 100%;
+}
+
+.xterm-viewport {
+  overflow-y: auto;
+}
+
+/* 自定义xterm主题 */
+.xterm .xterm-screen {
+  background-color: var(--color-bg-primary);
+}
+
+.xterm-cursor-layer .xterm-cursor {
+  background-color: var(--color-text-primary);
+}
+
+.xterm-selection {
+  background-color: var(--color-bg-active) !important;
+}
