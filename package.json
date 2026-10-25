@@ -7,10 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter desktop dev",
+    "dev": "pnpm --filter @ai-shell/desktop dev",
     "dev:mobile": "pnpm --filter @ai-shell/mobile start",
     "build": "pnpm -r build",
-    "build:desktop": "pnpm --filter desktop build",
+    "build:desktop": "pnpm --filter @ai-shell/desktop build",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
     "test": "vitest"

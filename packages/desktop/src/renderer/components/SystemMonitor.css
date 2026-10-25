@@ -75,3 +75,17 @@
 .monitor-item:hover .monitor-bar {
   border-color: var(--color-border-secondary);
 }
+
+/* 非百分比指标（运行时长、进程内存）的文本展示 */
+.monitor-text {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.monitor-item:hover .monitor-text {
+  color: var(--color-text-primary);
+}

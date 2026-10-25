@@ -8,19 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- SSH connection management UI
-- Device synchronization service
-- Command history search interface
-- React Native mobile app
-- Plugin system
-- Theme customization
-- Command auto-completion
-- Syntax highlighting
-- Split panes support
+- 设备同步服务
+- 插件系统
+- 主题定制
+- 命令自动补全
+- 语法高亮
 
 ## [0.1.0] - 2024-01-XX
 
 ### Added
+- SSH 连接管理与配置存储
+- 命令历史与搜索
+- 多标签与分屏终端
+- 只读资源管理器
+- AI 助手侧边面板与独立 AI Chat
+- 9 厂商 AI Provider 与动态模型列表
+- 系统监控
+- 会话保存与恢复
+- 凭据加密存储（Electron safeStorage）
+- React Native 移动端 App（Android APK）
 - Initial release
 - Cross-platform desktop application (Windows, macOS, Linux)
 - Local shell terminal with xterm.js

@@ -228,6 +228,7 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
         // 返回最后 maxChars 字符
         return '...\n' + buf.slice(-maxChars);
       },
+      copySelection: () => xtermRef.current?.getSelection() ?? '',
     });
 
     // 处理窗口调整大小

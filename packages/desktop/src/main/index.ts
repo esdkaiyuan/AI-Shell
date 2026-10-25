@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, safeStorage } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage, clipboard } from 'electron';
+import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { LocalStorage, AIServiceImpl, AIProvider, SSHConfig } from '@ai-shell/core';
@@ -6,6 +7,21 @@ import { ShellManager } from './shell/manager';
 import { SSHManager } from './ssh/manager';
 
 let mainWindow: BrowserWindow | null = null;
+
+// 系统监控统计数据：CPU 占用率、内存占用率、系统运行时长（秒）、主进程内存（MB）
+interface SystemStats {
+  cpu: number;
+  memory: number;
+  uptimeSeconds: number;
+  processMemoryMB: number;
+}
+
+// CPU 采样基线：保存上一次采样的 idle/total 时间片，用于差值计算真实占用率
+let lastCpuSample: { idle: number; total: number } | null = null;
+
+// 系统监控定时器：每 2 秒向渲染进程推送一次真实数据
+let statsTimer: NodeJS.Timeout | null = null;
+
 interface ShellManagerLike {
   storage: LocalStorage | null;
   setMainWindow(window: BrowserWindow): void;
@@ -207,6 +223,40 @@ async function resolveShellCwd(cwd?: string): Promise<string> {
   return resolved;
 }
 
+// 采集真实的系统指标（CPU 基于两次采样差值，首次无基线返回 0）
+function getSystemStats(): SystemStats {
+  const cpus = os.cpus();
+  let idle = 0;
+  let total = 0;
+  for (const cpu of cpus) {
+    // 部分 @types/node 版本的 CpuTimes 未声明 steal，这里做兼容读取
+    const times = cpu.times as typeof cpu.times & { steal?: number };
+    idle += times.idle;
+    total += times.user + times.nice + times.sys + times.idle + times.irq + (times.steal ?? 0);
+  }
+
+  let cpuPercent = 0;
+  if (lastCpuSample) {
+    const idleDiff = idle - lastCpuSample.idle;
+    const totalDiff = total - lastCpuSample.total;
+    if (totalDiff > 0) {
+      // 保留 1 位小数
+      cpuPercent = Math.round((1 - idleDiff / totalDiff) * 1000) / 10;
+    }
+  }
+  lastCpuSample = { idle, total };
+
+  const totalMem = os.totalmem();
+  const memoryPercent = totalMem > 0 ? 100 * (1 - os.freemem() / totalMem) : 0;
+
+  return {
+    cpu: cpuPercent,
+    memory: memoryPercent,
+    uptimeSeconds: os.uptime(),
+    processMemoryMB: process.memoryUsage().rss / 1048576,
+  };
+}
+
 // Try to load native modules, gracefully degrade if unavailable
 try {
   shellManager = new ShellManager(null);
@@ -261,6 +311,16 @@ function createWindow() {
   if (sshManager) {
     sshManager.setMainWindow(mainWindow);
   }
+
+  // 每 2 秒推送一次系统监控真实数据到渲染进程
+  // （先清理旧定时器：macOS 上关窗后激活会再次调用 createWindow，避免 interval 泄漏）
+  if (statsTimer) {
+    clearInterval(statsTimer);
+    statsTimer = null;
+  }
+  statsTimer = setInterval(() => {
+    mainWindow?.webContents.send('system:stats', getSystemStats());
+  }, 2000);
 }
 
 async function initializeServices() {
@@ -304,6 +364,10 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    if (statsTimer) {
+      clearInterval(statsTimer);
+      statsTimer = null;
+    }
     try {
       storage?.close();
     } catch (error) {
@@ -314,6 +378,10 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  if (statsTimer) {
+    clearInterval(statsTimer);
+    statsTimer = null;
+  }
   try {
     storage?.close();
   } catch (error) {
@@ -571,4 +639,14 @@ function setupIPC() {
       throw new Error(`Failed to list directory: ${getErrorMessage(error)}`);
     }
   });
+
+  // 系统监控：获取一次真实系统指标
+  ipcMain.handle('system:get-stats', async () => getSystemStats());
+
+  // 剪贴板操作（工具栏复制/粘贴）
+  ipcMain.handle('clipboard:write', async (_, text: string) => {
+    clipboard.writeText(text);
+  });
+
+  ipcMain.handle('clipboard:read', async () => clipboard.readText());
 }

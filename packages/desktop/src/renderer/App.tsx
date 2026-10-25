@@ -82,8 +82,8 @@ const App: React.FC = () => {
   const [systemStats, setSystemStats] = useState({
     cpu: 0,
     memory: 0,
-    network: 0,
-    disk: 0,
+    uptimeSeconds: 0,
+    processMemoryMB: 0,
   });
 
   // 当活动终端切换时，通知 terminalBus
@@ -91,18 +91,15 @@ const App: React.FC = () => {
     terminalBus.setActive(activeTerminal);
   }, [activeTerminal]);
 
-  // 模拟系统监控数据更新
+  // 订阅主进程推送的系统监控真实数据（首次拉取一次，之后由主进程每 2 秒推送）
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSystemStats({
-        cpu: Math.random() * 100,
-        memory: Math.random() * 100,
-        network: Math.random() * 100,
-        disk: Math.random() * 100,
-      });
-    }, 2000);
-
-    return () => clearInterval(interval);
+    // 先拉取一次当前指标
+    window.electronAPI.system.getStats().then(setSystemStats).catch(console.error);
+    // 订阅主进程后续推送
+    const unsubscribe = window.electronAPI.system.onStats(setSystemStats);
+    return () => {
+      unsubscribe?.();
+    };
   }, []);
 
   const addTerminal = () => {
@@ -197,6 +194,39 @@ const App: React.FC = () => {
     }
   };
 
+  // 工具栏：复制当前终端选中文本到系统剪贴板
+  const handleCopy = () => {
+    const selection = terminalBus.getActive()?.copySelection();
+    if (selection) {
+      window.electronAPI.clipboard.write(selection).catch(console.error);
+    }
+  };
+
+  // 工具栏：读取系统剪贴板内容并插入到当前终端
+  const handlePaste = () => {
+    window.electronAPI.clipboard
+      .read()
+      .then(text => {
+        if (text) {
+          terminalBus.insertToActive(text);
+        }
+      })
+      .catch(console.error);
+  };
+
+  // 工具栏：切换全屏
+  const toggleFullscreen = () => {
+    try {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(console.error);
+      } else {
+        document.documentElement.requestFullscreen().catch(console.error);
+      }
+    } catch (error) {
+      console.error('Failed to toggle fullscreen:', error);
+    }
+  };
+
   return (
     <div className="app">
       {/* 顶部工具栏 */}
@@ -227,10 +257,10 @@ const App: React.FC = () => {
         <div className="toolbar-divider" />
 
         <div className="toolbar-section">
-          <button className="toolbar-button" title="复制">
+          <button className="toolbar-button" title="复制" onClick={handleCopy}>
             <CopyIcon size={16} />
           </button>
-          <button className="toolbar-button" title="粘贴">
+          <button className="toolbar-button" title="粘贴" onClick={handlePaste}>
             <PasteIcon size={16} />
           </button>
           <button className="toolbar-button" title="查找" onClick={toggleSearch}>
@@ -244,7 +274,7 @@ const App: React.FC = () => {
           <button className="toolbar-button" title="分屏" onClick={toggleSplit}>
             <SplitIcon size={16} />
           </button>
-          <button className="toolbar-button" title="全屏">
+          <button className="toolbar-button" title="全屏" onClick={toggleFullscreen}>
             <MaximizeIcon size={16} />
           </button>
         </div>

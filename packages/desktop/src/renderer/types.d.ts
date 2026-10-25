@@ -53,6 +53,14 @@ interface FileEntry {
   hidden: boolean;
 }
 
+// 系统监控统计数据：CPU 占用率、内存占用率、系统运行时长（秒）、主进程内存（MB）
+interface SystemStats {
+  cpu: number;
+  memory: number;
+  uptimeSeconds: number;
+  processMemoryMB: number;
+}
+
 interface ElectronAPI {
   shell: {
     create: (shell: string, cwd: string) => Promise<string>;
@@ -90,6 +98,14 @@ interface ElectronAPI {
     getHome: () => Promise<string>;
     getWorkspace: () => Promise<string>;
     listDirectory: (dirPath: string, root?: 'workspace' | 'home') => Promise<FileEntry[]>;
+  };
+  system: {
+    getStats: () => Promise<SystemStats>;
+    onStats: (callback: (stats: SystemStats) => void) => () => void;
+  };
+  clipboard: {
+    write: (text: string) => Promise<void>;
+    read: () => Promise<string>;
   };
 }
 

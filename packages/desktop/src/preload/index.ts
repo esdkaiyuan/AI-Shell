@@ -27,6 +27,14 @@ interface SSHConfig {
   config?: Record<string, unknown>;
 }
 
+// 系统监控统计数据：CPU 占用率、内存占用率、系统运行时长（秒）、主进程内存（MB）
+interface SystemStats {
+  cpu: number;
+  memory: number;
+  uptimeSeconds: number;
+  processMemoryMB: number;
+}
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -101,5 +109,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getWorkspace: () => ipcRenderer.invoke('files:get-workspace'),
     listDirectory: (dirPath: string, root?: 'workspace' | 'home') =>
       ipcRenderer.invoke('files:list-directory', dirPath, root),
+  },
+
+  // 系统监控
+  system: {
+    getStats: () => ipcRenderer.invoke('system:get-stats'),
+    onStats: (callback: (stats: SystemStats) => void) => {
+      const listener = (_: Electron.IpcRendererEvent, stats: SystemStats) => callback(stats);
+      ipcRenderer.on('system:stats', listener);
+      return () => ipcRenderer.removeListener('system:stats', listener);
+    },
+  },
+
+  // 剪贴板操作（工具栏复制/粘贴）
+  clipboard: {
+    write: (text: string) => ipcRenderer.invoke('clipboard:write', text),
+    read: () => ipcRenderer.invoke('clipboard:read'),
   },
 });

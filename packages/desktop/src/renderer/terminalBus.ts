@@ -22,6 +22,8 @@ export interface TerminalHandle {
   run: (command: string) => void;
   // 取最近的上下文（命令 + 输出 + 报错），用于喂给 AI
   getContext: (maxChars?: number) => string;
+  // 返回当前终端选中文本（无选中时返回空串）—— 供工具栏「复制」使用
+  copySelection: () => string;
 }
 
 type Listener = () => void;
