@@ -13,6 +13,16 @@ export interface AppSettings {
   cursorBlink: boolean;
   scrollback: number;
   theme: TerminalThemeName;
+  /** AI 面板在右侧停靠时的宽度（px） */
+  aiPanelWidth: number;
+  /** AI 面板在底部停靠时的高度（px） */
+  aiPanelHeight: number;
+  /** 分屏窗格比例（第一个窗格占比，0.2 ~ 0.8） */
+  splitPaneRatio: number;
+  /** AI 对话使用的提供商名称（空 = 自动选第一个可用） */
+  aiProvider: string;
+  /** AI 对话使用的模型名称（空 = 由提供商默认） */
+  aiModel: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -22,7 +32,23 @@ export const DEFAULT_SETTINGS: AppSettings = {
   cursorBlink: true,
   scrollback: 1000,
   theme: 'mono-dark',
+  aiPanelWidth: 420,
+  aiPanelHeight: 280,
+  splitPaneRatio: 0.5,
+  aiProvider: '',
+  aiModel: '',
 };
+
+/** 面板尺寸边界，防止拖到看不见 */
+export const PANEL_LIMITS = {
+  aiPanelWidth: { min: 280, max: 720 },
+  aiPanelHeight: { min: 160, max: 560 },
+  splitPaneRatio: { min: 0.2, max: 0.8 },
+} as const;
+
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 // 各主题对应的 xterm 配色
 export const TERMINAL_THEMES: Record<TerminalThemeName, any> = {

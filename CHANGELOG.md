@@ -7,11 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- AI 面板与分屏窗格支持拖动调整尺寸（宽度/高度/比例，自动持久化）
+- AI 助手面板与 AI Chat 内置提供商/模型切换器，选择结果全局生效并持久化
+- 终端 Tab 命令自动补全：基于历史命令 + 快捷片段 + 常用命令词典，Tab 循环、Enter 接受、Esc 关闭
+- 快捷命令片段管理器（Ctrl+B）：分组、搜索、增删改、一键插入/执行/复制
+- 全局快捷键：Ctrl+T 新建终端、Ctrl+W 关闭、Ctrl+F 查找、Ctrl+N 分屏、Ctrl+B 快捷命令、Ctrl+Shift+A AI 面板、Ctrl+1..9 切换标签
+
+### Fixed
+- 清理全部 8 个 ESLint error（xinghuo 未用变量、ptyAvailable 未用、no-var-requires、未转义引号）
+- 讯飞星火适配器增加 API Key 格式校验（APPID:APISecret:APIKey）
+
+### Changed
+- 桌面端核心逻辑新增单元测试（补全/片段/设置/终端总线），vitest 60/60 通过
+
 ### Planned
 - 设备同步服务
 - 插件系统
-- 主题定制
-- 命令自动补全
+- 命令自动补全（终端内联语法高亮）
 - 语法高亮
 
 ## [0.1.0] - 2024-01-XX

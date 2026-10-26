@@ -55,7 +55,6 @@ let shellManager: ShellManagerLike | null = null;
 let sshManager: SSHManagerLike | null = null;
 let storage: LocalStorage;
 let aiService: AIServiceImpl;
-let ptyAvailable = false;
 
 interface FileEntry {
   name: string;
@@ -260,7 +259,6 @@ function getSystemStats(): SystemStats {
 // Try to load native modules, gracefully degrade if unavailable
 try {
   shellManager = new ShellManager(null);
-  ptyAvailable = true;
 } catch (error) {
   console.warn('node-pty not available, terminal feature disabled:', error);
 }

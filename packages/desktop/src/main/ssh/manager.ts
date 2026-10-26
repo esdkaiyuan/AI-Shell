@@ -1,9 +1,8 @@
 import type { Client as SSHClient, ClientChannel } from 'ssh2';
+import { Client } from 'ssh2';
 import { LocalStorage, SSHConfig } from '@ai-shell/core';
 import { EventEmitter } from 'events';
 import { BrowserWindow } from 'electron';
-
-const { Client } = require('ssh2') as typeof import('ssh2');
 
 interface SSHSession {
   id: string;

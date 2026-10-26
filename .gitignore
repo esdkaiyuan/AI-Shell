@@ -60,3 +60,6 @@ logs/
 
 # OS
 Thumbs.db
+
+# WorkBuddy workspace state
+.workbuddy/

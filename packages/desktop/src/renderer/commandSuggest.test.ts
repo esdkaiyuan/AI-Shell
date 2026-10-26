@@ -1,0 +1,127 @@
+// commandSuggest.test.ts
+// Tab 补全纯逻辑的单元测试
+import { describe, it, expect } from 'vitest';
+import {
+  suggestCommands,
+  currentInputPrefix,
+  InputLineTracker,
+  COMMON_COMMANDS,
+} from './commandSuggest';
+
+describe('suggestCommands', () => {
+  it('returns empty for empty prefix', () => {
+    expect(suggestCommands('', ['git status'], ['ls -la'])).toEqual([]);
+    expect(suggestCommands('   ', ['git status'], ['ls -la'])).toEqual([]);
+  });
+
+  it('matches history commands by prefix (case-insensitive)', () => {
+    const results = suggestCommands('git st', ['git status', 'git stash', 'ls'], []);
+    expect(results.map(r => r.command)).toEqual(['git status', 'git stash']);
+    expect(results[0].origin).toBe('history');
+  });
+
+  it('prioritizes snippets over history and common', () => {
+    const results = suggestCommands('git', ['git status'], ['git my-snippet'], {
+      includeCommon: true,
+    });
+    expect(results[0].command).toBe('git my-snippet');
+    expect(results[0].origin).toBe('snippet');
+  });
+
+  it('deduplicates commands across sources', () => {
+    const results = suggestCommands('ls', ['ls -la'], ['ls -la'], { includeCommon: true });
+    const only = results.filter(r => r.command === 'ls -la');
+    expect(only).toHaveLength(1);
+  });
+
+  it('respects limit option', () => {
+    const history = ['echo 1', 'echo 2', 'echo 3', 'echo 4', 'echo 5'];
+    const results = suggestCommands('echo', history, [], { limit: 3 });
+    expect(results).toHaveLength(3);
+  });
+
+  it('excludes common commands when disabled', () => {
+    const results = suggestCommands('doc', [], [], { includeCommon: false });
+    expect(results).toEqual([]);
+  });
+
+  it('falls back to common command dictionary', () => {
+    const results = suggestCommands('docker p', [], [], { includeCommon: true });
+    expect(results.map(r => r.command)).toContain('docker ps');
+  });
+
+  it('skips empty or blank entries', () => {
+    const results = suggestCommands('git', ['', '   ', 'git ok'], [], { includeCommon: false });
+    expect(results.map(r => r.command)).toEqual(['git ok']);
+  });
+});
+
+describe('currentInputPrefix', () => {
+  it('returns last line only', () => {
+    expect(currentInputPrefix('echo hi\ngit che')).toBe('git che');
+    expect(currentInputPrefix('git che')).toBe('git che');
+  });
+
+  it('handles empty buffer', () => {
+    expect(currentInputPrefix('')).toBe('');
+  });
+});
+
+describe('InputLineTracker', () => {
+  it('accumulates printable characters', () => {
+    const tracker = new InputLineTracker();
+    tracker.feed('git ');
+    tracker.feed('st');
+    expect(tracker.get()).toBe('git st');
+  });
+
+  it('clears on carriage return', () => {
+    const tracker = new InputLineTracker();
+    tracker.feed('ls');
+    tracker.feed('\r');
+    expect(tracker.get()).toBe('');
+  });
+
+  it('handles backspace', () => {
+    const tracker = new InputLineTracker();
+    tracker.feed('gitx');
+    tracker.feed('\x7f');
+    expect(tracker.get()).toBe('git');
+  });
+
+  it('clears on Ctrl+C and Ctrl+U', () => {
+    const tracker = new InputLineTracker();
+    tracker.feed('abc');
+    tracker.feed('\x03');
+    expect(tracker.get()).toBe('');
+
+    tracker.feed('def');
+    tracker.feed('\x15');
+    expect(tracker.get()).toBe('');
+  });
+
+  it('supports clear() and multi-char paste', () => {
+    const tracker = new InputLineTracker();
+    tracker.feed('npm run build');
+    expect(tracker.get()).toBe('npm run build');
+    tracker.clear();
+    expect(tracker.get()).toBe('');
+  });
+
+  it('does not keep escape character in buffer', () => {
+    // 方向键产生 \x1b[A 等序列；ESC 本身不应进入缓冲
+    const tracker = new InputLineTracker();
+    tracker.feed('ab');
+    tracker.feed('\x1b');
+    expect(tracker.get()).not.toContain('\x1b');
+    expect(tracker.get().startsWith('ab')).toBe(true);
+  });
+});
+
+describe('COMMON_COMMANDS', () => {
+  it('is a non-empty string array', () => {
+    expect(Array.isArray(COMMON_COMMANDS)).toBe(true);
+    expect(COMMON_COMMANDS.length).toBeGreaterThan(20);
+    expect(COMMON_COMMANDS.every(c => typeof c === 'string')).toBe(true);
+  });
+});

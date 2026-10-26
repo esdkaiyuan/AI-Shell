@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserIcon, BotIcon, SendIcon, PanelRightIcon, PanelBottomIcon, RefreshIcon, CloseIcon, PlayIcon } from './Icons';
 import CommandActions from './CommandActions';
+import ModelSelector from './ModelSelector';
 import { terminalBus } from '../terminalBus';
 import { commandHistory, CommandHistoryEntry } from '../commandHistory';
+import { appSettings } from '../appSettings';
 import './AIAssistantPanel.css';
 
 interface Message {
@@ -99,14 +101,19 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
     setLoading(true);
 
     try {
-      const response = await window.electronAPI.ai.chat([
-        {
-          role: 'system',
-          content: 'You are a helpful AI assistant for shell operations. When suggesting commands, wrap them in ```bash code blocks. Be concise and practical.'
-        },
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: userMessage },
-      ]);
+      const { aiProvider, aiModel } = appSettings.get();
+      const response = await window.electronAPI.ai.chat(
+        [
+          {
+            role: 'system',
+            content: 'You are a helpful AI assistant for shell operations. When suggesting commands, wrap them in ```bash code blocks. Be concise and practical.'
+          },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user', content: userMessage },
+        ],
+        aiProvider || undefined,
+        aiModel || undefined
+      );
 
       const commands = extractCommands(response.content);
       const assistantMessage: Message = {
@@ -181,15 +188,20 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
     setLoading(true);
 
     try {
-      const response = await window.electronAPI.ai.chat([
-        {
-          role: 'system',
-          content:
-            'You are a helpful AI assistant for shell operations. When suggesting commands, wrap them in ```bash code blocks. Be concise and practical.',
-        },
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: userMessage },
-      ]);
+      const { aiProvider, aiModel } = appSettings.get();
+      const response = await window.electronAPI.ai.chat(
+        [
+          {
+            role: 'system',
+            content:
+              'You are a helpful AI assistant for shell operations. When suggesting commands, wrap them in ```bash code blocks. Be concise and practical.',
+          },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user', content: userMessage },
+        ],
+        aiProvider || undefined,
+        aiModel || undefined
+      );
 
       const commands = extractCommands(response.content);
       setMessages(prev => [
@@ -216,6 +228,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
         <div className="panel-title">
           <BotIcon size={16} />
           <span>AI 助手</span>
+          <ModelSelector />
         </div>
         <div className="panel-controls">
           <button

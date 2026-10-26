@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserIcon, BotIcon, SendIcon } from './Icons';
+import ModelSelector from './ModelSelector';
+import { appSettings } from '../appSettings';
 import './AIChat.css';
 
 interface Message {
@@ -33,11 +35,16 @@ const AIChat: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await window.electronAPI.ai.chat([
-        { role: 'system', content: 'You are a helpful AI assistant for shell operations.' },
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: input },
-      ]);
+      const { aiProvider, aiModel } = appSettings.get();
+      const response = await window.electronAPI.ai.chat(
+        [
+          { role: 'system', content: 'You are a helpful AI assistant for shell operations.' },
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user', content: input },
+        ],
+        aiProvider || undefined,
+        aiModel || undefined
+      );
 
       const assistantMessage: Message = { role: 'assistant', content: response.content };
       setMessages(prev => [...prev, assistantMessage]);
@@ -63,6 +70,7 @@ const AIChat: React.FC = () => {
     <div className="ai-chat">
       <div className="chat-header">
         <h2>AI Assistant</h2>
+        <ModelSelector />
       </div>
 
       <div className="chat-messages">
@@ -71,7 +79,7 @@ const AIChat: React.FC = () => {
             <div className="empty-icon">
               <BotIcon size={48} />
             </div>
-            <p>Hi! I'm your AI assistant.</p>
+            <p>Hi! I am your AI assistant.</p>
             <p>Ask me anything about shell commands, programming, or general questions.</p>
           </div>
         )}

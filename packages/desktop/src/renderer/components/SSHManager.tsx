@@ -150,7 +150,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
           )}
           {pendingDelete && (
             <div className="ssh-confirm" role="alert">
-              <span>确定删除连接 "{pendingDelete}" 吗？</span>
+              <span>确定删除连接「{pendingDelete}」吗？</span>
               <div className="ssh-confirm-actions">
                 <button className="btn-secondary" onClick={() => setPendingDelete(null)}>
                   取消

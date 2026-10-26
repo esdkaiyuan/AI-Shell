@@ -14,8 +14,12 @@ export class XinghuoAdapter extends AIAdapter {
   async chat(messages: AIMessage[], model?: string): Promise<AIResponse> {
     try {
       // 讯飞星火需要特殊的认证方式
-      // API Key格式: APPID:APISecret:APIKey
-      const [appId, apiSecret, apiKey] = this.config.apiKey.split(':');
+      // API Key格式: APPID:APISecret:APIKey（此处仅用 app_id，其余两位用于校验格式完整性）
+      const keyParts = this.config.apiKey.split(':');
+      if (keyParts.length < 3 || !keyParts[0] || !keyParts[1] || !keyParts[2]) {
+        throw new Error('Xinghuo API Key format must be APPID:APISecret:APIKey');
+      }
+      const appId = keyParts[0];
 
       const response = await this.client.post('/chat', {
         header: {

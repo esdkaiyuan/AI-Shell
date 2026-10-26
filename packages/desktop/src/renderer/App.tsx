@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Terminal from './components/Terminal';
 import SplitTerminal from './components/SplitTerminal';
 import AIChat from './components/AIChat';
@@ -8,7 +8,10 @@ import Settings from './components/Settings';
 import SystemMonitor from './components/SystemMonitor';
 import SSHManager from './components/SSHManager';
 import SessionManager from './components/SessionManager';
+import SnippetManager from './components/SnippetManager';
 import { terminalBus } from './terminalBus';
+import { appSettings, PANEL_LIMITS, clamp } from './appSettings';
+import { useDragResize } from './useDragResize';
 import {
   PlusIcon,
   FolderIcon,
@@ -27,6 +30,7 @@ import {
   WifiIcon,
   KeyboardIcon,
   MonitorIcon,
+  ZapIcon,
 } from './components/Icons';
 import './App.css';
 
@@ -79,6 +83,15 @@ const App: React.FC = () => {
   const [aiPanelPosition, setAIPanelPosition] = useState<PanelPosition>('right'); // AI 面板位置
   const [showSSHManager, setShowSSHManager] = useState(false); // SSH 管理器显示状态
   const [showSessionManager, setShowSessionManager] = useState(false); // 会话管理器显示状态
+  const [showSnippetManager, setShowSnippetManager] = useState(false); // 快捷命令管理器显示状态
+  const [panelSizes, setPanelSizes] = useState(() => {
+    const s = appSettings.get();
+    return {
+      aiPanelWidth: s.aiPanelWidth,
+      aiPanelHeight: s.aiPanelHeight,
+      splitPaneRatio: s.splitPaneRatio,
+    };
+  });
   const [systemStats, setSystemStats] = useState({
     cpu: 0,
     memory: 0,
@@ -101,6 +114,63 @@ const App: React.FC = () => {
       unsubscribe?.();
     };
   }, []);
+
+  // ---- 拖拽调整 AI 面板尺寸 ----
+  // 拖动起点处记录面板尺寸，拖动过程中按位移增减
+  const dragStartSizeRef = React.useRef({ width: 0, height: 0 });
+
+  const handleAIPanelDragStart = useCallback(() => {
+    dragStartSizeRef.current = {
+      width: panelSizes.aiPanelWidth,
+      height: panelSizes.aiPanelHeight,
+    };
+  }, [panelSizes.aiPanelWidth, panelSizes.aiPanelHeight]);
+
+  // 面板停靠在右侧：水平拖动改变宽度（向左拖变宽）
+  const aiPanelResize = useDragResize({
+    orientation: 'vertical',
+    onDelta: useCallback(
+      (delta: number) => {
+        const base = dragStartSizeRef.current.width;
+        const next = clamp(
+          base - delta,
+          PANEL_LIMITS.aiPanelWidth.min,
+          PANEL_LIMITS.aiPanelWidth.max
+        );
+        setPanelSizes(prev => ({ ...prev, aiPanelWidth: next }));
+      },
+      []
+    ),
+    onEnd: useCallback(() => {
+      setPanelSizes(prev => {
+        appSettings.update({ aiPanelWidth: prev.aiPanelWidth });
+        return prev;
+      });
+    }, []),
+  });
+
+  // 面板停靠在底部：垂直拖动改变高度（向上拖变高）
+  const aiPanelResizeBottom = useDragResize({
+    orientation: 'horizontal',
+    onDelta: useCallback(
+      (delta: number) => {
+        const base = dragStartSizeRef.current.height;
+        const next = clamp(
+          base - delta,
+          PANEL_LIMITS.aiPanelHeight.min,
+          PANEL_LIMITS.aiPanelHeight.max
+        );
+        setPanelSizes(prev => ({ ...prev, aiPanelHeight: next }));
+      },
+      []
+    ),
+    onEnd: useCallback(() => {
+      setPanelSizes(prev => {
+        appSettings.update({ aiPanelHeight: prev.aiPanelHeight });
+        return prev;
+      });
+    }, []),
+  });
 
   const addTerminal = () => {
     const newId = String(Date.now());
@@ -227,6 +297,78 @@ const App: React.FC = () => {
     }
   };
 
+  // ---- 全局快捷键 ----
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+
+      // 输入框内不拦截普通按键（但 Ctrl 组合键仍处理）
+      const target = e.target as HTMLElement | null;
+      const inEditable =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable);
+
+      switch (e.key.toLowerCase()) {
+        case 't':
+          // Ctrl+T 新建终端
+          e.preventDefault();
+          addTerminal();
+          break;
+        case 'w':
+          // Ctrl+W 关闭当前终端
+          e.preventDefault();
+          if (activeTerminal) closeTerminal(activeTerminal);
+          break;
+        case 'f':
+          // Ctrl+F 查找
+          e.preventDefault();
+          if (currentView === 'terminal') toggleSearch();
+          break;
+        case 'n':
+          // Ctrl+N 分屏切换
+          e.preventDefault();
+          if (currentView === 'terminal') toggleSplit();
+          break;
+        case 'b':
+          // Ctrl+B 切换快捷命令面板
+          e.preventDefault();
+          setShowSnippetManager(prev => !prev);
+          break;
+        case 'a':
+          // Ctrl+Shift+A 切换 AI 面板
+          if (e.shiftKey) {
+            e.preventDefault();
+            if (currentView === 'terminal') setShowAIPanel(prev => !prev);
+          }
+          break;
+        case 'l':
+          // Ctrl+L 聚焦终端（通过向活动终端发送清屏）
+          if (!inEditable) {
+            e.preventDefault();
+            terminalBus.runOnActive('clear');
+          }
+          break;
+        default:
+          // Ctrl+1..9 切换到第 N 个标签
+          if (!inEditable && e.key >= '1' && e.key <= '9') {
+            const index = Number(e.key) - 1;
+            const tab = terminals[index];
+            if (tab) {
+              e.preventDefault();
+              setActiveTerminal(tab.id);
+            }
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
+
   return (
     <div className="app">
       {/* 顶部工具栏 */}
@@ -240,7 +382,7 @@ const App: React.FC = () => {
         <div className="toolbar-divider" />
 
         <div className="toolbar-section">
-          <button className="toolbar-button" title="新建本地终端" onClick={addTerminal}>
+          <button className="toolbar-button" title="新建本地终端 (Ctrl+T)" onClick={addTerminal}>
             <PlusIcon size={16} />
           </button>
           <button className="toolbar-button" title="SSH 连接" onClick={() => setShowSSHManager(true)}>
@@ -263,7 +405,7 @@ const App: React.FC = () => {
           <button className="toolbar-button" title="粘贴" onClick={handlePaste}>
             <PasteIcon size={16} />
           </button>
-          <button className="toolbar-button" title="查找" onClick={toggleSearch}>
+          <button className="toolbar-button" title="查找 (Ctrl+F)" onClick={toggleSearch}>
             <SearchIcon size={16} />
           </button>
         </div>
@@ -271,7 +413,10 @@ const App: React.FC = () => {
         <div className="toolbar-divider" />
 
         <div className="toolbar-section">
-          <button className="toolbar-button" title="分屏" onClick={toggleSplit}>
+          <button className="toolbar-button" title="快捷命令 (Ctrl+B)" onClick={() => setShowSnippetManager(true)}>
+            <ZapIcon size={16} />
+          </button>
+          <button className="toolbar-button" title="分屏 (Ctrl+N)" onClick={toggleSplit}>
             <SplitIcon size={16} />
           </button>
           <button className="toolbar-button" title="全屏" onClick={toggleFullscreen}>
@@ -311,7 +456,7 @@ const App: React.FC = () => {
                 setCurrentView('ai');
               }
             }}
-            title="AI助手"
+            title="AI助手 (Ctrl+Shift+A)"
           >
             <AIIcon size={20} />
           </button>
@@ -378,6 +523,13 @@ const App: React.FC = () => {
                           layout={term.split.layout}
                           showSearch={term.showSearch}
                           onSearchClose={closeSearch}
+                          splitRatio={panelSizes.splitPaneRatio}
+                          onSplitRatioChange={ratio => {
+                            setPanelSizes(prev => ({ ...prev, splitPaneRatio: ratio }));
+                          }}
+                          onSplitRatioCommit={ratio => {
+                            appSettings.update({ splitPaneRatio: ratio });
+                          }}
                         />
                       ) : (
                         <Terminal
@@ -394,12 +546,43 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+              {/* AI 面板拖拽把手（右侧停靠时垂直把手） */}
+              {showAIPanel && aiPanelPosition === 'right' && (
+                <div
+                  className="ai-panel-resizer vertical"
+                  onMouseDown={e => {
+                    handleAIPanelDragStart();
+                    aiPanelResize.onMouseDown(e);
+                  }}
+                  title="拖动调整 AI 面板宽度"
+                />
+              )}
+
               {/* AI 助手面板 */}
               {showAIPanel && (
-                <AIAssistantPanel
-                  position={aiPanelPosition}
-                  onPositionChange={setAIPanelPosition}
-                />
+                <div
+                  className="ai-panel-wrapper"
+                  style={
+                    aiPanelPosition === 'right'
+                      ? { width: panelSizes.aiPanelWidth }
+                      : { height: panelSizes.aiPanelHeight }
+                  }
+                >
+                  {aiPanelPosition === 'bottom' && (
+                    <div
+                      className="ai-panel-resizer horizontal"
+                      onMouseDown={e => {
+                        handleAIPanelDragStart();
+                        aiPanelResizeBottom.onMouseDown(e);
+                      }}
+                      title="拖动调整 AI 面板高度"
+                    />
+                  )}
+                  <AIAssistantPanel
+                    position={aiPanelPosition}
+                    onPositionChange={setAIPanelPosition}
+                  />
+                </div>
               )}
             </div>
           )}
@@ -458,6 +641,11 @@ const App: React.FC = () => {
           onClose={() => setShowSessionManager(false)}
           onLoad={handleLoadSession}
         />
+      )}
+
+      {/* 快捷命令管理器对话框 */}
+      {showSnippetManager && (
+        <SnippetManager onClose={() => setShowSnippetManager(false)} />
       )}
     </div>
   );

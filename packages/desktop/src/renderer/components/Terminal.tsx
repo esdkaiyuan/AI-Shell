@@ -7,6 +7,13 @@ import 'xterm/css/xterm.css';
 import './Terminal.css';
 import { terminalBus } from '../terminalBus';
 import { appSettings, TERMINAL_THEMES } from '../appSettings';
+import { commandHistory } from '../commandHistory';
+import { snippetStore } from '../snippets';
+import {
+  suggestCommands,
+  InputLineTracker,
+  SuggestSource,
+} from '../commandSuggest';
 import SearchBar from './SearchBar';
 
 interface TerminalProps {
@@ -64,6 +71,48 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
   // 报错检测节流：上次通知时间
   const lastErrorNotifyRef = useRef<number>(0);
   const [searchResults, setSearchResults] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+  // Tab 补全建议
+  const [suggestions, setSuggestions] = useState<SuggestSource[]>([]);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputTrackerRef = useRef(new InputLineTracker());
+  // 供 xterm 按键处理器读取的最新建议状态（闭包里拿不到 useState）
+  const suggestionStateRef = useRef<{ list: SuggestSource[]; index: number; visible: boolean }>({
+    list: [],
+    index: 0,
+    visible: false,
+  });
+
+  const syncSuggestionState = (
+    list: SuggestSource[],
+    index: number,
+    visible: boolean
+  ) => {
+    suggestionStateRef.current = { list, index, visible };
+    setSuggestions(list);
+    setSuggestionIndex(index);
+    setShowSuggestions(visible);
+  };
+
+  // 把建议命令写回终端：退格清除已输入前缀，再写入完整命令（不回车）
+  const applySuggestionFromUI = (suggestion: SuggestSource) => {
+    const prefix = inputTrackerRef.current.get();
+    const target = suggestion.command;
+    const backspaces = '\x7f'.repeat(prefix.length);
+    const write = (d: string) => {
+      if (!sessionIdRef.current) return;
+      if (typeRef.current === 'ssh') {
+        window.electronAPI.ssh.write(sessionIdRef.current, d);
+      } else {
+        window.electronAPI.shell.write(sessionIdRef.current, d);
+      }
+    };
+    write(backspaces + target);
+    inputTrackerRef.current.clear();
+    // 让追踪器记住补全后的文本，方便继续补全参数
+    inputTrackerRef.current.feed(target);
+    syncSuggestionState([], 0, false);
+  };
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -95,6 +144,60 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
     searchAddonRef.current = searchAddon;
+
+    // ---- Tab 补全：把建议命令写回终端 ----
+    const applySuggestion = applySuggestionFromUI;
+
+    // 拦截 Tab / Esc / 方向键，实现补全交互
+    xterm.attachCustomKeyEventHandler(event => {
+      if (event.type !== 'keydown') return true;
+
+      const state = suggestionStateRef.current;
+
+      if (event.key === 'Tab') {
+        const prefix = inputTrackerRef.current.get();
+        if (!prefix.trim()) return true; // 空输入交给 shell 自己补全
+
+        if (state.visible && state.list.length > 0) {
+          // 循环选择
+          const nextIndex = (state.index + 1) % state.list.length;
+          syncSuggestionState(state.list, nextIndex, true);
+          return false;
+        }
+
+        // 首次 Tab：拉候选
+        const history = commandHistory.getAll().map(e => e.command);
+        const snippets = snippetStore.getAll().map(s => s.command);
+        const list = suggestCommands(prefix, history, snippets);
+        if (list.length === 0) return true; // 无候选，交给 shell
+        syncSuggestionState(list, 0, true);
+        return false;
+      }
+
+      if (event.key === 'Escape' && state.visible) {
+        syncSuggestionState([], 0, false);
+        return false;
+      }
+
+      if (state.visible && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+        const delta = event.key === 'ArrowDown' ? 1 : -1;
+        const nextIndex =
+          (state.index + delta + state.list.length) % state.list.length;
+        syncSuggestionState(state.list, nextIndex, true);
+        return false;
+      }
+
+      if (state.visible && (event.key === 'Enter' || event.key === 'ArrowRight')) {
+        // Enter/右键接受当前高亮建议（仅在建议可见时拦截）
+        const picked = state.list[state.index];
+        if (picked) {
+          applySuggestion(picked);
+          return false;
+        }
+      }
+
+      return true;
+    });
 
     // 检测报错并通知 AI 面板（节流：10 秒内最多一次）
     const detectError = (chunk: string) => {
@@ -140,6 +243,11 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
 
           // 处理终端输入
           xterm.onData(data => {
+            // 追踪输入行，供 Tab 补全使用
+            const line = inputTrackerRef.current.feed(data);
+            if (!line.trim() && suggestionStateRef.current.visible) {
+              syncSuggestionState([], 0, false);
+            }
             if (sessionIdRef.current) {
               window.electronAPI.ssh.write(sessionIdRef.current, data);
             }
@@ -181,6 +289,11 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
 
           // 处理终端输入
           xterm.onData(data => {
+            // 追踪输入行，供 Tab 补全使用
+            const line = inputTrackerRef.current.feed(data);
+            if (!line.trim() && suggestionStateRef.current.visible) {
+              syncSuggestionState([], 0, false);
+            }
             if (sessionIdRef.current) {
               window.electronAPI.shell.write(sessionIdRef.current, data);
             }
@@ -335,6 +448,29 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
         />
       )}
       <div ref={terminalRef} className="terminal" />
+      {/* Tab 补全候选浮层 */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="terminal-suggestions" role="listbox">
+          <div className="suggestions-header">
+            Tab 循环选择 · Enter 接受 · Esc 关闭
+          </div>
+          {suggestions.map((s, idx) => (
+            <div
+              key={`${s.origin}-${s.command}`}
+              className={`suggestion-item ${idx === suggestionIndex ? 'active' : ''}`}
+              onMouseDown={e => {
+                e.preventDefault();
+                applySuggestionFromUI(s);
+              }}
+              role="option"
+              aria-selected={idx === suggestionIndex}
+            >
+              <code className="suggestion-cmd">{s.command}</code>
+              <span className={`suggestion-origin ${s.origin}`}>{s.origin}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

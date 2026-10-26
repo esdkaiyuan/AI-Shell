@@ -1,9 +1,8 @@
 import type { IPty } from 'node-pty';
+import * as pty from 'node-pty';
 import { LocalStorage } from '@ai-shell/core';
 import { EventEmitter } from 'events';
 import { BrowserWindow } from 'electron';
-
-const pty = require('node-pty') as typeof import('node-pty');
 
 interface ShellSession {
   id: string;
