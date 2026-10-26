@@ -13,6 +13,9 @@ import {
   suggestCommands,
   InputLineTracker,
   SuggestSource,
+  parsePathToken,
+  resolveDir,
+  buildPathSuggestions,
 } from '../commandSuggest';
 import SearchBar from './SearchBar';
 
@@ -94,11 +97,14 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
     setShowSuggestions(visible);
   };
 
-  // 把建议命令写回终端：退格清除已输入前缀，再写入完整命令（不回车）
+  // 把建议命令写回终端：退格清除应替换的部分，再写入建议（不回车）
   const applySuggestionFromUI = (suggestion: SuggestSource) => {
-    const prefix = inputTrackerRef.current.get();
+    const line = inputTrackerRef.current.get();
+    const replaceFrom = suggestion.replaceFrom ?? 0;
     const target = suggestion.command;
-    const backspaces = '\x7f'.repeat(prefix.length);
+    // 只清除 replaceFrom 之后的内容，保留前面的命令/参数
+    const backspaces = '\x7f'.repeat(Math.max(line.length - replaceFrom, 0));
+    const kept = line.slice(0, replaceFrom);
     const write = (d: string) => {
       if (!sessionIdRef.current) return;
       if (typeRef.current === 'ssh') {
@@ -109,8 +115,8 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
     };
     write(backspaces + target);
     inputTrackerRef.current.clear();
-    // 让追踪器记住补全后的文本，方便继续补全参数
-    inputTrackerRef.current.feed(target);
+    // 让追踪器记住补全后的整行，方便继续补全参数
+    inputTrackerRef.current.feed(kept + target);
     syncSuggestionState([], 0, false);
   };
 
@@ -165,7 +171,31 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
           return false;
         }
 
-        // 首次 Tab：拉候选
+        // 路径补全：末尾 token 像路径时列目录
+        const pathToken = parsePathToken(prefix);
+        if (pathToken.isPath) {
+          (async () => {
+            try {
+              const home = await window.electronAPI.files.getHome();
+              const workspace = await window.electronAPI.files.getWorkspace();
+              const resolved = resolveDir(pathToken.dirPart, home, workspace);
+              if (!resolved) return;
+              const entries = await window.electronAPI.files.listDirectory(
+                resolved.absDir,
+                resolved.root
+              );
+              const list = buildPathSuggestions(pathToken, entries);
+              if (list.length > 0) {
+                syncSuggestionState(list, 0, true);
+              }
+            } catch {
+              // 目录不可读时静默退回 shell 自身补全
+            }
+          })();
+          return false;
+        }
+
+        // 命令补全：拉候选
         const history = commandHistory.getAll().map(e => e.command);
         const snippets = snippetStore.getAll().map(s => s.command);
         const list = suggestCommands(prefix, history, snippets);

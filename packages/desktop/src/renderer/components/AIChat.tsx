@@ -34,26 +34,43 @@ const AIChat: React.FC = () => {
     setInput('');
     setLoading(true);
 
+    // 先占位一条空的 assistant 消息，流式往里填
+    const placeholderIndex = messages.length + 1;
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
     try {
       const { aiProvider, aiModel } = appSettings.get();
-      const response = await window.electronAPI.ai.chat(
+      const response = await window.electronAPI.ai.chatStream(
         [
           { role: 'system', content: 'You are a helpful AI assistant for shell operations.' },
           ...messages.map(m => ({ role: m.role, content: m.content })),
           { role: 'user', content: input },
         ],
         aiProvider || undefined,
-        aiModel || undefined
+        aiModel || undefined,
+        chunk => {
+          if (chunk.error || !chunk.content) return;
+          setMessages(prev =>
+            prev.map((m, i) =>
+              i === placeholderIndex ? { ...m, content: m.content + chunk.content } : m
+            )
+          );
+        }
       );
 
-      const assistantMessage: Message = { role: 'assistant', content: response.content };
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === placeholderIndex ? { ...m, content: response.content } : m
+        )
+      );
     } catch (error: unknown) {
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: `Error: ${getErrorMessage(error)}`,
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === placeholderIndex
+            ? { ...m, content: `Error: ${getErrorMessage(error)}` }
+            : m
+        )
+      );
     } finally {
       setLoading(false);
     }

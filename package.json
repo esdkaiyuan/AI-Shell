@@ -12,7 +12,7 @@
     "build": "pnpm -r build",
     "build:desktop": "pnpm --filter @ai-shell/desktop build",
     "lint": "eslint . --ext .ts,.tsx",
-    "type-check": "tsc --noEmit",
+    "type-check": "pnpm --filter @ai-shell/core type-check && pnpm --filter @ai-shell/desktop type-check && pnpm --filter @ai-shell/mobile type-check",
     "test": "vitest"
   },
   "devDependencies": {

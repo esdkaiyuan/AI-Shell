@@ -512,6 +512,28 @@ function setupIPC() {
     }
   });
 
+  // 流式对话：按 streamId 逐块推送到渲染进程，结束时推 done 标记
+  ipcMain.handle('ai:chat-stream', async (event, streamId: string, messages, provider?: string, model?: string) => {
+    const send = (payload: Record<string, unknown>) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('ai:chat-chunk', streamId, payload);
+      }
+    };
+    try {
+      let fullContent = '';
+      for await (const chunk of aiService.streamChat(messages, provider, model)) {
+        fullContent += chunk.content;
+        send({ content: chunk.content, done: chunk.done ?? false });
+      }
+      send({ content: '', done: true, final: true });
+      return { content: fullContent, model: model || '' };
+    } catch (error: unknown) {
+      console.error('AI chat stream error:', error);
+      send({ content: '', done: true, error: getErrorMessage(error) });
+      throw new Error(`AI chat stream error: ${getErrorMessage(error)}`);
+    }
+  });
+
   ipcMain.handle('ai:list-providers', async () => {
     try {
       return aiService.listProviders().map(sanitizeAIProvider);

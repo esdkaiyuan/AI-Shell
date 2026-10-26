@@ -97,7 +97,7 @@ export class SuggestController implements CommandController {
   description = '根据上下文建议命令';
   usage = 'suggest';
 
-  async execute(args: string[], context: ShellContext): Promise<string> {
+  async execute(_args: string[], context: ShellContext): Promise<string> {
     const recentHistory = context.history.slice(-5);
     const aiService = context.getAIService();
 
@@ -126,7 +126,7 @@ export class FixController implements CommandController {
   description = '修复上一个失败的命令';
   usage = 'fix';
 
-  async execute(args: string[], context: ShellContext): Promise<string> {
+  async execute(_args: string[], context: ShellContext): Promise<string> {
     const lastCommand = context.history[context.history.length - 1];
     if (!lastCommand) {
       return 'No previous command found.';

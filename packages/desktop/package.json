@@ -12,7 +12,8 @@
     "build:main:bundle": "node scripts/build-main.mjs",
     "build:renderer": "vite build",
     "start": "electron .",
-    "package": "electron-builder"
+    "package": "electron-builder",
+    "type-check": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json --noEmit && tsc -p tsconfig.renderer.json --noEmit"
   },
   "dependencies": {
     "@ai-shell/core": "workspace:*",

@@ -5,7 +5,12 @@
 export interface SuggestSource {
   command: string;
   /** 来源标记，展示用 */
-  origin: 'history' | 'snippet' | 'common';
+  origin: 'history' | 'snippet' | 'common' | 'path';
+  /**
+   * 从行缓冲的哪个下标开始替换。
+   * 缺省 0 = 整行替换（命令补全）；路径补全只替换末尾 token。
+   */
+  replaceFrom?: number;
 }
 
 /** 常用命令词典（覆盖日常运维/开发高频命令） */
@@ -120,4 +125,102 @@ export class InputLineTracker {
   clear(): void {
     this.buffer = '';
   }
+}
+
+// ---- 路径补全 ----
+
+export interface PathToken {
+  /** 末尾 token 是否像路径（含分隔符 / \ 或以 ~ . 开头） */
+  isPath: boolean;
+  /** 末尾 token 在整行中的起始下标 */
+  tokenStart: number;
+  /** 末尾 token 原文 */
+  token: string;
+  /** 目录部分（含末尾分隔符），如 "src/" "~/" "/usr/" */
+  dirPart: string;
+  /** 目录之后正在输入的文件名前缀 */
+  namePrefix: string;
+}
+
+/** 解析当前输入行末尾的路径 token */
+export function parsePathToken(line: string): PathToken {
+  // 取最后一个空白分隔的 token
+  const match = /(\S*)$/.exec(line);
+  const token = match?.[1] ?? '';
+  const tokenStart = line.length - token.length;
+
+  const lastSep = Math.max(token.lastIndexOf('/'), token.lastIndexOf('\\'));
+  const looksLikePath =
+    token.includes('/') ||
+    token.includes('\\') ||
+    token.startsWith('~') ||
+    token.startsWith('.');
+
+  if (!looksLikePath) {
+    return { isPath: false, tokenStart, token, dirPart: '', namePrefix: token };
+  }
+
+  const dirPart = lastSep >= 0 ? token.slice(0, lastSep + 1) : '';
+  const namePrefix = lastSep >= 0 ? token.slice(lastSep + 1) : token;
+  return { isPath: true, tokenStart, token, dirPart, namePrefix };
+}
+
+export interface ResolvedDir {
+  absDir: string;
+  root: 'home' | 'workspace';
+}
+
+/**
+ * 把 dirPart 解析为绝对目录 + 所属根（home/workspace）。
+ * 解析不了（如绝对路径在两根之外）返回 null。
+ */
+export function resolveDir(
+  dirPart: string,
+  home: string,
+  workspace: string
+): ResolvedDir | null {
+  const norm = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '');
+
+  if (dirPart === '' || dirPart === './') {
+    return { absDir: workspace, root: 'workspace' };
+  }
+
+  if (dirPart.startsWith('~')) {
+    const rest = dirPart.slice(1).replace(/^[\\/]/, '');
+    const absDir = rest ? `${norm(home)}/${rest}` : home;
+    return { absDir, root: 'home' };
+  }
+
+  const isAbsolute = dirPart.startsWith('/') || /^[A-Za-z]:[\\/]/.test(dirPart);
+  if (isAbsolute) {
+    const abs = norm(dirPart);
+    const homeN = norm(home);
+    const wsN = norm(workspace);
+    const startsWith = (root: string) =>
+      abs === root || abs.startsWith(root + '/');
+    if (startsWith(wsN)) return { absDir: dirPart, root: 'workspace' };
+    if (startsWith(homeN)) return { absDir: dirPart, root: 'home' };
+    return null;
+  }
+
+  // 相对路径：相对 workspace
+  return { absDir: `${norm(workspace)}/${dirPart}`.replace(/\/+$/, ''), root: 'workspace' };
+}
+
+/** 根据目录条目生成补全候选（替换末尾 token） */
+export function buildPathSuggestions(
+  pathToken: PathToken,
+  entries: Array<{ name: string; type: 'file' | 'directory' }>,
+  limit = 8
+): SuggestSource[] {
+  if (!pathToken.isPath) return [];
+  const prefix = pathToken.namePrefix.toLowerCase();
+  return entries
+    .filter(e => e.name.toLowerCase().startsWith(prefix))
+    .slice(0, limit)
+    .map(e => ({
+      command: pathToken.dirPart + e.name + (e.type === 'directory' ? '/' : ''),
+      origin: 'path' as const,
+      replaceFrom: pathToken.tokenStart,
+    }));
 }

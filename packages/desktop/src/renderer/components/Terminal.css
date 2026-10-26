@@ -107,3 +107,8 @@
   color: #5edb8a;
   background: rgba(53, 194, 107, 0.12);
 }
+
+.suggestion-origin.path {
+  color: #d9a441;
+  background: rgba(217, 164, 65, 0.12);
+}

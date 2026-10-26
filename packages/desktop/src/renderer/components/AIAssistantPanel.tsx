@@ -100,9 +100,13 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
     setInput('');
     setLoading(true);
 
+    // 先占位一条空的 assistant 消息，流式往里填
+    const placeholderIndex = messages.length + 1;
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
     try {
       const { aiProvider, aiModel } = appSettings.get();
-      const response = await window.electronAPI.ai.chat(
+      const response = await window.electronAPI.ai.chatStream(
         [
           {
             role: 'system',
@@ -112,22 +116,40 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           { role: 'user', content: userMessage },
         ],
         aiProvider || undefined,
-        aiModel || undefined
+        aiModel || undefined,
+        chunk => {
+          if (chunk.error) return;
+          if (!chunk.content) return;
+          setMessages(prev =>
+            prev.map((m, i) =>
+              i === placeholderIndex
+                ? { ...m, content: m.content + chunk.content }
+                : m
+            )
+          );
+        }
       );
 
       const commands = extractCommands(response.content);
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: response.content,
-        commands: commands.length > 0 ? commands : undefined,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === placeholderIndex
+            ? {
+                ...m,
+                content: response.content,
+                commands: commands.length > 0 ? commands : undefined,
+              }
+            : m
+        )
+      );
     } catch (error: unknown) {
       const errorMessage: Message = {
         role: 'assistant',
         content: `错误: ${getErrorMessage(error)}`,
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev =>
+        prev.map((m, i) => (i === placeholderIndex ? errorMessage : m))
+      );
     } finally {
       setLoading(false);
     }
@@ -187,9 +209,12 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
     setMessages(prev => [...prev, { role: 'user', content: displayMsg }]);
     setLoading(true);
 
+    const placeholderIndex = messages.length + 1;
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
     try {
       const { aiProvider, aiModel } = appSettings.get();
-      const response = await window.electronAPI.ai.chat(
+      const response = await window.electronAPI.ai.chatStream(
         [
           {
             role: 'system',
@@ -200,23 +225,37 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           { role: 'user', content: userMessage },
         ],
         aiProvider || undefined,
-        aiModel || undefined
+        aiModel || undefined,
+        chunk => {
+          if (chunk.error || !chunk.content) return;
+          setMessages(prev =>
+            prev.map((m, i) =>
+              i === placeholderIndex ? { ...m, content: m.content + chunk.content } : m
+            )
+          );
+        }
       );
 
       const commands = extractCommands(response.content);
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: response.content,
-          commands: commands.length > 0 ? commands : undefined,
-        },
-      ]);
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === placeholderIndex
+            ? {
+                ...m,
+                content: response.content,
+                commands: commands.length > 0 ? commands : undefined,
+              }
+            : m
+        )
+      );
     } catch (error: unknown) {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: `错误: ${getErrorMessage(error)}` },
-      ]);
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === placeholderIndex
+            ? { ...m, content: `错误: ${getErrorMessage(error)}` }
+            : m
+        )
+      );
     } finally {
       setLoading(false);
     }

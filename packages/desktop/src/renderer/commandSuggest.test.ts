@@ -5,6 +5,9 @@ import {
   suggestCommands,
   currentInputPrefix,
   InputLineTracker,
+  parsePathToken,
+  resolveDir,
+  buildPathSuggestions,
   COMMON_COMMANDS,
 } from './commandSuggest';
 
@@ -123,5 +126,141 @@ describe('COMMON_COMMANDS', () => {
     expect(Array.isArray(COMMON_COMMANDS)).toBe(true);
     expect(COMMON_COMMANDS.length).toBeGreaterThan(20);
     expect(COMMON_COMMANDS.every(c => typeof c === 'string')).toBe(true);
+  });
+});
+
+describe('parsePathToken', () => {
+  it('detects plain commands as non-path', () => {
+    const r = parsePathToken('git status');
+    expect(r.isPath).toBe(false);
+  });
+
+  it('parses relative path with prefix', () => {
+    const r = parsePathToken('cat src/comp');
+    expect(r.isPath).toBe(true);
+    expect(r.dirPart).toBe('src/');
+    expect(r.namePrefix).toBe('comp');
+    expect(r.tokenStart).toBe(4);
+  });
+
+  it('parses absolute path', () => {
+    const r = parsePathToken('ls /usr/lo');
+    expect(r.isPath).toBe(true);
+    expect(r.dirPart).toBe('/usr/');
+    expect(r.namePrefix).toBe('lo');
+  });
+
+  it('parses home path', () => {
+    const r = parsePathToken('cd ~/doc');
+    expect(r.isPath).toBe(true);
+    expect(r.dirPart).toBe('~/');
+    expect(r.namePrefix).toBe('doc');
+  });
+
+  it('treats bare ~ as path', () => {
+    const r = parsePathToken('cd ~');
+    expect(r.isPath).toBe(true);
+  });
+
+  it('handles dot-relative path', () => {
+    const r = parsePathToken('cat ./read');
+    expect(r.isPath).toBe(true);
+    expect(r.dirPart).toBe('./');
+    expect(r.namePrefix).toBe('read');
+  });
+
+  it('handles trailing separator with empty prefix', () => {
+    const r = parsePathToken('ls src/');
+    expect(r.isPath).toBe(true);
+    expect(r.dirPart).toBe('src/');
+    expect(r.namePrefix).toBe('');
+  });
+});
+
+describe('resolveDir', () => {
+  const home = 'C:/Users/me';
+  const workspace = 'D:/proj';
+
+  it('resolves empty dirPart to workspace', () => {
+    expect(resolveDir('', home, workspace)).toEqual({ absDir: workspace, root: 'workspace' });
+    expect(resolveDir('./', home, workspace)).toEqual({ absDir: workspace, root: 'workspace' });
+  });
+
+  it('resolves home shorthand', () => {
+    expect(resolveDir('~/', home, workspace)).toEqual({ absDir: home, root: 'home' });
+    expect(resolveDir('~/docs', home, workspace)).toEqual({
+      absDir: 'C:/Users/me/docs',
+      root: 'home',
+    });
+  });
+
+  it('resolves absolute path inside workspace', () => {
+    expect(resolveDir('D:/proj/src/', home, workspace)).toEqual({
+      absDir: 'D:/proj/src/',
+      root: 'workspace',
+    });
+  });
+
+  it('resolves absolute path inside home', () => {
+    expect(resolveDir('C:/Users/me/bin/', home, workspace)?.root).toBe('home');
+  });
+
+  it('rejects absolute path outside both roots', () => {
+    expect(resolveDir('/etc/', home, workspace)).toBeNull();
+  });
+
+  it('resolves relative path against workspace', () => {
+    expect(resolveDir('src/', home, workspace)).toEqual({
+      absDir: 'D:/proj/src',
+      root: 'workspace',
+    });
+  });
+});
+
+describe('buildPathSuggestions', () => {
+  const token = {
+    isPath: true,
+    tokenStart: 4,
+    token: 'src/comp',
+    dirPart: 'src/',
+    namePrefix: 'comp',
+  };
+
+  it('filters by name prefix and marks replaceFrom', () => {
+    const list = buildPathSuggestions(token, [
+      { name: 'components', type: 'directory' },
+      { name: 'complete.ts', type: 'file' },
+      { name: 'other.ts', type: 'file' },
+    ]);
+    expect(list.map(s => s.command)).toEqual(['src/components/', 'src/complete.ts']);
+    expect(list[0].origin).toBe('path');
+    expect(list[0].replaceFrom).toBe(4);
+  });
+
+  it('appends slash for directories only', () => {
+    const list = buildPathSuggestions(token, [
+      { name: 'components', type: 'directory' },
+      { name: 'complete.ts', type: 'file' },
+    ]);
+    expect(list[0].command.endsWith('/')).toBe(true);
+    expect(list[1].command.endsWith('/')).toBe(false);
+  });
+
+  it('returns empty for non-path token', () => {
+    expect(
+      buildPathSuggestions({ ...token, isPath: false }, [{ name: 'comp', type: 'file' }])
+    ).toEqual([]);
+  });
+
+  it('empty name prefix matches all up to limit', () => {
+    const entries = Array.from({ length: 12 }, (_, i) => ({
+      name: `f${i}`,
+      type: 'file' as const,
+    }));
+    const list = buildPathSuggestions(
+      { isPath: true, tokenStart: 0, token: 'src/', dirPart: 'src/', namePrefix: '' },
+      entries
+    );
+    expect(list).toHaveLength(8);
   });
 });

@@ -88,6 +88,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ai: {
     chat: (messages: AIMessage[], provider?: string, model?: string) =>
       ipcRenderer.invoke('ai:chat', messages, provider, model),
+    // 流式对话：onChunk 增量回调，resolve 时返回完整响应
+    chatStream: (
+      messages: AIMessage[],
+      provider: string | undefined,
+      model: string | undefined,
+      onChunk: (chunk: { content: string; done: boolean; final?: boolean; error?: string }) => void
+    ) => {
+      const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const listener = (
+        _: Electron.IpcRendererEvent,
+        id: string,
+        payload: { content: string; done: boolean; final?: boolean; error?: string }
+      ) => {
+        if (id === streamId) onChunk(payload);
+      };
+      ipcRenderer.on('ai:chat-chunk', listener);
+      return ipcRenderer
+        .invoke('ai:chat-stream', streamId, messages, provider, model)
+        .finally(() => ipcRenderer.removeListener('ai:chat-chunk', listener));
+    },
     listProviders: () => ipcRenderer.invoke('ai:list-providers'),
     addProvider: (provider: AIProviderConfig) => ipcRenderer.invoke('ai:add-provider', provider),
     removeProvider: (name: string) => ipcRenderer.invoke('ai:remove-provider', name),

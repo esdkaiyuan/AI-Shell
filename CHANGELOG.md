@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- AI 流式输出：对话/报错分析逐 token 渲染（ai:chat-stream IPC + chunk 推送，双面板接入）
+- Tab 路径补全：识别末尾路径 token（含 ~/ ./ 相对/绝对），列目录候选，目录自动补斜杠，仅替换末尾 token
 - AI 面板与分屏窗格支持拖动调整尺寸（宽度/高度/比例，自动持久化）
 - AI 助手面板与 AI Chat 内置提供商/模型切换器，选择结果全局生效并持久化
 - 终端 Tab 命令自动补全：基于历史命令 + 快捷片段 + 常用命令词典，Tab 循环、Enter 接受、Esc 关闭
@@ -15,11 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 全局快捷键：Ctrl+T 新建终端、Ctrl+W 关闭、Ctrl+F 查找、Ctrl+N 分屏、Ctrl+B 快捷命令、Ctrl+Shift+A AI 面板、Ctrl+1..9 切换标签
 
 ### Fixed
+- 根 `pnpm type-check` 全绿：改为按包编排（core/desktop/mobile 各自 tsc），消除 desktop 与 mobile 两份 @types/react 版本冲突导致的 55 个假错误
+- core 控制器 2 处未用参数（Suggest/Fix Controller）改名 _args
 - 清理全部 8 个 ESLint error（xinghuo 未用变量、ptyAvailable 未用、no-var-requires、未转义引号）
 - 讯飞星火适配器增加 API Key 格式校验（APPID:APISecret:APIKey）
 
 ### Changed
-- 桌面端核心逻辑新增单元测试（补全/片段/设置/终端总线），vitest 60/60 通过
+- 桌面端核心逻辑新增单元测试（补全/片段/设置/终端总线/路径解析），vitest 77/77 通过
 
 ### Planned
 - 设备同步服务
