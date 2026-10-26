@@ -88,26 +88,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ai: {
     chat: (messages: AIMessage[], provider?: string, model?: string) =>
       ipcRenderer.invoke('ai:chat', messages, provider, model),
-    // 流式对话：onChunk 增量回调，resolve 时返回完整响应
+    // 流式对话：onChunk 增量回调；返回的 promise 带 streamId，供 abortChatStream 中断
     chatStream: (
       messages: AIMessage[],
       provider: string | undefined,
       model: string | undefined,
-      onChunk: (chunk: { content: string; done: boolean; final?: boolean; error?: string }) => void
+      onChunk: (chunk: { content: string; done: boolean; final?: boolean; aborted?: boolean; error?: string }) => void
     ) => {
       const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const listener = (
         _: Electron.IpcRendererEvent,
         id: string,
-        payload: { content: string; done: boolean; final?: boolean; error?: string }
+        payload: { content: string; done: boolean; final?: boolean; aborted?: boolean; error?: string }
       ) => {
         if (id === streamId) onChunk(payload);
       };
       ipcRenderer.on('ai:chat-chunk', listener);
-      return ipcRenderer
+      const promise = ipcRenderer
         .invoke('ai:chat-stream', streamId, messages, provider, model)
         .finally(() => ipcRenderer.removeListener('ai:chat-chunk', listener));
+      // 挂上 streamId，渲染层拿到后即可调用 abortChatStream
+      return Object.assign(promise, { streamId });
     },
+    // 中断指定流式请求
+    abortChatStream: (streamId: string) => ipcRenderer.invoke('ai:chat-abort', streamId),
     listProviders: () => ipcRenderer.invoke('ai:list-providers'),
     addProvider: (provider: AIProviderConfig) => ipcRenderer.invoke('ai:add-provider', provider),
     removeProvider: (name: string) => ipcRenderer.invoke('ai:remove-provider', name),

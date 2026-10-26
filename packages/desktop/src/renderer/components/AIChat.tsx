@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UserIcon, BotIcon, SendIcon } from './Icons';
+import { UserIcon, BotIcon, SendIcon, StopIcon } from './Icons';
 import ModelSelector from './ModelSelector';
+import ChatConversationBar from './ChatConversationBar';
 import { appSettings } from '../appSettings';
+import { chatStore, ChatMessage } from '../chatStore';
 import './AIChat.css';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
+type Message = ChatMessage;
 
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -17,6 +16,22 @@ const AIChat: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // 流式输出守卫：期间不接受 store 推送覆盖
+  const streamingRef = useRef(false);
+  // 当前流式请求的 streamId，供「停止生成」中断
+  const streamIdRef = useRef<string | null>(null);
+  // 当前消息快照，供流式结束后写回 store
+  const messagesRef = useRef<Message[]>([]);
+
+  const handleStop = () => {
+    const id = streamIdRef.current;
+    if (!id) return;
+    window.electronAPI.ai.abortChatStream(id).catch(console.error);
+  };
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -26,6 +41,18 @@ const AIChat: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
+  // 从 chatStore 恢复对话：切换会话时同步消息
+  useEffect(() => {
+    const apply = (state: ReturnType<typeof chatStore.getState>) => {
+      if (streamingRef.current) return;
+      const active = state.conversations.find(c => c.id === state.activeId);
+      setMessages(active ? active.messages.map(m => ({ ...m })) : []);
+    };
+    const unsubscribe = chatStore.subscribe(apply);
+    apply(chatStore.getState());
+    return unsubscribe;
+  }, []);
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
@@ -33,6 +60,7 @@ const AIChat: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
+    streamingRef.current = true;
 
     // 先占位一条空的 assistant 消息，流式往里填
     const placeholderIndex = messages.length + 1;
@@ -40,7 +68,7 @@ const AIChat: React.FC = () => {
 
     try {
       const { aiProvider, aiModel } = appSettings.get();
-      const response = await window.electronAPI.ai.chatStream(
+      const streamPromise = window.electronAPI.ai.chatStream(
         [
           { role: 'system', content: 'You are a helpful AI assistant for shell operations.' },
           ...messages.map(m => ({ role: m.role, content: m.content })),
@@ -57,21 +85,25 @@ const AIChat: React.FC = () => {
           );
         }
       );
+      streamIdRef.current = streamPromise.streamId;
+      const response = await streamPromise;
 
-      setMessages(prev =>
-        prev.map((m, i) =>
-          i === placeholderIndex ? { ...m, content: response.content } : m
-        )
+      const finalMessages: Message[] = messagesRef.current.map((m, i) =>
+        i === placeholderIndex ? { ...m, content: response.content } : m
       );
+      setMessages(finalMessages);
+      chatStore.replaceMessages(finalMessages);
     } catch (error: unknown) {
-      setMessages(prev =>
-        prev.map((m, i) =>
-          i === placeholderIndex
-            ? { ...m, content: `Error: ${getErrorMessage(error)}` }
-            : m
-        )
+      const finalMessages: Message[] = messagesRef.current.map((m, i) =>
+        i === placeholderIndex
+          ? { ...m, content: `Error: ${getErrorMessage(error)}` }
+          : m
       );
+      setMessages(finalMessages);
+      chatStore.replaceMessages(finalMessages);
     } finally {
+      streamingRef.current = false;
+      streamIdRef.current = null;
       setLoading(false);
     }
   };
@@ -88,6 +120,7 @@ const AIChat: React.FC = () => {
       <div className="chat-header">
         <h2>AI Assistant</h2>
         <ModelSelector />
+        <ChatConversationBar />
       </div>
 
       <div className="chat-messages">
@@ -138,9 +171,15 @@ const AIChat: React.FC = () => {
           placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
           disabled={loading}
         />
-        <button onClick={handleSend} disabled={loading || !input.trim()}>
-          <SendIcon size={18} />
-        </button>
+        {loading ? (
+          <button className="stop-button" onClick={handleStop} title="停止生成">
+            <StopIcon size={18} />
+          </button>
+        ) : (
+          <button onClick={handleSend} disabled={!input.trim()}>
+            <SendIcon size={18} />
+          </button>
+        )}
       </div>
     </div>
   );

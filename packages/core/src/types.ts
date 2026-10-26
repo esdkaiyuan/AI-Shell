@@ -38,7 +38,8 @@ export abstract class AIAdapter {
   abstract chat(messages: AIMessage[], model?: string): Promise<AIResponse>;
   abstract streamChat(
     messages: AIMessage[],
-    model?: string
+    model?: string,
+    signal?: AbortSignal
   ): AsyncGenerator<StreamChunk, void, unknown>;
   abstract listModels(): Promise<string[]>;
 }
@@ -92,7 +93,8 @@ export interface AIService {
   streamChat(
     messages: AIMessage[],
     provider?: string,
-    model?: string
+    model?: string,
+    signal?: AbortSignal
   ): AsyncGenerator<StreamChunk, void, unknown>;
   listProviders(): AIProvider[];
   addProvider(provider: AIProvider): void;

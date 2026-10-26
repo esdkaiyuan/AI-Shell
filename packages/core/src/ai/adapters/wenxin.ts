@@ -66,7 +66,11 @@ export class WenxinAdapter extends AIAdapter {
     }
   }
 
-  async *streamChat(messages: AIMessage[], model?: string): AsyncGenerator<StreamChunk> {
+  async *streamChat(
+    messages: AIMessage[],
+    model?: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk> {
     try {
       const token = await this.getAccessToken();
       const modelPath = model || 'ernie-bot-turbo';
@@ -83,6 +87,7 @@ export class WenxinAdapter extends AIAdapter {
         {
           params: { access_token: token },
           responseType: 'stream',
+        signal,
         }
       );
 

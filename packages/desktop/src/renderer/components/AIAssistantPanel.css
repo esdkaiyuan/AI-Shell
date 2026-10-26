@@ -30,6 +30,8 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .panel-controls {
@@ -293,6 +295,18 @@
 .panel-input button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 停止生成按钮 */
+.panel-input button.stop-button {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.panel-input button.stop-button:hover:not(:disabled) {
+  background-color: var(--color-error);
+  color: #fff;
 }
 
 /* 响应式调整 */

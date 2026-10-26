@@ -87,8 +87,15 @@ interface ElectronAPI {
       messages: AIMessage[],
       provider: string | undefined,
       model: string | undefined,
-      onChunk: (chunk: { content: string; done: boolean; final?: boolean; error?: string }) => void
-    ) => Promise<AIResponse>;
+      onChunk: (chunk: {
+        content: string;
+        done: boolean;
+        final?: boolean;
+        aborted?: boolean;
+        error?: string;
+      }) => void
+    ) => Promise<AIResponse> & { streamId: string };
+    abortChatStream: (streamId: string) => Promise<boolean>;
     listProviders: () => Promise<AIProviderConfig[]>;
     addProvider: (provider: AIProviderConfig) => Promise<void>;
     removeProvider: (name: string) => Promise<void>;

@@ -300,97 +300,35 @@
   gap: 1px;
   height: 30px;
   flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
-.terminal-tab {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  height: 27px;
-  background-color: transparent;
-  border: 1px solid transparent;
-  border-radius: 2px 2px 0 0;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.15s;
-  color: var(--color-text-secondary);
-  font-size: 12px;
+.terminal-tabs::-webkit-scrollbar {
+  height: 3px;
 }
 
-.terminal-tab:hover {
-  background-color: #1a2430;
-  border-color: var(--color-border-primary);
-  color: var(--color-text-primary);
+.terminal-tabs::-webkit-scrollbar-thumb {
+  background: #2d3946;
+  border-radius: 2px;
 }
 
-.terminal-tab.active {
-  background-color: #0b0f14;
-  color: var(--color-text-primary);
-  border-top: 2px solid var(--color-accent);
-  border-bottom-color: #0b0f14;
-}
-
-.terminal-tab-icon {
-  font-size: 14px;
-}
-
-.terminal-tab-title {
-  font-size: 12px;
-}
-
-.terminal-tab-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  background: none;
-  border: none;
-  color: var(--color-text-tertiary);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 0;
-  border-radius: var(--radius-sm);
-  opacity: 0;
-  transition: all 0.15s;
-}
-
-.terminal-tab:hover .terminal-tab-close {
-  opacity: 1;
-}
-
-.terminal-tab-close:hover {
-  background-color: var(--color-error-bg);
-  color: var(--color-error);
-}
-
-.add-tab-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  background: none;
-  border: none;
-  color: var(--color-text-secondary);
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all 0.15s;
-}
-
-.add-tab-btn:hover {
-  background-color: var(--color-accent-muted);
-  color: var(--color-accent-hover);
-}
-
-/* 终端容器 */
-.terminal-container {
+/* 终端容器 */.terminal-container {
   flex: 1;
   overflow: hidden;
   background-color: #070a0e;
   position: relative;
+}
+
+/* 懒加载占位 */
+.view-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
 }
 
 /* 底部状态栏 */

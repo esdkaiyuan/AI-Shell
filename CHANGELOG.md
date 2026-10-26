@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- AI 对话持久化：多会话列表，支持新建/切换/重命名/删除，刷新或重启后对话仍在（chatStore + 会话切换器）
+- 终端标签页双击重命名、拖拽调整顺序（标签栏重构为 TerminalTabBar，修正原嵌套 button 的无效 HTML）
+- 流式输出支持「停止生成」：AbortSignal 全链路贯通（core 接口 → 9 个 adapter → 主进程 controller → 界面停止按钮）
 - AI 流式输出：对话/报错分析逐 token 渲染（ai:chat-stream IPC + chunk 推送，双面板接入）
 - Tab 路径补全：识别末尾路径 token（含 ~/ ./ 相对/绝对），列目录候选，目录自动补斜杠，仅替换末尾 token
 - AI 面板与分屏窗格支持拖动调整尺寸（宽度/高度/比例，自动持久化）
@@ -23,7 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 讯飞星火适配器增加 API Key 格式校验（APPID:APISecret:APIKey）
 
 ### Changed
-- 桌面端核心逻辑新增单元测试（补全/片段/设置/终端总线/路径解析），vitest 77/77 通过
+- 桌面端核心逻辑新增单元测试（补全/片段/设置/终端总线/路径解析/对话持久化/流式中断），vitest 94/94 通过
+- 打包拆包：设置页与资源管理器改为懒加载，xterm/react 拆为独立 chunk，最大包 527KB → 298KB，消除体积警告
 
 ### Planned
 - 设备同步服务

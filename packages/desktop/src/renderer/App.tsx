@@ -1,14 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import Terminal from './components/Terminal';
 import SplitTerminal from './components/SplitTerminal';
 import AIChat from './components/AIChat';
 import AIAssistantPanel from './components/AIAssistantPanel';
-import FileExplorer from './components/FileExplorer';
-import Settings from './components/Settings';
 import SystemMonitor from './components/SystemMonitor';
 import SSHManager from './components/SSHManager';
 import SessionManager from './components/SessionManager';
 import SnippetManager from './components/SnippetManager';
+import TerminalTabBar from './components/TerminalTabBar';
 import { terminalBus } from './terminalBus';
 import { appSettings, PANEL_LIMITS, clamp } from './appSettings';
 import { useDragResize } from './useDragResize';
@@ -26,13 +25,16 @@ import {
   SettingsIcon,
   HardDriveIcon,
   GlobeIcon,
-  CloseIcon,
   WifiIcon,
   KeyboardIcon,
   MonitorIcon,
   ZapIcon,
 } from './components/Icons';
 import './App.css';
+
+// 重组件按需加载：设置页与资源管理器代码量较大，切到该视图时才拉取
+const FileExplorer = lazy(() => import('./components/FileExplorer'));
+const Settings = lazy(() => import('./components/Settings'));
 
 type View = 'terminal' | 'explorer' | 'ai' | 'settings';
 type PanelPosition = 'right' | 'bottom';
@@ -199,6 +201,19 @@ const App: React.FC = () => {
     if (activeTerminal === id && filtered.length > 0) {
       setActiveTerminal(filtered[0].id);
     }
+  };
+
+  // 拖拽调整标签顺序：把 fromId 移到 toId 的位置
+  const handleReorderTabs = (fromId: string, toId: string) => {
+    setTerminals(prev => {
+      const fromIndex = prev.findIndex(t => t.id === fromId);
+      const toIndex = prev.findIndex(t => t.id === toId);
+      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
   };
 
   const toggleSearch = () => {
@@ -476,36 +491,19 @@ const App: React.FC = () => {
             <div className={`terminal-view-container ${showAIPanel ? `with-ai-${aiPanelPosition}` : ''}`}>
               <div className="terminal-view">
                 {/* 终端标签栏 */}
-                <div className="terminal-tabs">
-                  {terminals.map(term => (
-                    <button
-                      key={term.id}
-                      className={`terminal-tab ${activeTerminal === term.id ? 'active' : ''}`}
-                      onClick={() => setActiveTerminal(term.id)}
-                    >
-                      <span className="terminal-tab-icon">
-                        {term.type === 'ssh' ? <GlobeIcon size={14} /> : <TerminalIcon size={14} />}
-                      </span>
-                      <span className="terminal-tab-title">{term.title}</span>
-                      {term.host && (
-                        <span className="terminal-tab-host">@{term.host}</span>
-                      )}
-                      <button
-                        className="terminal-tab-close"
-                        onClick={e => {
-                          e.stopPropagation();
-                          closeTerminal(term.id);
-                        }}
-                        title="关闭"
-                      >
-                        <CloseIcon size={12} />
-                      </button>
-                    </button>
-                  ))}
-                  <button className="add-tab-btn" onClick={addTerminal} title="新建终端">
-                    +
-                  </button>
-                </div>
+                <TerminalTabBar
+                  tabs={terminals}
+                  activeId={activeTerminal}
+                  onSelect={setActiveTerminal}
+                  onClose={closeTerminal}
+                  onCreate={addTerminal}
+                  onRename={(id, title) => {
+                    setTerminals(prev =>
+                      prev.map(t => (t.id === id ? { ...t, title } : t))
+                    );
+                  }}
+                  onReorder={handleReorderTabs}
+                />
 
                 {/* 终端容器 */}
                 <div className="terminal-container">
@@ -588,8 +586,16 @@ const App: React.FC = () => {
           )}
 
           {currentView === 'ai' && <AIChat />}
-          {currentView === 'explorer' && <FileExplorer />}
-          {currentView === 'settings' && <Settings />}
+          {currentView === 'explorer' && (
+            <Suspense fallback={<div className="view-loading">正在加载资源管理器…</div>}>
+              <FileExplorer />
+            </Suspense>
+          )}
+          {currentView === 'settings' && (
+            <Suspense fallback={<div className="view-loading">正在加载设置…</div>}>
+              <Settings />
+            </Suspense>
+          )}
         </div>
       </div>
 

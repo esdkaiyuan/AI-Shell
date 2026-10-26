@@ -43,7 +43,11 @@ export class ClaudeAdapter extends AIAdapter {
     }
   }
 
-  async *streamChat(messages: AIMessage[], model?: string): AsyncGenerator<StreamChunk> {
+  async *streamChat(
+    messages: AIMessage[],
+    model?: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk> {
     try {
       const systemMessage = messages.find(m => m.role === 'system');
       const conversationMessages = messages.filter(m => m.role !== 'system');
@@ -59,6 +63,7 @@ export class ClaudeAdapter extends AIAdapter {
         },
         {
           responseType: 'stream',
+        signal,
         }
       );
 

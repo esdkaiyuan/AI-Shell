@@ -56,9 +56,15 @@ export class XinghuoAdapter extends AIAdapter {
     }
   }
 
-  async *streamChat(messages: AIMessage[], model?: string): AsyncGenerator<StreamChunk> {
+  async *streamChat(
+    messages: AIMessage[],
+    model?: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk> {
     // 讯飞星火使用WebSocket进行流式传输，这里简化为非流式
+    if (signal?.aborted) return;
     const response = await this.chat(messages, model);
+    if (signal?.aborted) return;
     yield { content: response.content, done: true };
   }
 

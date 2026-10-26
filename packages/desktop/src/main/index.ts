@@ -22,6 +22,9 @@ let lastCpuSample: { idle: number; total: number } | null = null;
 // 系统监控定时器：每 2 秒向渲染进程推送一次真实数据
 let statsTimer: NodeJS.Timeout | null = null;
 
+// 进行中的流式 AI 请求：streamId → AbortController（支持「停止生成」）
+const aiStreamControllers = new Map<string, AbortController>();
+
 interface ShellManagerLike {
   storage: LocalStorage | null;
   setMainWindow(window: BrowserWindow): void;
@@ -519,19 +522,49 @@ function setupIPC() {
         event.sender.send('ai:chat-chunk', streamId, payload);
       }
     };
+
+    // 每路流式请求独立 controller，供「停止生成」中断
+    const controller = new AbortController();
+    aiStreamControllers.set(streamId, controller);
+
     try {
       let fullContent = '';
-      for await (const chunk of aiService.streamChat(messages, provider, model)) {
+      for await (const chunk of aiService.streamChat(
+        messages,
+        provider,
+        model,
+        controller.signal
+      )) {
+        if (controller.signal.aborted) break;
         fullContent += chunk.content;
         send({ content: chunk.content, done: chunk.done ?? false });
       }
-      send({ content: '', done: true, final: true });
-      return { content: fullContent, model: model || '' };
+      const aborted = controller.signal.aborted;
+      send({ content: '', done: true, final: true, aborted });
+      return { content: fullContent, model: model || '', aborted };
     } catch (error: unknown) {
+      // 中断导致的取消不当作错误上报
+      if (controller.signal.aborted) {
+        send({ content: '', done: true, final: true, aborted: true });
+        return { content: '', model: model || '', aborted: true };
+      }
       console.error('AI chat stream error:', error);
       send({ content: '', done: true, error: getErrorMessage(error) });
       throw new Error(`AI chat stream error: ${getErrorMessage(error)}`);
+    } finally {
+      aiStreamControllers.delete(streamId);
     }
+  });
+
+  // 中断指定流式请求
+  ipcMain.handle('ai:chat-abort', (_, streamId: string) => {
+    const controller = aiStreamControllers.get(streamId);
+    if (controller) {
+      controller.abort();
+      aiStreamControllers.delete(streamId);
+      return true;
+    }
+    return false;
   });
 
   ipcMain.handle('ai:list-providers', async () => {

@@ -36,7 +36,11 @@ export class GLMAdapter extends AIAdapter {
     }
   }
 
-  async *streamChat(messages: AIMessage[], model?: string): AsyncGenerator<StreamChunk> {
+  async *streamChat(
+    messages: AIMessage[],
+    model?: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk> {
     try {
       const response = await this.client.post(
         '/chat/completions',
@@ -47,6 +51,7 @@ export class GLMAdapter extends AIAdapter {
         },
         {
           responseType: 'stream',
+        signal,
         }
       );
 

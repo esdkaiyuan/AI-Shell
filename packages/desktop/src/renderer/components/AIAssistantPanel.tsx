@@ -1,17 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UserIcon, BotIcon, SendIcon, PanelRightIcon, PanelBottomIcon, RefreshIcon, CloseIcon, PlayIcon } from './Icons';
+import { UserIcon, BotIcon, SendIcon, PanelRightIcon, PanelBottomIcon, RefreshIcon, CloseIcon, PlayIcon, StopIcon } from './Icons';
 import CommandActions from './CommandActions';
 import ModelSelector from './ModelSelector';
+import ChatConversationBar from './ChatConversationBar';
 import { terminalBus } from '../terminalBus';
 import { commandHistory, CommandHistoryEntry } from '../commandHistory';
 import { appSettings } from '../appSettings';
+import { chatStore, ChatMessage } from '../chatStore';
 import './AIAssistantPanel.css';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  commands?: string[]; // AI 生成的命令列表
-}
+type Message = ChatMessage;
 
 interface AIAssistantPanelProps {
   position: 'right' | 'bottom';
@@ -59,6 +57,22 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // 流式输出守卫：期间不接受 store 推送覆盖
+  const streamingRef = useRef(false);
+  // 当前流式请求的 streamId，供「停止生成」中断
+  const streamIdRef = useRef<string | null>(null);
+  // 当前消息快照，供流式结束后写回 store
+  const messagesRef = useRef<Message[]>([]);
+
+  const handleStop = () => {
+    const id = streamIdRef.current;
+    if (!id) return;
+    window.electronAPI.ai.abortChatStream(id).catch(console.error);
+  };
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,6 +85,19 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
   // 订阅命令历史变化
   useEffect(() => {
     const unsubscribe = commandHistory.subscribe(setHistory);
+    return unsubscribe;
+  }, []);
+
+  // 从 chatStore 恢复对话：切换会话时同步消息
+  useEffect(() => {
+    const apply = (state: ReturnType<typeof chatStore.getState>) => {
+      // 流式输出中不被打断，避免 store 覆盖正在渲染的内容
+      if (streamingRef.current) return;
+      const active = state.conversations.find(c => c.id === state.activeId);
+      setMessages(active ? active.messages.map(m => ({ ...m })) : []);
+    };
+    const unsubscribe = chatStore.subscribe(apply);
+    apply(chatStore.getState());
     return unsubscribe;
   }, []);
 
@@ -99,6 +126,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
     setMessages(prev => [...prev, msg]);
     setInput('');
     setLoading(true);
+    streamingRef.current = true;
 
     // 先占位一条空的 assistant 消息，流式往里填
     const placeholderIndex = messages.length + 1;
@@ -106,7 +134,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
 
     try {
       const { aiProvider, aiModel } = appSettings.get();
-      const response = await window.electronAPI.ai.chatStream(
+      const streamPromise = window.electronAPI.ai.chatStream(
         [
           {
             role: 'system',
@@ -129,28 +157,34 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           );
         }
       );
+      streamIdRef.current = streamPromise.streamId;
+      const response = await streamPromise;
 
       const commands = extractCommands(response.content);
-      setMessages(prev =>
-        prev.map((m, i) =>
-          i === placeholderIndex
-            ? {
-                ...m,
-                content: response.content,
-                commands: commands.length > 0 ? commands : undefined,
-              }
-            : m
-        )
+      const finalMessages: Message[] = messagesRef.current.map((m, i) =>
+        i === placeholderIndex
+          ? {
+              ...m,
+              content: response.content,
+              commands: commands.length > 0 ? commands : undefined,
+            }
+          : m
       );
+      setMessages(finalMessages);
+      chatStore.replaceMessages(finalMessages);
     } catch (error: unknown) {
       const errorMessage: Message = {
         role: 'assistant',
         content: `错误: ${getErrorMessage(error)}`,
       };
-      setMessages(prev =>
-        prev.map((m, i) => (i === placeholderIndex ? errorMessage : m))
+      const finalMessages: Message[] = messagesRef.current.map((m, i) =>
+        i === placeholderIndex ? errorMessage : m
       );
+      setMessages(finalMessages);
+      chatStore.replaceMessages(finalMessages);
     } finally {
+      streamingRef.current = false;
+      streamIdRef.current = null;
       setLoading(false);
     }
   };
@@ -208,6 +242,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
 
     setMessages(prev => [...prev, { role: 'user', content: displayMsg }]);
     setLoading(true);
+    streamingRef.current = true;
 
     const placeholderIndex = messages.length + 1;
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
@@ -237,26 +272,27 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
       );
 
       const commands = extractCommands(response.content);
-      setMessages(prev =>
-        prev.map((m, i) =>
-          i === placeholderIndex
-            ? {
-                ...m,
-                content: response.content,
-                commands: commands.length > 0 ? commands : undefined,
-              }
-            : m
-        )
+      const finalMessages: Message[] = messagesRef.current.map((m, i) =>
+        i === placeholderIndex
+          ? {
+              ...m,
+              content: response.content,
+              commands: commands.length > 0 ? commands : undefined,
+            }
+          : m
       );
+      setMessages(finalMessages);
+      chatStore.replaceMessages(finalMessages);
     } catch (error: unknown) {
-      setMessages(prev =>
-        prev.map((m, i) =>
-          i === placeholderIndex
-            ? { ...m, content: `错误: ${getErrorMessage(error)}` }
-            : m
-        )
+      const finalMessages: Message[] = messagesRef.current.map((m, i) =>
+        i === placeholderIndex
+          ? { ...m, content: `错误: ${getErrorMessage(error)}` }
+          : m
       );
+      setMessages(finalMessages);
+      chatStore.replaceMessages(finalMessages);
     } finally {
+      streamingRef.current = false;
       setLoading(false);
     }
   };
@@ -268,6 +304,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           <BotIcon size={16} />
           <span>AI 助手</span>
           <ModelSelector />
+          <ChatConversationBar compact />
         </div>
         <div className="panel-controls">
           <button
@@ -456,9 +493,15 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           disabled={loading}
           rows={2}
         />
-        <button onClick={() => handleSend()} disabled={loading || !input.trim()}>
-          <SendIcon size={16} />
-        </button>
+        {loading ? (
+          <button className="stop-button" onClick={handleStop} title="停止生成">
+            <StopIcon size={16} />
+          </button>
+        ) : (
+          <button onClick={() => handleSend()} disabled={!input.trim()}>
+            <SendIcon size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

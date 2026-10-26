@@ -88,9 +88,10 @@ export class AIServiceImpl implements AIService {
   async *streamChat(
     messages: AIMessage[],
     provider?: string,
-    model?: string
+    model?: string,
+    signal?: AbortSignal
   ): AsyncGenerator<StreamChunk, void, unknown> {
     const adapter = this.getAdapter(provider);
-    yield* adapter.streamChat(messages, model);
+    yield* adapter.streamChat(messages, model, signal);
   }
 }

@@ -6,6 +6,9 @@
 }
 
 .chat-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   padding: var(--spacing-lg);
   border-bottom: 1px solid var(--color-border-primary);
   background-color: var(--color-bg-secondary);
@@ -16,6 +19,7 @@
   font-weight: 600;
   color: var(--color-text-primary);
   letter-spacing: 0.5px;
+  margin-right: auto;
 }
 
 .chat-messages {
@@ -201,4 +205,16 @@
 .chat-input button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 停止生成按钮 */
+.chat-input button.stop-button {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.chat-input button.stop-button:hover:not(:disabled) {
+  background-color: var(--color-error);
+  color: #fff;
 }

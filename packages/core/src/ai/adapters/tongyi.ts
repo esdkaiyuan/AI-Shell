@@ -42,7 +42,11 @@ export class TongyiAdapter extends AIAdapter {
     }
   }
 
-  async *streamChat(messages: AIMessage[], model?: string): AsyncGenerator<StreamChunk> {
+  async *streamChat(
+    messages: AIMessage[],
+    model?: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk> {
     try {
       const response = await this.client.post(
         '/services/aigc/text-generation/generation',
@@ -61,6 +65,7 @@ export class TongyiAdapter extends AIAdapter {
             'X-DashScope-SSE': 'enable',
           },
           responseType: 'stream',
+        signal,
         }
       );
 
