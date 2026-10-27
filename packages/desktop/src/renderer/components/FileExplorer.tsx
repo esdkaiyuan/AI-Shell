@@ -47,6 +47,7 @@ const FileExplorer: React.FC = () => {
   const [rootPath, setRootPath] = useState('');
   const [nodes, setNodes] = useState<Record<string, ExplorerNodeState>>({});
   const [showHidden, setShowHidden] = useState(false);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const rootName = useMemo(() => {
@@ -151,8 +152,11 @@ const FileExplorer: React.FC = () => {
     return (
       <div key={entry.path} className="file-node">
         <div
-          className={`file-row ${isDirectory ? 'directory' : 'file'}`}
+          className={`file-row ${isDirectory ? 'directory' : 'file'} ${
+            selectedPath === entry.path ? 'selected' : ''
+          }`}
           style={{ paddingLeft: 10 + depth * 16 }}
+          onClick={() => setSelectedPath(entry.path)}
           onDoubleClick={() => {
             if (isDirectory) toggleDirectory(entry);
             else insertPath(entry.path);

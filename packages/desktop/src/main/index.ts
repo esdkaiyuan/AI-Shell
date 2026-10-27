@@ -283,7 +283,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    backgroundColor: '#070a0e',
+    backgroundColor: '#0a0a0b',
     icon: path.join(__dirname, '../../build/icon.png'),
     show: false,
   });

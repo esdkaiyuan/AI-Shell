@@ -3,6 +3,7 @@ import { UserIcon, BotIcon, SendIcon, PanelRightIcon, PanelBottomIcon, RefreshIc
 import CommandActions from './CommandActions';
 import ModelSelector from './ModelSelector';
 import ChatConversationBar from './ChatConversationBar';
+import MessageContent from './MessageContent';
 import { terminalBus } from '../terminalBus';
 import { commandHistory, CommandHistoryEntry } from '../commandHistory';
 import { appSettings } from '../appSettings';
@@ -447,7 +448,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
               {msg.role === 'user' ? <UserIcon size={18} /> : <BotIcon size={18} />}
             </div>
             <div className="message-content">
-              <pre>{msg.content}</pre>
+              <MessageContent content={msg.content} />
               {msg.commands && msg.commands.length > 0 && (
                 <div className="message-commands">
                   {msg.commands.map((cmd, cidx) => (

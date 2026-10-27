@@ -1,0 +1,18 @@
+{
+  "runtimeVersion": "alpine-3.20.3-aishell.1",
+  "distro": "Alpine Linux 3.20.3",
+  "builtAt": "2026-10-27",
+  "prootVersion": "5.1.107.101",
+  "abis": {
+    "arm64-v8a": {
+      "rootfs": "rootfs-arm64-v8a.tar.gz",
+      "sha256": "84920a1efb676b932f30221d2f50434f3fba494c9ac835518c84ba88f31c023c",
+      "sizeBytes": 18323011
+    },
+    "x86_64": {
+      "rootfs": "rootfs-x86_64.tar.gz",
+      "sha256": "7c50d2638f55aa2655e502698821828db26665cee5b1ceb6086552bd10861e6c",
+      "sizeBytes": 19858047
+    }
+  }
+}

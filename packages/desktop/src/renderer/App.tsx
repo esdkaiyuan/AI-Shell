@@ -39,6 +39,13 @@ const Settings = lazy(() => import('./components/Settings'));
 type View = 'terminal' | 'explorer' | 'ai' | 'settings';
 type PanelPosition = 'right' | 'bottom';
 
+const viewTitles: Record<View, string> = {
+  terminal: '终端',
+  explorer: '文件',
+  ai: 'AI 助手',
+  settings: '设置',
+};
+
 interface SSHConfig {
   id?: number;
   name: string;
@@ -386,111 +393,132 @@ const App: React.FC = () => {
 
   return (
     <div className="app">
-      {/* 顶部工具栏 */}
       <div className="app-toolbar">
         <div className="toolbar-brand" title="署名 esdkaiyuan">
           <span className="toolbar-brand-mark">AS</span>
           <span className="toolbar-brand-text">AI Shell</span>
           <span className="toolbar-signature">esdkaiyuan</span>
         </div>
-
-        <div className="toolbar-divider" />
-
-        <div className="toolbar-section">
-          <button className="toolbar-button" title="新建本地终端 (Ctrl+T)" onClick={addTerminal}>
-            <PlusIcon size={16} />
-          </button>
-          <button className="toolbar-button" title="SSH 连接" onClick={() => setShowSSHManager(true)}>
-            <GlobeIcon size={16} />
-          </button>
-          <button className="toolbar-button" title="打开会话" onClick={() => setShowSessionManager(true)}>
-            <FolderIcon size={16} />
-          </button>
-          <button className="toolbar-button" title="保存会话" onClick={() => setShowSessionManager(true)}>
-            <SaveIcon size={16} />
-          </button>
-        </div>
-
-        <div className="toolbar-divider" />
-
-        <div className="toolbar-section">
-          <button className="toolbar-button" title="复制" onClick={handleCopy}>
-            <CopyIcon size={16} />
-          </button>
-          <button className="toolbar-button" title="粘贴" onClick={handlePaste}>
-            <PasteIcon size={16} />
-          </button>
-          <button className="toolbar-button" title="查找 (Ctrl+F)" onClick={toggleSearch}>
-            <SearchIcon size={16} />
-          </button>
-        </div>
-
-        <div className="toolbar-divider" />
-
-        <div className="toolbar-section">
-          <button className="toolbar-button" title="快捷命令 (Ctrl+B)" onClick={() => setShowSnippetManager(true)}>
-            <ZapIcon size={16} />
-          </button>
-          <button className="toolbar-button" title="分屏 (Ctrl+N)" onClick={toggleSplit}>
-            <SplitIcon size={16} />
-          </button>
-          <button className="toolbar-button" title="全屏" onClick={toggleFullscreen}>
-            <MaximizeIcon size={16} />
-          </button>
-        </div>
+        <div className="toolbar-view-title">{viewTitles[currentView]}</div>
+        <button
+          className="toolbar-button toolbar-fullscreen"
+          aria-label="切换全屏"
+          title="切换全屏"
+          onClick={toggleFullscreen}
+        >
+          <MaximizeIcon size={16} />
+        </button>
       </div>
 
       {/* 主内容区 */}
       <div className="app-main">
-        {/* 左侧边栏 */}
-        <div className="app-sidebar">
+        <nav className="app-sidebar" aria-label="工作区">
           <button
             className={`sidebar-button ${currentView === 'terminal' ? 'active' : ''}`}
+            aria-label="终端"
+            aria-current={currentView === 'terminal' ? 'page' : undefined}
             onClick={() => setCurrentView('terminal')}
             title="终端"
           >
             <TerminalIcon size={20} />
+            <span className="sidebar-label">终端</span>
           </button>
 
           <button
             className={`sidebar-button ${currentView === 'explorer' ? 'active' : ''}`}
+            aria-label="文件"
+            aria-current={currentView === 'explorer' ? 'page' : undefined}
             onClick={() => setCurrentView('explorer')}
-            title="资源管理器"
+            title="文件"
           >
             <HardDriveIcon size={20} />
+            <span className="sidebar-label">文件</span>
           </button>
 
           <button
             className={`sidebar-button ${currentView === 'ai' ? 'active' : ''}`}
-            onClick={() => {
-              if (currentView === 'terminal') {
-                // 在终端视图时，切换 AI 面板显示
-                setShowAIPanel(!showAIPanel);
-              } else {
-                // 在其他视图时，切换到独立 AI 视图
-                setCurrentView('ai');
-              }
-            }}
-            title="AI助手 (Ctrl+Shift+A)"
+            aria-label="AI 助手"
+            aria-current={currentView === 'ai' ? 'page' : undefined}
+            onClick={() => setCurrentView('ai')}
+            title="AI 助手"
           >
             <AIIcon size={20} />
+            <span className="sidebar-label">AI</span>
           </button>
 
           <button
             className={`sidebar-button ${currentView === 'settings' ? 'active' : ''}`}
+            aria-label="设置"
+            aria-current={currentView === 'settings' ? 'page' : undefined}
             onClick={() => setCurrentView('settings')}
             title="设置"
           >
             <SettingsIcon size={20} />
+            <span className="sidebar-label">设置</span>
           </button>
-        </div>
+        </nav>
 
         {/* 内容区域 */}
         <div className="app-content">
           {currentView === 'terminal' && (
             <div className={`terminal-view-container ${showAIPanel ? `with-ai-${aiPanelPosition}` : ''}`}>
               <div className="terminal-view">
-                {/* 终端标签栏 */}
+                <div className="terminal-page-toolbar" aria-label="终端工具">
+                  <div className="terminal-tool-group">
+                    <button className="terminal-tool-button primary" title="新建本地终端 (Ctrl+T)" onClick={addTerminal}>
+                      <PlusIcon size={15} />
+                      <span className="terminal-tool-label">新建</span>
+                    </button>
+                    <button className="terminal-tool-button" title="SSH 连接" onClick={() => setShowSSHManager(true)}>
+                      <GlobeIcon size={15} />
+                      <span className="terminal-tool-label">SSH</span>
+                    </button>
+                  </div>
+                  <div className="terminal-tool-group">
+                    <button className="terminal-tool-button" title="打开会话" onClick={() => setShowSessionManager(true)}>
+                      <FolderIcon size={15} />
+                      <span className="terminal-tool-label">会话</span>
+                    </button>
+                    <button className="terminal-tool-button" title="保存会话" onClick={() => setShowSessionManager(true)}>
+                      <SaveIcon size={15} />
+                      <span className="terminal-tool-label">保存</span>
+                    </button>
+                  </div>
+                  <div className="terminal-tool-group">
+                    <button className="terminal-tool-button" title="复制" onClick={handleCopy}>
+                      <CopyIcon size={15} />
+                      <span className="terminal-tool-label">复制</span>
+                    </button>
+                    <button className="terminal-tool-button" title="粘贴" onClick={handlePaste}>
+                      <PasteIcon size={15} />
+                      <span className="terminal-tool-label">粘贴</span>
+                    </button>
+                    <button className="terminal-tool-button" title="查找 (Ctrl+F)" onClick={toggleSearch}>
+                      <SearchIcon size={15} />
+                      <span className="terminal-tool-label">查找</span>
+                    </button>
+                  </div>
+                  <div className="terminal-tool-group">
+                    <button className="terminal-tool-button" title="快捷命令 (Ctrl+B)" onClick={() => setShowSnippetManager(true)}>
+                      <ZapIcon size={15} />
+                      <span className="terminal-tool-label">命令</span>
+                    </button>
+                    <button className="terminal-tool-button" title="分屏 (Ctrl+N)" onClick={toggleSplit}>
+                      <SplitIcon size={15} />
+                      <span className="terminal-tool-label">分屏</span>
+                    </button>
+                    <button
+                      className={`terminal-tool-button ${showAIPanel ? 'active' : ''}`}
+                      aria-pressed={showAIPanel}
+                      title="切换 AI 停靠面板 (Ctrl+Shift+A)"
+                      onClick={() => setShowAIPanel(prev => !prev)}
+                    >
+                      <AIIcon size={15} />
+                      <span className="terminal-tool-label">AI 面板</span>
+                    </button>
+                  </div>
+                </div>
+
                 <TerminalTabBar
                   tabs={terminals}
                   activeId={activeTerminal}

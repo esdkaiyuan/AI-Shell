@@ -783,13 +783,13 @@ const Settings: React.FC = () => {
                     value={generalSettings.fontFamily}
                     onChange={e => updateGeneralSetting({ fontFamily: e.target.value })}
                   >
-                    <option value='"Consolas", "Courier New", "DejaVu Sans Mono", monospace'>
-                      Consolas
+                    <option value="'SF Mono', 'Cascadia Code', Consolas, 'JetBrains Mono', monospace">
+                      系统等宽（推荐）
                     </option>
-                    <option value='"Courier New", monospace'>Courier New</option>
-                    <option value='"DejaVu Sans Mono", monospace'>DejaVu Sans Mono</option>
                     <option value='"Cascadia Code", "Consolas", monospace'>Cascadia Code</option>
+                    <option value='"Consolas", "Courier New", "DejaVu Sans Mono", monospace'>Consolas</option>
                     <option value='"Fira Code", "Consolas", monospace'>Fira Code</option>
+                    <option value='"Courier New", monospace'>Courier New</option>
                     <option value='monospace'>系统等宽字体</option>
                   </select>
                 </div>

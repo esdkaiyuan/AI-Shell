@@ -11,24 +11,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-md);
-  padding: 10px 12px;
-  background-color: #101720;
+  gap: 12px;
+  height: 52px;
+  padding: 0 18px;
+  background-color: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border-primary);
+  flex-shrink: 0;
 }
 
 .file-explorer-header h2 {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .file-explorer-header p {
   max-width: min(760px, 70vw);
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--color-text-tertiary);
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -38,76 +41,83 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  background-color: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border-primary);
+  width: 30px;
+  height: 30px;
+  background-color: var(--color-fill-tertiary);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
 }
 
 .file-icon-button:hover {
-  background-color: var(--color-bg-hover);
-  border-color: var(--color-border-secondary);
-  color: var(--color-accent-hover);
+  background-color: var(--color-bg-raised);
+  color: var(--color-text-primary);
 }
 
 .file-explorer-toolbar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  background-color: #0f151d;
+  height: 42px;
+  padding: 0 14px;
+  background-color: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border-primary);
+  flex-shrink: 0;
 }
 
 .root-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 24px;
-  padding: 0 9px;
-  background-color: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border-primary);
+  height: 28px;
+  padding: 0 10px;
+  background-color: transparent;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   font-size: 12px;
+  font-weight: 500;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
 }
 
 .root-button:hover {
   background-color: var(--color-bg-hover);
-  border-color: var(--color-border-secondary);
   color: var(--color-text-primary);
 }
 
 .root-button.active {
-  background-color: #172b42;
-  border-color: rgba(47, 140, 255, 0.45);
+  background-color: var(--color-accent-muted);
+  border-color: transparent;
   color: var(--color-accent-hover);
 }
 
 .hidden-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   margin-left: auto;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   font-size: 12px;
   user-select: none;
+  cursor: pointer;
 }
 
 .hidden-toggle input {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
   accent-color: var(--color-accent);
 }
 
 .file-notice {
-  margin: var(--spacing-md) var(--spacing-lg) 0;
-  padding: 9px 11px;
+  margin: 10px 14px 0;
+  padding: 9px 12px;
   color: var(--color-info);
   background-color: var(--color-info-bg);
-  border: 1px solid rgba(125, 183, 255, 0.28);
+  border: 1px solid rgba(100, 210, 255, 0.2);
   border-radius: var(--radius-sm);
   font-size: 12px;
 }
@@ -121,35 +131,52 @@
 .file-root-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  height: 26px;
-  padding: 0 12px;
-  color: var(--color-accent-hover);
+  gap: 8px;
+  height: 30px;
+  padding: 0 16px;
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 600;
+}
+
+.file-root-row svg {
+  color: var(--color-accent);
 }
 
 .file-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-width: 540px;
-  height: 24px;
-  padding-right: var(--spacing-md);
+  gap: 8px;
+  min-width: 480px;
+  height: 36px;
+  margin: 1px 8px;
+  padding-right: 10px;
   border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   font-size: 12px;
   user-select: none;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
 }
 
 .file-row:hover {
-  background-color: #16202a;
+  background-color: var(--color-bg-hover);
   border-color: transparent;
   color: var(--color-text-primary);
 }
 
+.file-row.selected {
+  background-color: var(--color-accent-muted);
+  color: var(--color-text-primary);
+}
+
+.file-row:focus-within {
+  border-color: var(--color-accent);
+}
+
 .file-row.directory .file-icon {
-  color: var(--color-accent-hover);
+  color: var(--color-accent);
 }
 
 .file-row.file .file-icon {
@@ -160,17 +187,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 5px;
   color: var(--color-text-tertiary);
   flex-shrink: 0;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
 }
 
 .file-disclosure:hover:not(:disabled) {
-  background-color: var(--color-bg-active);
+  background-color: var(--color-fill-secondary);
   color: var(--color-text-primary);
 }
 
@@ -179,7 +208,7 @@
 }
 
 .file-disclosure svg {
-  transition: transform 0.14s ease;
+  transition: transform var(--duration-fast) var(--ease-apple);
 }
 
 .file-disclosure.expanded svg {
@@ -205,7 +234,8 @@
 .file-size {
   width: 86px;
   color: var(--color-text-tertiary);
-  font-family: 'Consolas', 'Courier New', monospace;
+  font-family: var(--font-mono);
+  font-size: 11px;
   text-align: right;
   flex-shrink: 0;
 }
@@ -213,13 +243,15 @@
 .file-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   opacity: 0;
-  transition: opacity 0.14s ease;
+  transition: opacity var(--duration-fast) var(--ease-apple);
   flex-shrink: 0;
 }
 
-.file-row:hover .file-actions {
+.file-row:hover .file-actions,
+.file-row.selected .file-actions,
+.file-row:focus-within .file-actions {
   opacity: 1;
 }
 
@@ -228,18 +260,19 @@
   align-items: center;
   justify-content: center;
   min-width: 24px;
-  height: 20px;
-  padding: 0 6px;
-  background-color: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-sm);
+  height: 22px;
+  padding: 0 7px;
+  background-color: var(--color-fill-tertiary);
+  border: 1px solid transparent;
+  border-radius: 6px;
   color: var(--color-text-secondary);
   font-size: 11px;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
 }
 
 .file-actions button:hover {
-  background-color: #172b42;
-  border-color: var(--color-accent);
+  background-color: var(--color-accent-muted);
   color: var(--color-accent-hover);
 }
 
@@ -247,7 +280,7 @@
 .file-loading,
 .file-empty,
 .file-limit {
-  padding: 6px 10px;
+  padding: 7px 12px;
   color: var(--color-text-tertiary);
   font-size: 12px;
 }
@@ -260,7 +293,7 @@
 .file-error.root,
 .file-empty,
 .file-limit {
-  margin-left: var(--spacing-lg);
+  margin-left: 16px;
 }
 
 .file-limit {

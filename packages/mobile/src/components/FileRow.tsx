@@ -37,22 +37,19 @@ export const FileRow: FC<FileRowProps> = ({ item, active = false, onPress }) => 
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 58,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: radius.sm,
+    minHeight: 64,
+    paddingHorizontal: 14,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
     backgroundColor: colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
   },
   pressed: {
-    backgroundColor: colors.panelHover,
+    backgroundColor: colors.panelRaised,
   },
   active: {
-    borderColor: colors.accent,
     backgroundColor: colors.selection,
   },
   body: {
@@ -61,13 +58,13 @@ const styles = StyleSheet.create({
   },
   name: {
     color: colors.text,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
   },
   path: {
     color: colors.textDim,
     fontSize: 11,
-    marginTop: 2,
+    marginTop: 3,
   },
   trailing: {
     alignItems: 'flex-end',

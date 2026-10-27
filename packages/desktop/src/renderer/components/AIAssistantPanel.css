@@ -1,7 +1,7 @@
 .ai-assistant-panel {
   display: flex;
   flex-direction: column;
-  background-color: #0d1218;
+  background-color: var(--color-bg-secondary);
   border-left: 1px solid var(--color-border-primary);
   overflow: hidden;
 }
@@ -11,59 +11,79 @@
   border-top: 1px solid var(--color-border-primary);
 }
 
-/* 面板头部 */
+/* Panel header */
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px;
-  background-color: #101720;
+  padding: 0 12px 0 14px;
+  background-color: rgba(20, 20, 22, 0.7);
   border-bottom: 1px solid var(--color-border-primary);
   flex-shrink: 0;
-  height: 34px;
+  height: 48px;
 }
 
 .panel-title {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
   min-width: 0;
   overflow: hidden;
+  white-space: nowrap;
+}
+
+.panel-title > span {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.panel-title .model-selector-trigger {
+  max-width: 126px;
+}
+
+.panel-title .chat-conversation-bar {
+  flex-shrink: 0;
+}
+
+.panel-title > svg {
+  color: var(--color-accent);
 }
 
 .panel-controls {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: 6px;
 }
 
 .panel-control-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
 }
 
 .panel-control-btn:hover {
   background-color: var(--color-bg-hover);
-  border-color: var(--color-border-secondary);
   color: var(--color-text-primary);
 }
 
 .context-indicator {
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
   color: var(--color-text-tertiary);
 }
 
@@ -71,14 +91,14 @@
   color: var(--color-success);
 }
 
-/* 消息区域 */
+/* Messages */
 .panel-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 .empty-state {
@@ -89,36 +109,49 @@
   height: 100%;
   color: var(--color-text-tertiary);
   text-align: center;
-  gap: var(--spacing-sm);
+  gap: 10px;
+  padding: 24px;
 }
 
 .empty-state .empty-icon {
-  color: var(--color-accent-hover);
-  margin-bottom: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  margin-bottom: 4px;
 }
 
 .empty-state p {
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 12.5px;
+  line-height: 1.55;
   margin: 0;
+  max-width: 320px;
 }
 
 .empty-hint {
   font-size: 11px;
   color: var(--color-text-tertiary);
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .message {
   display: flex;
-  gap: var(--spacing-sm);
-  animation: fadeIn 0.2s ease;
+  gap: 10px;
+  animation: message-in var(--duration-normal) var(--ease-apple);
 }
 
-@keyframes fadeIn {
+.message.user {
+  flex-direction: row-reverse;
+}
+
+@keyframes message-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -127,38 +160,49 @@
 }
 
 .message-avatar {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background-color: #101720;
+  background-color: var(--color-bg-tertiary);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-primary);
   color: var(--color-text-tertiary);
 }
 
 .message.user .message-avatar {
+  background-color: var(--color-accent-muted);
+  border-color: transparent;
   color: var(--color-accent-hover);
 }
 
 .message.assistant .message-avatar {
-  color: var(--color-success);
+  color: var(--color-text-secondary);
 }
 
 .message-content {
   flex: 1;
-  background-color: #101720;
-  padding: 7px 9px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-primary);
+  max-width: 86%;
+  background-color: var(--color-bg-tertiary);
+  padding: 9px 12px;
+  border-radius: 14px 14px 14px 5px;
+  border: 1px solid transparent;
   min-width: 0;
 }
 
 .message.user .message-content {
-  background-color: #12243a;
-  border-color: rgba(47, 140, 255, 0.28);
+  background-color: var(--color-accent);
+  border-color: transparent;
+  border-radius: 14px 14px 5px 14px;
+  color: #fff;
+}
+
+.ai-assistant-panel .message.assistant .message-content {
+  max-width: calc(100% - 36px);
+  padding: 3px 0;
+  background: transparent;
 }
 
 .message-content pre {
@@ -167,43 +211,47 @@
   font-family: inherit;
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 12.5px;
+  line-height: 1.55;
 }
 
-/* 命令列表 */
+.message.user .message-content pre {
+  color: #fff;
+}
+
+/* Command list */
 .message-commands {
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid var(--color-border-primary);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 8px;
 }
 
 .command-item {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 6px;
 }
 
 .command-item code {
   display: block;
-  background-color: rgba(6, 12, 22, 0.28);
+  background-color: rgba(0, 0, 0, 0.28);
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 11px;
+  border-radius: var(--radius-xs);
+  padding: 6px 9px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
   color: var(--color-text-primary);
   overflow-x: auto;
 }
 
-/* 输入加载动画 */
+/* Typing indicator */
 .typing-indicator {
   display: flex;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs);
+  gap: 5px;
+  padding: 4px 2px;
 }
 
 .typing-indicator span {
@@ -211,56 +259,59 @@
   height: 5px;
   background-color: var(--color-text-tertiary);
   border-radius: 50%;
-  animation: typing 1.4s infinite;
+  animation: typing 1.2s infinite var(--ease-apple);
 }
 
 .typing-indicator span:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: 0.15s;
 }
 
 .typing-indicator span:nth-child(3) {
-  animation-delay: 0.4s;
+  animation-delay: 0.3s;
 }
 
 @keyframes typing {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
-    opacity: 0.5;
+    opacity: 0.45;
   }
   30% {
-    transform: translateY(-6px);
+    transform: translateY(-4px);
     opacity: 1;
   }
 }
 
-/* 输入区域 */
+/* Composer */
 .panel-input {
   display: flex;
   gap: 8px;
-  padding: 8px;
+  padding: 12px;
   border-top: 1px solid var(--color-border-primary);
-  background-color: #101720;
+  background-color: rgba(20, 20, 22, 0.7);
   flex-shrink: 0;
 }
 
 .panel-input textarea {
   flex: 1;
   background-color: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 9px 11px;
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: 12.5px;
   font-family: inherit;
   resize: none;
-  line-height: 1.4;
-  min-height: 36px;
+  line-height: 1.45;
+  min-height: 40px;
 }
 
 .panel-input textarea:focus {
   outline: none;
-  border-color: var(--color-border-secondary);
-  background-color: var(--color-bg-secondary);
+  border-color: var(--color-accent);
+  background-color: var(--color-bg-tertiary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .panel-input textarea::placeholder {
@@ -269,23 +320,22 @@
 
 .panel-input button {
   background-color: var(--color-accent);
-  color: var(--color-text-inverse);
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-sm);
-  padding: 7px 10px;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0;
   cursor: pointer;
-  transition: all 0.15s;
   align-self: flex-end;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
 }
 
 .panel-input button:hover:not(:disabled) {
   background-color: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
-  color: var(--color-text-inverse);
 }
 
 .panel-input button:active:not(:disabled) {
@@ -293,14 +343,14 @@
 }
 
 .panel-input button:disabled {
-  opacity: 0.5;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-/* 停止生成按钮 */
+/* Stop generating */
 .panel-input button.stop-button {
   background-color: var(--color-error-bg);
-  border-color: var(--color-error);
+  border: 1px solid rgba(255, 69, 58, 0.35);
   color: var(--color-error);
 }
 
@@ -309,32 +359,32 @@
   color: #fff;
 }
 
-/* 响应式调整 */
+/* Bottom dock */
 .ai-assistant-panel.bottom .panel-messages {
-  max-height: 300px;
+  max-height: 320px;
 }
 
-/* 命令历史抽屉 */
+/* Command history drawer */
 .panel-control-btn.active-toggle {
   background-color: var(--color-accent-muted);
-  border-color: rgba(47, 140, 255, 0.35);
   color: var(--color-accent-hover);
 }
 
 .command-history-drawer {
   display: flex;
   flex-direction: column;
-  max-height: 240px;
+  max-height: 260px;
   border-bottom: 1px solid var(--color-border-primary);
-  background-color: #101720;
+  background-color: var(--color-bg-secondary);
 }
 
 .history-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 12px;
+  font-weight: 500;
   color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border-primary);
 }
@@ -352,8 +402,10 @@
   color: var(--color-text-tertiary);
   cursor: pointer;
   font-size: 12px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
 }
 
 .history-clear-btn:hover,
@@ -365,12 +417,11 @@
 .history-confirm-clear {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .history-clear-btn.danger {
   color: var(--color-error);
-  border-color: rgba(255, 123, 134, 0.3);
 }
 
 .history-clear-btn.danger:hover {
@@ -384,7 +435,7 @@
 }
 
 .history-empty {
-  padding: 16px;
+  padding: 20px;
   text-align: center;
   color: var(--color-text-tertiary);
   font-size: 12px;
@@ -395,17 +446,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  border-radius: var(--radius-xs);
+  transition: background-color var(--duration-fast) var(--ease-apple);
 }
 
 .history-item:hover {
-  background-color: var(--color-bg-tertiary);
+  background-color: var(--color-bg-hover);
 }
 
 .history-cmd {
   flex: 1;
-  font-family: 'Consolas', 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -421,54 +473,59 @@
 }
 
 .history-actions button {
-  background-color: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border-primary);
+  background-color: var(--color-fill-tertiary);
+  border: 1px solid transparent;
   color: var(--color-text-secondary);
   font-size: 11px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
 }
 
 .history-actions button:hover {
-  background-color: var(--color-bg-hover);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-secondary);
+  background-color: var(--color-accent-muted);
+  color: var(--color-accent-hover);
 }
 
 .assistant-status {
-  margin: 0 var(--spacing-md);
-  padding: 8px 10px;
+  margin: 8px 12px;
+  padding: 9px 12px;
   color: var(--color-warning);
   background-color: var(--color-warning-bg);
-  border: 1px solid rgba(244, 191, 117, 0.28);
+  border: 1px solid rgba(255, 159, 10, 0.24);
   border-radius: var(--radius-sm);
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
-/* 智能报错提示横幅 */
+/* Error suggestion banner */
 .error-alert-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 10px;
+  margin: 10px 12px 0;
+  padding: 11px 13px;
   background-color: var(--color-error-bg);
-  border-bottom: 1px solid rgba(255, 123, 134, 0.35);
+  border: 1px solid rgba(255, 69, 58, 0.28);
+  border-radius: var(--radius-md);
 }
 
 .error-alert-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .error-alert-text strong {
-  color: #ffb3ba;
-  font-size: 13px;
+  color: var(--color-error);
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .error-alert-text span {
@@ -484,18 +541,20 @@
 }
 
 .error-alert-analyze {
-  background-color: rgba(255, 123, 134, 0.18);
-  border: 1px solid rgba(255, 123, 134, 0.5);
-  color: #ffd0d4;
+  background-color: var(--color-error);
+  border: none;
+  color: #fff;
   font-size: 12px;
+  font-weight: 500;
   padding: 5px 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   white-space: nowrap;
+  transition: background-color var(--duration-fast) var(--ease-apple);
 }
 
 .error-alert-analyze:hover {
-  background-color: rgba(255, 123, 134, 0.28);
+  background-color: #ff6961;
 }
 
 .error-alert-dismiss {
@@ -506,10 +565,10 @@
   padding: 4px;
   display: inline-flex;
   align-items: center;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
 }
 
 .error-alert-dismiss:hover {
-  background-color: rgba(255, 123, 134, 0.18);
+  background-color: rgba(255, 69, 58, 0.16);
   color: var(--color-error);
 }

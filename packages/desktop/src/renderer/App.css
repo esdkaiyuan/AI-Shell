@@ -6,119 +6,128 @@
   background-color: var(--color-bg-primary);
 }
 
-/* 顶部工具栏 */
+/* Top toolbar — translucent macOS-style chrome */
 .app-toolbar {
   display: flex;
   align-items: center;
-  height: 34px;
-  background: linear-gradient(180deg, #17202a 0%, #101720 100%);
+  height: 48px;
+  background: var(--material-chrome);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  backdrop-filter: var(--backdrop-blur);
   border-bottom: 1px solid var(--color-border-primary);
-  padding: 0 6px;
-  gap: 6px;
+  padding: 0 12px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .toolbar-brand {
   display: flex;
   align-items: center;
-  gap: 7px;
-  min-width: 176px;
-  height: 26px;
-  padding: 0 8px 0 4px;
-  border: 1px solid rgba(47, 140, 255, 0.22);
-  border-radius: 14px;
-  background: linear-gradient(135deg, #05080d 0%, #071733 54%, #0c2656 100%);
-  box-shadow: inset 0 0 0 1px rgba(98, 166, 255, 0.08);
+  gap: 8px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px 0 0;
 }
 
 .toolbar-brand-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #02050a 0%, #071a3b 55%, #123a83 100%);
-  border: 1px solid rgba(85, 152, 255, 0.55);
-  color: #f5f9ff;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(160deg, #36a3ff 0%, #0a84ff 48%, #0060df 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+  color: #ffffff;
   font-size: 10px;
-  font-weight: 900;
-  text-shadow:
-    -1px 0 #001029,
-    0 1px #001029,
-    1px 0 #001029,
-    0 -1px #001029;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .toolbar-brand-text {
   color: var(--color-text-primary);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .toolbar-signature {
-  color: #67a8ff;
+  padding-left: 9px;
+  border-left: 1px solid var(--color-border-primary);
+  color: var(--color-text-tertiary);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.toolbar-view-title {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toolbar-fullscreen {
+  margin-left: 4px;
 }
 
 .toolbar-section {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .toolbar-divider {
   width: 1px;
   height: 18px;
-  background-color: #2d3946;
-  margin: 0 4px;
+  background-color: var(--color-border-primary);
+  margin: 0 6px;
 }
 
 .toolbar-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
 }
 
 .toolbar-button:hover {
-  background-color: #22303e;
-  border-color: var(--color-border-secondary);
+  background-color: var(--color-bg-hover);
   color: var(--color-text-primary);
 }
 
 .toolbar-button.active {
-  background-color: #1c344f;
-  border-color: var(--color-accent);
+  background-color: var(--color-accent-muted);
+  border-color: transparent;
   color: var(--color-accent-hover);
 }
 
-/* 主内容区 */
+/* Main content */
 .app-main {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
-/* 左侧边栏 */
+/* Left rail */
 .app-sidebar {
-  width: 46px;
-  background: #10161e;
+  width: 64px;
+  background: var(--material-chrome);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  backdrop-filter: var(--backdrop-blur);
   border-right: 1px solid var(--color-border-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 0;
-  gap: 4px;
+  padding: 12px 0;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -127,47 +136,39 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 48px;
+  height: 48px;
+  gap: 3px;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   color: var(--color-text-tertiary);
   cursor: pointer;
   position: relative;
-  transition: all 0.15s;
 }
 
 .sidebar-button:hover {
-  background-color: #1d2834;
-  border-color: var(--color-border-secondary);
+  background-color: var(--color-bg-hover);
   color: var(--color-text-primary);
 }
 
 .sidebar-button.active {
-  background-color: #172b42;
-  border-color: rgba(47, 140, 255, 0.36);
+  background-color: var(--color-accent-muted);
+  border-color: transparent;
   color: var(--color-accent-hover);
 }
 
 .sidebar-button.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background-color: var(--color-accent);
-  border-radius: 0 2px 2px 0;
+  content: none;
 }
 
 .sidebar-label {
   font-size: 10px;
-  margin-top: 2px;
+  line-height: 1;
   color: inherit;
 }
 
-/* 内容区域 */
+/* Content */
 .app-content {
   flex: 1;
   display: flex;
@@ -175,7 +176,7 @@
   overflow: hidden;
 }
 
-/* 终端视图 */
+/* Terminal view */
 .terminal-view-container {
   display: flex;
   height: 100%;
@@ -200,6 +201,76 @@
   background-color: var(--color-bg-primary);
 }
 
+.terminal-page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.terminal-page-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.terminal-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding-right: 12px;
+  border-right: 1px solid var(--color-border-primary);
+  flex-shrink: 0;
+}
+
+.terminal-tool-group:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.terminal-tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.terminal-tool-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.terminal-tool-button.active {
+  background: var(--color-accent-muted);
+  color: var(--color-accent-hover);
+}
+
+.terminal-tool-button.primary {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.terminal-tool-button.primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.terminal-tool-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .terminal-view-container.with-ai-right .terminal-view {
   flex: 1;
   min-width: 0;
@@ -210,12 +281,13 @@
   min-height: 0;
 }
 
-/* AI 面板外层容器：尺寸由 JS 拖拽控制 */
+/* AI panel wrapper — size controlled by drag handle */
 .ai-panel-wrapper {
   display: flex;
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
+  background-color: var(--color-bg-secondary);
 }
 
 .terminal-view-container.with-ai-right .ai-panel-wrapper {
@@ -237,13 +309,13 @@
   min-height: 0;
 }
 
-/* 拖拽把手 */
+/* Drag handles */
 .ai-panel-resizer {
   flex-shrink: 0;
   background-color: transparent;
   position: relative;
   z-index: 5;
-  transition: background-color 0.15s;
+  transition: background-color var(--duration-fast) var(--ease-apple);
 }
 
 .ai-panel-resizer.vertical {
@@ -272,7 +344,7 @@
   flex-shrink: 0;
   background-color: var(--color-border-primary);
   z-index: 5;
-  transition: background-color 0.15s;
+  transition: background-color var(--duration-fast) var(--ease-apple);
 }
 
 .split-resizer.vertical {
@@ -290,37 +362,33 @@
   background-color: var(--color-accent);
 }
 
-/* 终端标签栏 */
+/* Terminal tab strip */
 .terminal-tabs {
   display: flex;
   align-items: center;
-  background-color: #0f151d;
+  background-color: var(--color-bg-primary);
   border-bottom: 1px solid var(--color-border-primary);
-  padding: 0 6px;
-  gap: 1px;
-  height: 30px;
+  padding: 6px 8px;
+  gap: 4px;
+  height: 42px;
   flex-shrink: 0;
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 .terminal-tabs::-webkit-scrollbar {
-  height: 3px;
+  display: none;
 }
 
-.terminal-tabs::-webkit-scrollbar-thumb {
-  background: #2d3946;
-  border-radius: 2px;
-}
-
-/* 终端容器 */.terminal-container {
+/* Terminal canvas */
+.terminal-container {
   flex: 1;
   overflow: hidden;
-  background-color: #070a0e;
+  background-color: var(--color-bg-primary);
   position: relative;
 }
 
-/* 懒加载占位 */
+/* Lazy view placeholder */
 .view-loading {
   display: flex;
   align-items: center;
@@ -329,17 +397,30 @@
   height: 100%;
   color: var(--color-text-tertiary);
   font-size: 13px;
+  animation: loading-fade 1.6s ease-in-out infinite;
 }
 
-/* 底部状态栏 */
+@keyframes loading-fade {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Bottom status bar */
 .app-statusbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 22px;
-  background-color: #101720;
+  height: 28px;
+  background: var(--material-chrome);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  backdrop-filter: var(--backdrop-blur);
   border-top: 1px solid var(--color-border-primary);
-  padding: 0 10px;
+  padding: 0 14px;
   font-size: 11px;
   color: var(--color-text-tertiary);
   flex-shrink: 0;
@@ -348,7 +429,7 @@
 .statusbar-section {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 .statusbar-item {
@@ -356,6 +437,7 @@
   align-items: center;
   gap: var(--spacing-xs);
   cursor: default;
+  transition: color var(--duration-fast) var(--ease-apple);
 }
 
 .statusbar-item:hover {
@@ -363,19 +445,21 @@
 }
 
 .statusbar-signature {
-  color: #7fb6ff;
+  color: var(--color-text-tertiary);
 }
 
 .statusbar-signature strong {
-  color: #dceaff;
-  font-weight: 800;
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }
 
 .statusbar-icon {
   font-size: 12px;
+  display: inline-flex;
+  align-items: center;
 }
 
-/* 系统监控面板 */
+/* System monitor */
 .system-monitor {
   display: flex;
   align-items: center;
@@ -396,14 +480,14 @@
 .monitor-value {
   color: var(--color-text-secondary);
   font-weight: 500;
-  font-family: 'Consolas', monospace;
+  font-family: var(--font-mono);
 }
 
 .monitor-bar {
   width: 40px;
   height: 4px;
-  background-color: var(--color-bg-tertiary);
-  border-radius: 2px;
+  background-color: var(--color-fill-secondary);
+  border-radius: var(--radius-pill);
   overflow: hidden;
   position: relative;
 }
@@ -411,8 +495,8 @@
 .monitor-bar-fill {
   height: 100%;
   background-color: var(--color-success);
-  transition: width 0.3s ease;
-  border-radius: 2px;
+  transition: width var(--duration-slow) var(--ease-apple);
+  border-radius: var(--radius-pill);
 }
 
 .monitor-bar-fill.high {
@@ -421,4 +505,57 @@
 
 .monitor-bar-fill.critical {
   background-color: var(--color-error);
+}
+
+@media (max-width: 1000px) {
+  .terminal-page-toolbar {
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .terminal-tool-group {
+    padding-right: 8px;
+  }
+
+  .terminal-tool-button:not(.primary) .terminal-tool-label {
+    display: none;
+  }
+
+  .terminal-tool-button:not(.primary) {
+    padding: 0;
+  }
+
+  .statusbar-signature,
+  .statusbar-section:first-child .statusbar-item:nth-child(2) {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .toolbar-signature,
+  .monitor-bar,
+  .statusbar-section:first-child .statusbar-item:first-child {
+    display: none;
+  }
+
+  .terminal-page-toolbar {
+    gap: 6px;
+  }
+
+  .terminal-tool-group {
+    gap: 2px;
+    padding-right: 6px;
+  }
+
+  .terminal-tool-button.primary .terminal-tool-label {
+    display: none;
+  }
+
+  .terminal-tool-button.primary {
+    padding: 0;
+  }
+
+  .system-monitor {
+    gap: 8px;
+  }
 }

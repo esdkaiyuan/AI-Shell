@@ -66,7 +66,7 @@ const ChatConversationBar: React.FC<ChatConversationBarProps> = ({ compact = fal
   };
 
   return (
-    <div className="chat-conversation-bar" ref={rootRef}>
+    <div className={`chat-conversation-bar${compact ? ' compact' : ''}`} ref={rootRef}>
       <button
         className="conversation-trigger"
         onClick={() => setOpen(!open)}

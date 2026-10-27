@@ -92,6 +92,11 @@ android {
         versionName "0.1.0"
 
         buildConfigField("boolean", "REACT_NATIVE_UNSTABLE_USE_RUNTIME_SCHEDULER_ALWAYS", (findProperty("reactNative.unstable_useRuntimeSchedulerAlways") ?: true).toString())
+
+        // Embedded Linux runtime is 64-bit only.
+        ndk {
+            abiFilters "arm64-v8a", "x86_64"
+        }
     }
     signingConfigs {
         debug {
@@ -116,7 +121,17 @@ android {
     }
     packagingOptions {
         jniLibs {
-            useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
+            // The Linux runtime executes proot/loader from nativeLibraryDir.
+            useLegacyPackaging true
+            keepDebugSymbols += [
+                "**/libproot.so",
+                "**/libproot_loader.so",
+                "**/libtalloc.so",
+                "**/libandroid-shmem.so"
+            ]
+        }
+        resources {
+            excludes += ["META-INF/LICENSE*", "META-INF/NOTICE*", "META-INF/DEPENDENCIES"]
         }
     }
 }
@@ -144,6 +159,9 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
+    // Pure-Java tar/gzip extraction for the bundled Alpine rootfs.
+    implementation("org.apache.commons:commons-compress:1.26.2")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

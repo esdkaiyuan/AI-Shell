@@ -6,7 +6,7 @@ AI Shell 是一套面向开发、运维和服务器管理场景的跨平台智�
 
 ## 项目亮点
 
-- **桌面端 + 手机端**：桌面端基于 Electron，手机端基于 React Native / Expo，并已支持 Android APK 构建。
+- **桌面端 + 手机端**：桌面端基于 Electron；手机端基于 React Native / Expo，APK 内置 Alpine Linux + PRoot，可离线运行真实终端、OpenSSH 与 apk 包管理。
 - **Xshell 风格体验**：深色专业终端界面、工具栏、侧边栏、标签栏、状态栏和系统监控，适合长期使用。
 - **AI 助手融入终端**：AI 可以读取当前终端上下文，解释输出、生成命令、辅助排障，并将建议命令插入终端。
 - **多厂商 AI Provider**：支持 OpenAI、Claude、百度文心一言、阿里通义千问、智谱 GLM、讯飞星火、Moonshot AI、DeepSeek 和 Ollama。
@@ -18,7 +18,7 @@ AI Shell 是一套面向开发、运维和服务器管理场景的跨平台智�
 
 | 模块 | 桌面端 | 手机端 |
 | --- | --- | --- |
-| 多标签终端 | 支持本地终端和 SSH 终端 | 支持移动端终端标签 |
+| 多标签终端 | 支持本地终端和 SSH 终端 | 内置 Alpine Linux 的本地 PTY 终端 + SSH 终端 |
 | 分屏 | 支持终端分屏 | 支持移动端分屏窗格 |
 | SSH 管理 | 支持连接配置、认证方式和连接管理 | 支持 SSH 配置卡片和连接入口 |
 | AI 对话 | 独立 AI Chat 与终端侧边 AI 面板 | AI 对话页，默认从终端入口进入 |
@@ -54,11 +54,12 @@ packages/desktop/release/win-unpacked
 
 核心能力：
 
-- 移动端终端工作区，支持标签、分屏、搜索、快捷命令和命令输入。
-- AI 按钮位于终端工具区，可直接进入 AI 对话。
-- AI 页面分为“对话”和“模型”，默认优先对话，模型导入不再占据首屏。
-- AI Provider 厂商与桌面端一致，API Key 仅显示脱敏预览。
-- 只读资源管理器适配手机触屏操作。
+- **APK 内置 Linux**：首次启动释放 Alpine Linux 3.20.3 + PRoot，之后离线运行 bash、git、curl、OpenSSH、apk 等工具。
+- **首次启动向导**：依次完成环境安装、AI Provider 和可选 SSH 配置；无需桌面中继。
+- **真实终端**：PTY 驱动的多标签/分屏终端，支持 Ctrl+C、Tab、方向键、搜索、清屏和会话恢复。
+- **真实 SSH**：调用内置 OpenSSH 客户端，支持密码交互和 Keystore 加密私钥。
+- **AI 直连**：手机端直接请求 Provider API，并自动附带终端最近输出；Key 使用 Android Keystore 加密。
+- **只读 rootfs 文件浏览**：可切换隐藏文件与预览文本。
 - 顶部展示 `署名 esdkaiyuan`。
 
 APK 产物：
@@ -81,7 +82,7 @@ packages/mobile/android/app/build/outputs/apk/release/app-release.apk
 | 讯飞星火 | Spark 系列 | Key 格式通常为 `APPID:APISecret:APIKey` |
 | Moonshot AI | moonshot 系列 | Kimi / Moonshot API |
 | DeepSeek | deepseek-chat / deepseek-coder | DeepSeek API |
-| Ollama | llama / qwen / codellama | 本地模型，可通过中继或本机服务使用 |
+| Ollama | llama / qwen / codellama | 本地模型，可连接本机或局域网 Ollama 服务 |
 
 ## 项目结构
 
@@ -172,6 +173,9 @@ cd packages/mobile/android
 - React Native
 - Expo
 - TypeScript
+- Android 原生模块（Kotlin）
+- Alpine Linux 3.20.3 + PRoot
+- Android Keystore
 - Android Gradle
 - Vitest
 

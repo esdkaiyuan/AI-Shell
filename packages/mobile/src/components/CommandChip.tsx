@@ -21,21 +21,18 @@ export const CommandChip: FC<CommandChipProps> = ({ command, onPress }) => (
 const styles = StyleSheet.create({
   chip: {
     maxWidth: 280,
-    minHeight: 30,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
     backgroundColor: colors.panelRaised,
     justifyContent: 'center',
   },
   pressed: {
-    borderColor: colors.accent,
     backgroundColor: colors.accentSoft,
   },
   text: {
     color: colors.textMuted,
     fontFamily: 'Courier',
-    fontSize: 12,
+    fontSize: 12.5,
   },
 });

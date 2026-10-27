@@ -7,63 +7,63 @@
 .monitor-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 6px;
 }
 
 .monitor-label {
   color: var(--color-text-tertiary);
   font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  min-width: 32px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  min-width: 30px;
   text-align: right;
 }
 
 .monitor-bar {
-  width: 50px;
-  height: 6px;
-  background-color: var(--color-bg-tertiary);
-  border-radius: 3px;
+  width: 44px;
+  height: 4px;
+  background-color: var(--color-fill-secondary);
+  border-radius: var(--radius-pill);
   overflow: hidden;
   position: relative;
-  border: 1px solid var(--color-border-primary);
 }
 
 .monitor-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-success) 0%, #82e0ba 100%);
-  transition: width 0.5s ease, background 0.3s ease;
-  border-radius: 2px;
+  background-color: var(--color-success);
+  transition: width var(--duration-slow) var(--ease-apple),
+    background-color var(--duration-normal) var(--ease-apple);
+  border-radius: var(--radius-pill);
 }
 
 .monitor-bar-fill.high {
-  background: linear-gradient(90deg, var(--color-warning) 0%, #ffd391 100%);
+  background-color: var(--color-warning);
 }
 
 .monitor-bar-fill.critical {
-  background: linear-gradient(90deg, var(--color-error) 0%, #ff9aa3 100%);
-  animation: pulse 1.5s ease-in-out infinite;
+  background-color: var(--color-error);
+  animation: monitor-pulse 1.6s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% {
+@keyframes monitor-pulse {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.6;
   }
 }
 
 .monitor-value {
   color: var(--color-text-secondary);
-  font-weight: 600;
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 11px;
-  min-width: 36px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  min-width: 34px;
   text-align: right;
 }
 
-/* 悬停效果 */
 .monitor-item:hover .monitor-label {
   color: var(--color-text-secondary);
 }
@@ -72,16 +72,11 @@
   color: var(--color-text-primary);
 }
 
-.monitor-item:hover .monitor-bar {
-  border-color: var(--color-border-secondary);
-}
-
-/* 非百分比指标（运行时长、进程内存）的文本展示 */
 .monitor-text {
   color: var(--color-text-secondary);
-  font-weight: 600;
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 10px;
   text-align: right;
   white-space: nowrap;
 }

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UserIcon, BotIcon, SendIcon, StopIcon } from './Icons';
 import ModelSelector from './ModelSelector';
 import ChatConversationBar from './ChatConversationBar';
+import MessageContent from './MessageContent';
 import { appSettings } from '../appSettings';
 import { chatStore, ChatMessage } from '../chatStore';
 import './AIChat.css';
@@ -140,7 +141,7 @@ const AIChat: React.FC = () => {
               {msg.role === 'user' ? <UserIcon size={20} /> : <BotIcon size={20} />}
             </div>
             <div className="message-content">
-              <pre>{msg.content}</pre>
+              <MessageContent content={msg.content} />
             </div>
           </div>
         ))}

@@ -1,37 +1,59 @@
 .session-manager-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  inset: 0;
+  background-color: var(--material-overlay);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  animation: overlay-in var(--duration-normal) var(--ease-apple);
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .session-manager {
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-bg-secondary);
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-md);
-  width: 90%;
-  max-width: 800px;
-  max-height: 80vh;
+  border-radius: var(--radius-lg);
+  width: min(720px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
-  animation: slideUp 0.3s ease;
+  animation: modal-in var(--duration-slow) var(--ease-apple);
+  overflow: hidden;
+}
+
+@keyframes modal-in {
+  from {
+    transform: translateY(12px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 .session-manager-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-lg);
+  height: 56px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--color-border-primary);
   background-color: var(--color-bg-secondary);
+  flex-shrink: 0;
 }
 
 .session-manager-header h2 {
@@ -39,19 +61,21 @@
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .session-manager-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: var(--spacing-lg);
+  padding: 20px;
 }
 
 .session-notice {
-  margin-bottom: var(--spacing-md);
-  padding: 10px 12px;
+  margin-bottom: 14px;
+  padding: 10px 13px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 123, 134, 0.32);
+  border: 1px solid rgba(255, 69, 58, 0.25);
   background-color: var(--color-error-bg);
   color: var(--color-error);
   font-size: 12px;
@@ -62,11 +86,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-  padding: 10px 12px;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 11px 13px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(244, 191, 117, 0.32);
+  border: 1px solid rgba(255, 159, 10, 0.24);
   background-color: var(--color-warning-bg);
   color: var(--color-warning);
   font-size: 12px;
@@ -76,44 +100,43 @@
 .session-confirm-actions {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .session-actions {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 18px;
 }
 
 .session-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 10px;
 }
 
 .session-item {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border-primary);
+  gap: 12px;
+  padding: 14px;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
-  transition: all 0.15s;
+  transition: background-color var(--duration-fast) var(--ease-apple);
 }
 
 .session-item:hover {
-  background-color: var(--color-bg-hover);
-  border-color: var(--color-border-secondary);
+  background-color: var(--color-bg-raised);
 }
 
 .session-item-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background-color: var(--color-bg-tertiary);
-  border-radius: var(--radius-sm);
+  width: 42px;
+  height: 42px;
+  background-color: var(--color-accent-muted);
+  border-radius: var(--radius-md);
   color: var(--color-accent-hover);
   flex-shrink: 0;
 }
@@ -133,73 +156,76 @@
 .session-item-details {
   font-size: 12px;
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 8px;
 }
 
 .session-item-terminals {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-xs);
+  gap: 6px;
 }
 
 .terminal-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px var(--spacing-xs);
+  padding: 3px 8px;
   background-color: var(--color-info-bg);
-  border: 1px solid rgba(125, 183, 255, 0.25);
-  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   color: var(--color-info);
 }
 
 .session-item-actions {
   display: flex;
-  gap: var(--spacing-xs);
+  gap: 6px;
   flex-shrink: 0;
 }
 
-/* 保存表单 */
+/* Save form */
 .session-save-form {
-  max-width: 500px;
+  max-width: 520px;
   margin: 0 auto;
 }
 
 .session-save-form h3 {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-sm) 0;
+  margin: 0 0 8px 0;
 }
 
 .session-save-hint {
   font-size: 12px;
   color: var(--color-text-secondary);
-  margin: 0 0 var(--spacing-lg) 0;
+  margin: 0 0 18px 0;
+  line-height: 1.5;
 }
 
 .terminal-preview {
-  margin-top: var(--spacing-md);
-  padding: var(--spacing-md);
-  background-color: var(--color-bg-secondary);
+  margin-top: 14px;
+  padding: 12px;
+  background-color: var(--color-bg-tertiary);
   border: 1px solid var(--color-border-primary);
   border-radius: var(--radius-sm);
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
 .terminal-preview-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xs) 0;
+  gap: 8px;
+  padding: 5px 0;
   font-size: 12px;
   color: var(--color-text-primary);
 }
 
 .terminal-preview-icon {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-accent);
 }
 
 .terminal-preview-title {
@@ -208,5 +234,40 @@
 
 .terminal-preview-host {
   color: var(--color-text-secondary);
-  font-family: 'Consolas', monospace;
+  font-family: var(--font-mono);
+}
+
+.session-manager-content .form-actions {
+  position: sticky;
+  bottom: -20px;
+  z-index: 1;
+  padding-bottom: 20px;
+  background: var(--color-bg-secondary);
+}
+
+@media (max-width: 640px) {
+  .session-manager-overlay {
+    padding: 12px;
+  }
+
+  .session-manager {
+    width: 100%;
+    max-height: 100%;
+  }
+
+  .session-manager-header,
+  .session-manager-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .session-confirm,
+  .session-item {
+    flex-wrap: wrap;
+  }
+
+  .session-item-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }

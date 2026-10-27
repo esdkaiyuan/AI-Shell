@@ -5,66 +5,96 @@
 }
 
 :root {
-  /* Xshell-inspired terminal client theme */
-  --color-bg-primary: #0b0f14;
-  --color-bg-secondary: #121820;
-  --color-bg-tertiary: #18212b;
-  --color-bg-elevated: #151c25;
-  --color-bg-hover: #1e2a36;
-  --color-bg-active: #253343;
+  color-scheme: dark;
 
-  --color-border-primary: #25303b;
-  --color-border-secondary: #354454;
-  --color-border-strong: #4b6075;
+  /* Apple HIG dark palette — neutral surfaces + single system accent */
+  --color-bg-primary: #0a0a0b;
+  --color-bg-secondary: #141416;
+  --color-bg-tertiary: #1c1c1e;
+  --color-bg-elevated: #1c1c1e;
+  --color-bg-raised: #2c2c2e;
+  --color-bg-hover: rgba(255, 255, 255, 0.07);
+  --color-bg-active: rgba(255, 255, 255, 0.12);
+  --color-fill-secondary: rgba(120, 120, 128, 0.24);
+  --color-fill-tertiary: rgba(120, 120, 128, 0.16);
 
-  --color-text-primary: #dce6f1;
-  --color-text-secondary: #aeb9c7;
-  --color-text-tertiary: #7e8a99;
-  --color-text-disabled: #596574;
-  --color-text-inverse: #07101b;
+  --color-border-primary: rgba(255, 255, 255, 0.08);
+  --color-border-secondary: rgba(255, 255, 255, 0.14);
+  --color-border-strong: rgba(255, 255, 255, 0.24);
+  --color-separator: rgba(255, 255, 255, 0.08);
 
-  --color-accent: #2f8cff;
-  --color-accent-hover: #63a9ff;
-  --color-accent-active: #1f73d3;
-  --color-accent-muted: rgba(47, 140, 255, 0.16);
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-tertiary: #6e6e73;
+  --color-text-disabled: #48484a;
+  --color-text-inverse: #ffffff;
+
+  --color-accent: #0a84ff;
+  --color-accent-hover: #409cff;
+  --color-accent-active: #006edb;
+  --color-accent-muted: rgba(10, 132, 255, 0.16);
+  --color-accent-soft: rgba(10, 132, 255, 0.09);
+  --color-accent-contrast: #ffffff;
 
   /* Semantic states */
-  --color-success: #35c26b;
-  --color-success-bg: rgba(53, 194, 107, 0.12);
-  --color-warning: #d9a441;
-  --color-warning-bg: rgba(217, 164, 65, 0.13);
-  --color-error: #ef5964;
-  --color-error-bg: rgba(239, 89, 100, 0.13);
-  --color-info: #4da0ff;
-  --color-info-bg: rgba(77, 160, 255, 0.12);
-  --color-focus-ring: rgba(47, 140, 255, 0.34);
+  --color-success: #30d158;
+  --color-success-bg: rgba(48, 209, 88, 0.14);
+  --color-warning: #ff9f0a;
+  --color-warning-bg: rgba(255, 159, 10, 0.14);
+  --color-error: #ff453a;
+  --color-error-bg: rgba(255, 69, 58, 0.14);
+  --color-info: #64d2ff;
+  --color-info-bg: rgba(100, 210, 255, 0.12);
+  --color-focus-ring: rgba(10, 132, 255, 0.45);
 
-  /* 阴影 */
-  --shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.36);
-  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.48);
+  /* Elevation */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.32);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.5);
 
-  /* 圆角 */
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
+  /* Radii — macOS/iOS continuous-corner inspired */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
 
-  /* 间距 */
+  /* 8pt spacing grid */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 12px;
   --spacing-lg: 16px;
   --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+    'Segoe UI Variable', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', Consolas, 'JetBrains Mono',
+    'Courier New', monospace;
+
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-fast: 140ms;
+  --duration-normal: 220ms;
+  --duration-slow: 320ms;
+
+  /* Translucent chrome materials */
+  --material-chrome: rgba(20, 20, 22, 0.82);
+  --material-overlay: rgba(0, 0, 0, 0.55);
+  --backdrop-blur: blur(24px) saturate(180%);
 }
 
 body {
-  font-family: 'Segoe UI', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #070a0e;
+  background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   overflow: hidden;
   font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: -0.006em;
 }
 
 #root {
@@ -73,79 +103,179 @@ body {
 }
 
 code {
-  font-family: 'Consolas', 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
-/* 滚动条样式 */
+/* Scrollbars — thin, translucent, macOS-like */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.16);
+  border: 2px solid transparent;
+  border-radius: var(--radius-pill);
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-bg-active);
+  background-color: rgba(255, 255, 255, 0.28);
 }
 
-/* 选中文本 */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 ::selection {
-  background: var(--color-bg-active);
+  background: rgba(10, 132, 255, 0.32);
   color: var(--color-text-primary);
 }
 
-/* 输入框通用样式 */
-input, textarea, select {
+/* Form controls */
+input,
+textarea,
+select {
   font-family: inherit;
   font-size: inherit;
   color: var(--color-text-primary);
   background-color: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border-primary);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   outline: none;
-  transition: all 0.2s;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    border-color var(--duration-fast) var(--ease-apple),
+    box-shadow var(--duration-fast) var(--ease-apple);
 }
 
-input:focus, textarea:focus, select:focus {
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+input:hover:not(:disabled),
+textarea:hover:not(:disabled),
+select:hover:not(:disabled) {
+  background-color: #242427;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
   border-color: var(--color-accent);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-tertiary);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
-input:disabled, textarea:disabled, select:disabled {
-  opacity: 0.5;
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* 按钮通用样式 */
+input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  display: inline-grid;
+  place-content: center;
+  background-color: transparent;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    border-color var(--duration-fast) var(--ease-apple);
+}
+
+input[type='checkbox']:hover {
+  border-color: var(--color-text-tertiary);
+}
+
+input[type='checkbox']::after {
+  content: '';
+  width: 9px;
+  height: 5px;
+  margin-top: -2px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) scale(0);
+  transition: transform var(--duration-fast) var(--ease-apple);
+}
+
+input[type='checkbox']:checked {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+input[type='checkbox']:checked::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+input[type='checkbox']:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+input[type='range'] {
+  accent-color: var(--color-accent);
+}
+
+/* Buttons */
 button {
   font-family: inherit;
   font-size: inherit;
+  color: inherit;
   cursor: pointer;
   border: none;
   outline: none;
-  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-apple),
+    border-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple),
+    box-shadow var(--duration-fast) var(--ease-apple),
+    transform var(--duration-fast) var(--ease-apple);
 }
 
 button:focus-visible,
-a:focus-visible {
+a:focus-visible,
+[role='button']:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.98);
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   transform: none;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
