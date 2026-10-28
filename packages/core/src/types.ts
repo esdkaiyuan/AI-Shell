@@ -77,6 +77,7 @@ export interface SSHConfig {
   password?: string;
   privateKey?: string;
   passphrase?: string;
+  platform?: 'linux' | 'macos' | 'windows-powershell' | 'windows-cmd';
   config?: Record<string, unknown>;
 }
 

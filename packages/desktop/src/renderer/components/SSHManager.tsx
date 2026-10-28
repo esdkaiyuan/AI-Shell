@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import {
+  COMMAND_PLATFORM_LABELS,
+  COMMAND_PLATFORM_OPTIONS,
+  coerceCommandPlatform,
+  type CommandPlatform,
+} from '../commandSuggest';
 import { CloseIcon, PlusIcon, GlobeIcon, CheckIcon } from './Icons';
 import './SSHManager.css';
 
@@ -13,6 +19,7 @@ interface SSHConfig {
   hasPassword?: boolean;
   hasPrivateKey?: boolean;
   hasPassphrase?: boolean;
+  platform?: CommandPlatform;
 }
 
 interface SSHManagerProps {
@@ -40,6 +47,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
     password: '',
     privateKey: '',
     passphrase: '',
+    platform: 'linux',
   });
 
   useEffect(() => {
@@ -64,6 +72,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
     try {
       const payload: SSHConfig = {
         ...formData,
+        platform: coerceCommandPlatform(formData.platform),
         port: Number.isFinite(formData.port) ? formData.port : 22,
         password:
           authType === 'password'
@@ -123,6 +132,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
       password: '',
       privateKey: '',
       passphrase: '',
+      platform: 'linux',
     });
     setAuthType('password');
   };
@@ -190,7 +200,8 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                       <div className="ssh-item-info">
                         <div className="ssh-item-name">{config.name}</div>
                         <div className="ssh-item-details">
-                          {config.username}@{config.host}:{config.port}
+                          {config.username}@{config.host}:{config.port} ·{' '}
+                          {COMMAND_PLATFORM_LABELS[coerceCommandPlatform(config.platform)]}
                         </div>
                         <div className="ssh-item-auth">
                           {config.hasPrivateKey || config.privateKey
@@ -275,6 +286,26 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                   onChange={e => setFormData({ ...formData, username: e.target.value })}
                   placeholder="例如：root"
                 />
+              </div>
+
+              <div className="form-group">
+                <label>远端系统</label>
+                <select
+                  value={coerceCommandPlatform(formData.platform)}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      platform: e.target.value as CommandPlatform,
+                    })
+                  }
+                >
+                  {COMMAND_PLATFORM_OPTIONS.map(option => (
+                    <option key={option.platform} value={option.platform}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="form-hint">用于匹配该系统的 Tab 补全指令集。</p>
               </div>
 
               <div className="form-group">

@@ -16,16 +16,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nativeAvailable } from '../native/nativeBridge';
 import { listProviderModels } from '../services/ai';
 import {
+  COMMAND_PLATFORM_LABELS,
+  COMMAND_PLATFORM_OPTIONS,
+  type RemoteCommandPlatform,
+} from '../services/commandCatalog';
+import {
   PROVIDER_PRESETS,
   activeProvider,
   configStore,
   presetById,
   providerFromPreset,
+  sshProfilePlatform,
   useAppConfig,
   type ProviderPreset,
   type SSHProfile,
 } from '../services/config';
 import { runtimeStore, useRuntime } from '../services/runtimeStore';
+import { pickPrivateKeyFile } from '../services/sshKeyFiles';
+import { parsePrivateKey } from '../services/sshKeys';
 import { colors, radius, spacing } from '../theme';
 
 type StepKey = 'environment' | 'ai' | 'ssh' | 'finish';
@@ -44,7 +52,14 @@ const STEPS: Array<{ key: StepKey; label: string }> = [
   { key: 'finish', label: '完成' },
 ];
 
-const emptySshForm = { name: '', host: '', port: '22', username: 'root', privateKey: '' };
+const emptySshForm = {
+  name: '',
+  host: '',
+  port: '22',
+  username: 'root',
+  privateKey: '',
+  platform: 'linux' as RemoteCommandPlatform,
+};
 
 export const SetupWizard: FC<SetupWizardProps> = ({
   visible,
@@ -69,14 +84,24 @@ export const SetupWizard: FC<SetupWizardProps> = ({
 
   const [sshForm, setSshForm] = useState(emptySshForm);
   const [sshMessage, setSshMessage] = useState<string | null>(null);
+  const [pickingKey, setPickingKey] = useState(false);
+  const [keyFileLabel, setKeyFileLabel] = useState('');
 
   const preset = useMemo(
     () => presetById(presetId) || PROVIDER_PRESETS[0],
     [presetId]
   );
+  const platformDescription =
+    COMMAND_PLATFORM_OPTIONS.find(option => option.platform === sshForm.platform)?.description ||
+    '通用 Shell 命令';
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      setSshForm(emptySshForm);
+      setKeyFileLabel('');
+      return;
+    }
+    setKeyFileLabel('');
     setStep(initialStep || (runtime.status.installed ? 'ai' : 'environment'));
     const existing = config.aiProviders.find(provider => provider.id === config.activeProviderId);
     if (initialStep === 'ai' && existing) {
@@ -87,6 +112,13 @@ export const SetupWizard: FC<SetupWizardProps> = ({
       setModels(existing.models);
     }
   }, [visible, initialStep, runtime.status.installed]);
+
+  useEffect(() => {
+    if (!pickingKey || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const reset = () => setPickingKey(false);
+    window.addEventListener('focus', reset, { once: true });
+    return () => window.removeEventListener('focus', reset);
+  }, [pickingKey]);
 
   const stepIndex = STEPS.findIndex(item => item.key === step);
   const runtimeReady = runtime.status.installed;
@@ -158,6 +190,21 @@ export const SetupWizard: FC<SetupWizardProps> = ({
     }
   };
 
+  const handlePickPrivateKey = async () => {
+    setPickingKey(true);
+    setSshMessage(null);
+    try {
+      const picked = await pickPrivateKeyFile();
+      if (!picked) return;
+      setSshForm(previous => ({ ...previous, privateKey: picked.pem }));
+      setKeyFileLabel(`${picked.name} · ${picked.kind}`);
+    } catch (error) {
+      setSshMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPickingKey(false);
+    }
+  };
+
   const addSshProfile = async () => {
     const host = sshForm.host.trim();
     const username = sshForm.username.trim();
@@ -166,18 +213,31 @@ export const SetupWizard: FC<SetupWizardProps> = ({
       setSshMessage('主机地址和用户名不能为空。');
       return;
     }
+    let privateKey: string | undefined;
+    try {
+      privateKey = sshForm.privateKey.trim() ? parsePrivateKey(sshForm.privateKey).pem : undefined;
+    } catch (error) {
+      setSshMessage(error instanceof Error ? error.message : String(error));
+      return;
+    }
     const profile: SSHProfile = {
       id: `ssh-${Date.now()}`,
       name: sshForm.name.trim() || `${username}@${host}`,
       host,
       port: port > 0 && port < 65536 ? port : 22,
       username,
-      privateKey: sshForm.privateKey.trim() || undefined,
+      privateKey,
+      platform: sshForm.platform,
       updatedAt: Date.now(),
     };
-    await configStore.addSshProfile(profile);
-    setSshForm(emptySshForm);
-    setSshMessage('SSH 配置已保存。');
+    try {
+      await configStore.addSshProfile(profile);
+      setSshForm(emptySshForm);
+      setKeyFileLabel('');
+      setSshMessage('SSH 配置已保存。');
+    } catch (error) {
+      setSshMessage(error instanceof Error ? error.message : String(error));
+    }
   };
 
   const finish = async () => {
@@ -385,7 +445,8 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         <View style={styles.profileInfo}>
                           <Text style={styles.profileName}>{profile.name}</Text>
                           <Text style={styles.profileHost}>
-                            {profile.username}@{profile.host}:{profile.port}
+                            {profile.username}@{profile.host}:{profile.port} ·{' '}
+                            {COMMAND_PLATFORM_LABELS[sshProfilePlatform(profile)]}
                             {profile.privateKey ? ' · 密钥' : ' · 密码'}
                           </Text>
                         </View>
@@ -447,10 +508,53 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     />
                   </View>
                   <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>远端系统</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      accessibilityRole="radiogroup"
+                      accessibilityLabel="远端系统"
+                      contentContainerStyle={styles.platformRow}
+                    >
+                      {COMMAND_PLATFORM_OPTIONS.map(option => {
+                        const active = sshForm.platform === option.platform;
+                        return (
+                          <Pressable
+                            key={option.platform}
+                            accessibilityRole="radio"
+                            accessibilityState={{ checked: active }}
+                            style={[styles.platformChip, active && styles.platformChipActive]}
+                            onPress={() =>
+                              setSshForm(previous => ({
+                                ...previous,
+                                platform: option.platform,
+                              }))
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.platformChipText,
+                                active && styles.platformChipTextActive,
+                              ]}
+                            >
+                              {option.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                    <Text style={styles.hint}>
+                      {platformDescription} · 用于匹配该系统的主机历史与补全指令集。
+                    </Text>
+                  </View>
+                  <View style={styles.field}>
                     <Text style={styles.fieldLabel}>私钥（可选）</Text>
                     <TextInput
                       value={sshForm.privateKey}
-                      onChangeText={(value: string) => setSshForm(prev => ({ ...prev, privateKey: value }))}
+                      onChangeText={(value: string) => {
+                        setSshForm(prev => ({ ...prev, privateKey: value }));
+                        setKeyFileLabel('');
+                      }}
                       placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
                       placeholderTextColor={colors.textDim}
                       multiline
@@ -458,7 +562,45 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                       autoCorrect={false}
                       style={[styles.input, styles.keyTextarea]}
                     />
-                    <Text style={styles.hint}>留空则连接时在终端中交互输入密码。</Text>
+                    <View style={styles.keyActionRow}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="从文件选择 SSH 私钥"
+                        style={[styles.secondaryAction, styles.flex]}
+                        onPress={handlePickPrivateKey}
+                        disabled={pickingKey}
+                      >
+                        {pickingKey ? (
+                          <ActivityIndicator size="small" color={colors.accent} />
+                        ) : (
+                          <Ionicons name="document-attach-outline" size={16} color={colors.accent} />
+                        )}
+                        <Text style={styles.secondaryActionText}>
+                          {pickingKey ? '读取私钥…' : '从文件选择私钥'}
+                        </Text>
+                      </Pressable>
+                      {sshForm.privateKey ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="清除私钥"
+                          style={styles.clearKeyButton}
+                          onPress={() => {
+                            setSshForm(prev => ({ ...prev, privateKey: '' }));
+                            setKeyFileLabel('');
+                          }}
+                        >
+                          <Ionicons name="close" size={18} color={colors.textMuted} />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    {keyFileLabel ? (
+                      <Text numberOfLines={2} style={styles.keyFileLabel}>
+                        {keyFileLabel}
+                      </Text>
+                    ) : null}
+                    <Text style={styles.hint}>
+                      支持 OpenSSH、RSA、ECDSA、PKCS#8 与加密 PEM；PuTTY .ppk 请先转换。加密私钥会在连接时提示输入口令。
+                    </Text>
                   </View>
                   <Pressable style={styles.secondaryAction} onPress={addSshProfile}>
                     <Ionicons name="add" size={17} color={colors.accent} />
@@ -822,6 +964,27 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.md },
   portField: { width: 92, gap: 6 },
   keyTextarea: { minHeight: 110, textAlignVertical: 'top', fontFamily: 'Courier', fontSize: 11 },
+  keyActionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: 8 },
+  clearKeyButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.panelRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keyFileLabel: { color: colors.green, fontSize: 11, lineHeight: 16 },
+  platformRow: { gap: 6, paddingRight: spacing.md },
+  platformChip: {
+    minHeight: 44,
+    paddingHorizontal: 13,
+    borderRadius: radius.pill,
+    backgroundColor: colors.panelRaised,
+    justifyContent: 'center',
+  },
+  platformChipActive: { backgroundColor: colors.accentSoft },
+  platformChipText: { color: colors.textMuted, fontSize: 11.5, fontWeight: '600' },
+  platformChipTextActive: { color: colors.accent },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',

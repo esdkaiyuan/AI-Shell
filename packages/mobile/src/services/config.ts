@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
 import { secureClear, secureLoad, secureSave } from '../native/nativeBridge';
+import {
+  isCommandPlatform,
+  type CommandPlatform,
+  type RemoteCommandPlatform,
+} from './commandCatalog';
 
 export type ProviderProtocol = 'openai' | 'claude' | 'ollama' | 'wenxin' | 'xinghuo';
 
@@ -151,14 +156,28 @@ export interface SSHProfile {
   port: number;
   username: string;
   privateKey?: string;
+  platform?: RemoteCommandPlatform;
   updatedAt: number;
 }
+
+export const sshProfilePlatform = (profile?: Pick<SSHProfile, 'platform'>): RemoteCommandPlatform =>
+  profile?.platform || 'linux';
+
+export const commandPlatformForTerminal = (
+  type: 'local' | 'ssh',
+  sshProfileId: string | undefined,
+  profiles: Array<Pick<SSHProfile, 'id' | 'platform'>>
+): CommandPlatform => {
+  if (type === 'local') return 'alpine';
+  return sshProfilePlatform(profiles.find(profile => profile.id === sshProfileId));
+};
 
 export interface CommandHistoryEntry {
   id: string;
   command: string;
   timestamp: number;
   exitCode: number;
+  platform?: CommandPlatform;
 }
 
 export interface EnvironmentConfig {
@@ -261,10 +280,24 @@ const normalizeConfig = (raw: unknown): AppConfig => {
         }))
     : [];
   const sshProfiles = Array.isArray(value.sshProfiles)
-    ? value.sshProfiles.filter(profile => profile && typeof profile.host === 'string')
+    ? value.sshProfiles
+        .filter(profile => profile && typeof profile.host === 'string')
+        .map(profile => ({
+          ...profile,
+          platform:
+            profile.platform && isCommandPlatform(profile.platform)
+              ? profile.platform
+              : 'linux',
+        }))
     : [];
   const history = Array.isArray(value.history)
-    ? value.history.filter(item => item && typeof item.command === 'string').slice(0, 100)
+    ? value.history
+        .filter(item => item && typeof item.command === 'string')
+        .map(item => ({
+          ...item,
+          platform: isCommandPlatform(item.platform) ? item.platform : 'alpine',
+        }))
+        .slice(0, 100)
     : [];
   const workspaceSessions = Array.isArray(value.workspaceSessions)
     ? value.workspaceSessions
@@ -387,16 +420,21 @@ class ConfigStore {
     });
   }
 
-  async addHistory(command: string, exitCode = 0): Promise<void> {
+  async addHistory(
+    command: string,
+    exitCode = 0,
+    platform: CommandPlatform = 'alpine'
+  ): Promise<void> {
     const trimmed = command.trim();
     if (!trimmed) return;
     const previous = this.config.history[0];
-    if (previous && previous.command === trimmed) return;
+    if (previous && previous.command === trimmed && previous.platform === platform) return;
     const entry: CommandHistoryEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       command: trimmed,
       timestamp: Date.now(),
       exitCode,
+      platform,
     };
     await this.update({ history: [entry, ...this.config.history].slice(0, 100) });
   }

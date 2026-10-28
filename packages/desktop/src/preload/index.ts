@@ -24,6 +24,7 @@ interface SSHConfig {
   hasPassword?: boolean;
   hasPrivateKey?: boolean;
   passphrase?: string;
+  platform?: 'linux' | 'macos' | 'windows-powershell' | 'windows-cmd';
   config?: Record<string, unknown>;
 }
 
@@ -137,6 +138,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 系统监控
   system: {
+    platform: process.platform,
     getStats: () => ipcRenderer.invoke('system:get-stats'),
     onStats: (callback: (stats: SystemStats) => void) => {
       const listener = (_: Electron.IpcRendererEvent, stats: SystemStats) => callback(stats);

@@ -10,12 +10,16 @@ import { appSettings, TERMINAL_THEMES } from '../appSettings';
 import { commandHistory } from '../commandHistory';
 import { snippetStore } from '../snippets';
 import {
+  COMMAND_PLATFORM_LABELS,
+  coerceCommandPlatform,
+  platformForLocalHost,
   suggestCommands,
   InputLineTracker,
   SuggestSource,
   parsePathToken,
   resolveDir,
   buildPathSuggestions,
+  type CommandPlatform,
 } from '../commandSuggest';
 import SearchBar from './SearchBar';
 
@@ -31,6 +35,7 @@ interface TerminalProps {
     password?: string;
     privateKey?: string;
     passphrase?: string;
+    platform?: CommandPlatform;
   };
   showSearch?: boolean;
   onSearchClose?: () => void;
@@ -79,6 +84,10 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputTrackerRef = useRef(new InputLineTracker());
+  const completionPlatform: CommandPlatform =
+    type === 'ssh'
+      ? coerceCommandPlatform(sshConfig?.platform)
+      : platformForLocalHost(window.electronAPI?.system?.platform || 'linux');
   // 供 xterm 按键处理器读取的最新建议状态（闭包里拿不到 useState）
   const suggestionStateRef = useRef<{ list: SuggestSource[]; index: number; visible: boolean }>({
     list: [],
@@ -198,7 +207,9 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
         // 命令补全：拉候选
         const history = commandHistory.getAll().map(e => e.command);
         const snippets = snippetStore.getAll().map(s => s.command);
-        const list = suggestCommands(prefix, history, snippets);
+        const list = suggestCommands(prefix, history, snippets, {
+          platform: completionPlatform,
+        });
         if (list.length === 0) return true; // 无候选，交给 shell
         syncSuggestionState(list, 0, true);
         return false;
@@ -432,7 +443,7 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
         xtermRef.current.dispose();
       }
     };
-  }, [terminalId, title, type, sshConfig]);
+  }, [terminalId, title, type, sshConfig, completionPlatform]);
 
   // 搜索处理函数
   const handleSearch = (term: string, options: { caseSensitive: boolean; wholeWord: boolean; regex: boolean }) => {
@@ -482,7 +493,7 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
       {showSuggestions && suggestions.length > 0 && (
         <div className="terminal-suggestions" role="listbox">
           <div className="suggestions-header">
-            Tab 循环选择 · Enter 接受 · Esc 关闭
+            {COMMAND_PLATFORM_LABELS[completionPlatform]} · Tab 循环选择 · Enter 接受 · Esc 关闭
           </div>
           {suggestions.map((s, idx) => (
             <div

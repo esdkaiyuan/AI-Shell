@@ -27,12 +27,19 @@ import type { FileItem } from './src/data';
 import {
   configStore,
   activeProvider,
+  commandPlatformForTerminal,
   maskSecret,
+  sshProfilePlatform,
   useAppConfig,
   type SSHProfile,
   type WorkspaceSession,
 } from './src/services/config';
 import { sendChat, type AIChatMessage } from './src/services/ai';
+import {
+  COMMAND_PLATFORM_LABELS,
+  quickCommands as commandsForPlatform,
+  suggestCommands,
+} from './src/services/commandCatalog';
 import { runtimeStore, useRuntime } from './src/services/runtimeStore';
 import {
   getDeviceStats,
@@ -51,7 +58,6 @@ import {
   desktopFeatureCoverage,
   getActivePane,
   getActiveTerminal,
-  mobileCatalog,
   mobileReducer,
 } from './src/mobileState';
 import { colors, radius, spacing } from './src/theme';
@@ -143,6 +149,7 @@ const AppContent: FC = () => {
           <TerminalWorkspace
             state={state}
             dispatch={dispatch}
+            config={config}
             runtime={runtime.status}
             terminalApi={terminalApi}
             onOpenSetup={openSetup}
@@ -280,6 +287,7 @@ interface WorkspaceProps {
 
 interface TerminalWorkspaceProps extends WorkspaceProps {
   state: MobileState;
+  config: ReturnType<typeof useAppConfig>;
   runtime: LinuxStatus;
   terminalApi: TerminalRuntimeApi;
   onOpenSetup: (step?: SetupStep) => void;
@@ -288,6 +296,7 @@ interface TerminalWorkspaceProps extends WorkspaceProps {
 const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
   state,
   dispatch,
+  config,
   runtime,
   terminalApi,
   onOpenSetup,
@@ -295,6 +304,24 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
   const [toolsOpen, setToolsOpen] = useState(false);
   const activeTerminal = getActiveTerminal(state);
   const activePane = getActivePane(state);
+  const commandPlatform = commandPlatformForTerminal(
+    activeTerminal.type,
+    activeTerminal.sshProfileId,
+    config.sshProfiles
+  );
+  const platformLabel = COMMAND_PLATFORM_LABELS[commandPlatform];
+  const suggestions = useMemo(
+    () =>
+      suggestCommands(
+        state.commandInput,
+        config.history
+          .filter(item => (item.platform || 'alpine') === commandPlatform)
+          .map(item => item.command),
+        commandPlatform
+      ),
+    [state.commandInput, config.history, commandPlatform]
+  );
+  const quickEntries = useMemo(() => commandsForPlatform(commandPlatform), [commandPlatform]);
   const query = state.searchQuery.trim();
   const visibleLines = query
     ? activePane.lines.filter(line => line.text.toLowerCase().includes(query.toLowerCase()))
@@ -405,7 +432,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
       ) : null}
 
       <TerminalPreview
-        title={`${activePane.title} / ${activePane.type === 'ssh' ? 'ssh' : 'alpine'}`}
+        title={`${activePane.title} / ${platformLabel}`}
         lines={visibleLines}
         status={activePane.sessionStatus}
       />
@@ -421,21 +448,64 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
         <TerminalKey label="/" onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}/` })} />
       </ScrollView>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {mobileCatalog.quickCommands.map(command => (
-          <CommandChip
-            key={command}
-            command={command}
-            onPress={(value: string) => dispatch({ type: 'insertCommand', command: value })}
-          />
-        ))}
-      </ScrollView>
+      {state.commandInput.trim() ? (
+        suggestions.length ? (
+          <View style={styles.suggestionPanel}>
+            <View style={styles.suggestionHeader}>
+              <Ionicons name="sparkles-outline" size={13} color={colors.accent} />
+              <Text style={styles.suggestionHeaderText}>补全 · {platformLabel}</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.suggestionRow}
+            >
+              {suggestions.map(item => (
+                <Pressable
+                  key={`${item.source}-${item.command}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`补全为 ${item.command}`}
+                  style={styles.suggestionCard}
+                  onPress={() =>
+                    dispatch({ type: 'insertCommand', command: item.command })
+                  }
+                >
+                  <Text numberOfLines={1} style={styles.suggestionCommand}>
+                    {item.command}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.suggestionDescription}>
+                    {item.description}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null
+      ) : (
+        <View style={styles.quickPanel}>
+          <Text style={styles.quickLabel}>常用 · {platformLabel}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+          >
+            {quickEntries.map(item => (
+              <CommandChip
+                key={item.command}
+                command={item.command}
+                onPress={(value: string) => dispatch({ type: 'insertCommand', command: value })}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <View style={styles.commandBar}>
         <TextInput
           value={state.commandInput}
           onChangeText={(value: string) => dispatch({ type: 'setCommandInput', value })}
-          placeholder={activePane.sessionStatus === 'ready' ? '输入 Linux 命令…' : '等待会话就绪…'}
+          placeholder={activePane.sessionStatus === 'ready' ? `输入 ${platformLabel} 命令…` : '等待会话就绪…'}
           placeholderTextColor={colors.textDim}
           autoCapitalize="none"
           autoCorrect={false}
@@ -528,7 +598,9 @@ const SSHCard: FC<{ profile: SSHProfile; onConnect: () => void; onDelete: () => 
       <Text style={styles.mono}>
         {profile.username}@{profile.host}:{profile.port}
       </Text>
-      <Text style={styles.cardMeta}>点击在内置 Linux 中连接</Text>
+      <Text style={styles.cardMeta}>
+        {COMMAND_PLATFORM_LABELS[sshProfilePlatform(profile)]} · 点击在内置 Linux 中连接
+      </Text>
     </View>
     <Pressable style={styles.cardDelete} onPress={onDelete}>
       <Ionicons name="trash-outline" size={16} color={colors.red} />
@@ -1101,7 +1173,8 @@ const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => (
               {item.command}
             </Text>
             <Text style={styles.historyMeta}>
-              {new Date(item.timestamp).toLocaleString()} · 已提交
+              {new Date(item.timestamp).toLocaleString()} · 已提交 ·{' '}
+              {COMMAND_PLATFORM_LABELS[item.platform || 'alpine']}
             </Text>
           </Pressable>
         ))}
@@ -1504,7 +1577,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   keyText: { color: colors.textMuted, fontSize: 11, fontWeight: '600', fontFamily: 'Courier' },
-  chipRow: { gap: spacing.sm, paddingTop: spacing.sm, paddingRight: spacing.lg },
+  quickPanel: { gap: 6, paddingTop: spacing.sm },
+  quickLabel: { color: colors.textDim, fontSize: 10.5, fontWeight: '600', paddingHorizontal: 2 },
+  chipRow: { gap: spacing.sm, paddingRight: spacing.lg },
+  suggestionPanel: { gap: 7, paddingTop: spacing.sm },
+  suggestionHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 2 },
+  suggestionHeaderText: { color: colors.accent, fontSize: 10.5, fontWeight: '600' },
+  suggestionRow: { gap: 7, paddingRight: spacing.lg },
+  suggestionCard: {
+    width: 214,
+    minHeight: 56,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 11,
+    backgroundColor: colors.panel,
+    justifyContent: 'center',
+    gap: 3,
+  },
+  suggestionCommand: { color: colors.text, fontFamily: 'Courier', fontSize: 12 },
+  suggestionDescription: { color: colors.textDim, fontSize: 10.5 },
   card: {
     minHeight: 78,
     padding: 14,

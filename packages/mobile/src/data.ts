@@ -8,15 +8,3 @@ export interface FileItem {
   modified?: string;
   hidden?: boolean;
 }
-
-export const quickCommands = [
-  'apk update',
-  'apk add htop',
-  'uname -a',
-  'df -h',
-  'free -h',
-  'ps aux | head -20',
-  'ip addr',
-  'ssh -V',
-  'git status',
-];

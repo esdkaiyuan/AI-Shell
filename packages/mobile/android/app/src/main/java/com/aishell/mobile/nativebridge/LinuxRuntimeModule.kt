@@ -13,7 +13,6 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.File
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 class LinuxRuntimeModule(
@@ -32,8 +31,13 @@ class LinuxRuntimeModule(
     }
 
     private val installer = RootfsInstaller(reactContext)
-    private val sessions = ConcurrentHashMap<String, LinuxSession>()
+    private val privateKeys by lazy { SessionPrivateKeys(File(installer.rootfsDir, "root/.ssh")) }
+    private val sessions = SessionRegistry<LinuxSession>()
     private val executor = Executors.newCachedThreadPool()
+
+    init {
+        privateKeys.clear()
+    }
 
     override fun getName(): String = "LinuxRuntime"
 
@@ -60,8 +64,9 @@ class LinuxRuntimeModule(
 
     @ReactMethod
     fun startSession(options: ReadableMap, promise: Promise) {
+        val sessionId = options.getString("sessionId") ?: UUID.randomUUID().toString()
+        sessions.begin(sessionId)
         executor.execute {
-            val sessionId = options.getString("sessionId") ?: UUID.randomUUID().toString()
             try {
                 installer.ensureInstalled(::emitInstallProgress)
 
@@ -122,10 +127,14 @@ class LinuxRuntimeModule(
                     onOutput = { data -> emitSessionOutput(sessionId, data) },
                     onExit = { code ->
                         sessions.remove(sessionId)
+                        privateKeys.remove(sessionId)
                         emitSessionExit(sessionId, code)
                     }
                 )
-                sessions[sessionId] = session
+                if (!sessions.register(sessionId, session)) {
+                    session.stop()
+                    throw IllegalStateException("会话已停止")
+                }
                 session.start()
 
                 promise.resolve(Arguments.createMap().apply {
@@ -135,6 +144,7 @@ class LinuxRuntimeModule(
                 })
             } catch (error: Throwable) {
                 sessions.remove(sessionId)
+                privateKeys.remove(sessionId)
                 promise.reject("LINUX_START", message(error), error)
             }
         }
@@ -143,7 +153,7 @@ class LinuxRuntimeModule(
     @ReactMethod
     fun writeSession(sessionId: String, data: String, promise: Promise) {
         try {
-            val session = sessions[sessionId] ?: throw IllegalStateException("会话不存在或已结束")
+            val session = sessions.get(sessionId) ?: throw IllegalStateException("会话不存在或已结束")
             session.write(data)
             promise.resolve(true)
         } catch (error: Throwable) {
@@ -154,13 +164,14 @@ class LinuxRuntimeModule(
     @ReactMethod
     fun resizeSession(sessionId: String, cols: Int, rows: Int, promise: Promise) {
         // The bundled `script` PTY does not expose resize; keep the API stable.
-        promise.resolve(sessions.containsKey(sessionId))
+        promise.resolve(sessions.get(sessionId) != null)
     }
 
     @ReactMethod
     fun stopSession(sessionId: String, promise: Promise) {
         val session = sessions.remove(sessionId)
         session?.stop()
+        privateKeys.remove(sessionId)
         promise.resolve(session != null)
     }
 
@@ -168,8 +179,8 @@ class LinuxRuntimeModule(
     fun resetRuntime(promise: Promise) {
         executor.execute {
             try {
-                sessions.values.forEach { it.stop() }
-                sessions.clear()
+                sessions.drain().forEach { it.stop() }
+                privateKeys.clear()
                 installer.reset()
                 promise.resolve(statusMap())
             } catch (error: Throwable) {
@@ -182,7 +193,7 @@ class LinuxRuntimeModule(
     fun listDirectory(guestPath: String, promise: Promise) {
         executor.execute {
             try {
-                val dir = installer.rootfsFileFor(normalizeGuestPath(guestPath))
+                val dir = runtimeFile(normalizeGuestPath(guestPath))
                 if (!dir.isDirectory) throw IllegalStateException("不是目录：$guestPath")
                 val base = normalizeGuestPath(guestPath).trimEnd('/')
                 val entries = dir.listFiles()?.toList().orEmpty()
@@ -212,7 +223,7 @@ class LinuxRuntimeModule(
     fun readFile(guestPath: String, promise: Promise) {
         executor.execute {
             try {
-                val file = installer.rootfsFileFor(normalizeGuestPath(guestPath))
+                val file = runtimeFile(normalizeGuestPath(guestPath))
                 if (!file.isFile) throw IllegalStateException("不是文件：$guestPath")
                 val size = file.length()
                 val readLength = minOf(size, MAX_READ_BYTES.toLong()).toInt()
@@ -248,7 +259,7 @@ class LinuxRuntimeModule(
                 if (!path.startsWith("/root/")) {
                     throw SecurityException("只允许写入 /root 目录")
                 }
-                val file = installer.rootfsFileFor(path)
+                val file = runtimeFile(path)
                 file.parentFile?.mkdirs()
                 file.writeText(content)
                 if (path.contains("/.ssh/")) {
@@ -259,6 +270,13 @@ class LinuxRuntimeModule(
                 promise.reject("LINUX_WRITE_FILE", message(error), error)
             }
         }
+    }
+
+    override fun invalidate() {
+        sessions.drain().forEach { it.stop() }
+        privateKeys.clear()
+        executor.shutdownNow()
+        super.invalidate()
     }
 
     @ReactMethod
@@ -310,16 +328,14 @@ class LinuxRuntimeModule(
         return "exec " + args.joinToString(" ") { shellQuote(it) }
     }
 
-    private fun writePrivateKey(sessionId: String, privateKey: String): String {
-        val sshDir = File(installer.rootfsDir, "root/.ssh")
-        sshDir.mkdirs()
-        runCatching { Os.chmod(sshDir.absolutePath, 448) } // 0700
-        val safeId = sessionId.replace(Regex("[^A-Za-z0-9_.-]"), "_")
-        val file = File(sshDir, "aishell_$safeId")
-        file.writeText(privateKey.trimEnd() + "\n")
-        runCatching { Os.chmod(file.absolutePath, 384) } // 0600
-        return "/root/.ssh/aishell_$safeId"
-    }
+    private fun writePrivateKey(sessionId: String, privateKey: String): String =
+        privateKeys.create(sessionId, privateKey)
+
+    private fun runtimeFile(guestPath: String): File = RuntimePathResolver(
+        installer.rootfsDir,
+        installer.sharedDir(),
+        reactContext.getExternalFilesDir(null)
+    ).resolve(guestPath)
 
     private fun externalBindArgs(): List<String> {
         val external = reactContext.getExternalFilesDir(null) ?: return emptyList()

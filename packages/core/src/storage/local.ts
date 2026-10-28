@@ -172,6 +172,7 @@ export class LocalStorage {
         JSON.stringify({
           ...(config.config || {}),
           passphrase: config.passphrase || undefined,
+          platform: config.platform || undefined,
         }),
       ]
     );
@@ -185,9 +186,10 @@ export class LocalStorage {
       const row = this.getRowObject(stmt);
       const parsedConfig = JSON.parse((row.config as string) || '{}') as {
         passphrase?: string;
+        platform?: SSHConfig['platform'];
         [key: string]: unknown;
       };
-      const { passphrase, ...extraConfig } = parsedConfig;
+      const { passphrase, platform, ...extraConfig } = parsedConfig;
       results.push({
         id: row.id as number,
         name: row.name as string,
@@ -197,6 +199,7 @@ export class LocalStorage {
         password: row.password as string,
         privateKey: row.private_key as string,
         passphrase,
+        platform,
         config: extraConfig,
       });
     }
@@ -212,9 +215,10 @@ export class LocalStorage {
       stmt.free();
       const parsedConfig = JSON.parse((row.config as string) || '{}') as {
         passphrase?: string;
+        platform?: SSHConfig['platform'];
         [key: string]: unknown;
       };
-      const { passphrase, ...extraConfig } = parsedConfig;
+      const { passphrase, platform, ...extraConfig } = parsedConfig;
       return {
         id: row.id as number,
         name: row.name as string,
@@ -224,6 +228,7 @@ export class LocalStorage {
         password: row.password as string,
         privateKey: row.private_key as string,
         passphrase,
+        platform,
         config: extraConfig,
       };
     }

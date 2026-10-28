@@ -13,11 +13,23 @@ export interface SuggestSource {
   replaceFrom?: number;
 }
 
-/** 常用命令词典（覆盖日常运维/开发高频命令） */
-export const COMMON_COMMANDS: string[] = [
-  'ls', 'ls -la', 'cd', 'pwd', 'cat', 'tail -f', 'grep -rn', 'find . -name',
-  'mkdir', 'rm -rf', 'cp -r', 'mv', 'chmod', 'chown', 'ps aux', 'top', 'kill -9',
-  'df -h', 'du -sh', 'free -h', 'uname -a', 'whoami', 'date', 'history',
+export type CommandPlatform = 'linux' | 'macos' | 'windows-powershell' | 'windows-cmd';
+
+export const COMMAND_PLATFORM_LABELS: Record<CommandPlatform, string> = {
+  linux: 'Linux',
+  macos: 'macOS',
+  'windows-powershell': 'Windows PowerShell',
+  'windows-cmd': 'Windows CMD',
+};
+
+export const COMMAND_PLATFORM_OPTIONS: Array<{ platform: CommandPlatform; label: string }> = [
+  { platform: 'linux', label: 'Linux' },
+  { platform: 'macos', label: 'macOS' },
+  { platform: 'windows-powershell', label: 'Windows PowerShell' },
+  { platform: 'windows-cmd', label: 'Windows CMD' },
+];
+
+const CROSS_PLATFORM_COMMANDS = [
   'git status', 'git diff', 'git log --oneline -20', 'git pull', 'git push',
   'git commit -m', 'git checkout -b', 'git branch', 'git stash', 'git clone',
   'npm install', 'npm run dev', 'npm run build', 'npm test', 'npm outdated',
@@ -25,18 +37,82 @@ export const COMMON_COMMANDS: string[] = [
   'yarn install', 'yarn dev', 'yarn build',
   'docker ps', 'docker images', 'docker logs -f', 'docker exec -it', 'docker compose up -d',
   'docker compose down', 'docker build -t', 'docker restart',
-  'systemctl status', 'systemctl restart', 'systemctl enable', 'journalctl -u',
-  'curl -X GET', 'curl -X POST', 'wget', 'ping', 'netstat -tlnp', 'ss -tlnp',
-  'ssh', 'scp', 'rsync -avz', 'tar -xzf', 'tar -czf', 'zip -r', 'unzip',
-  'python3', 'python3 -m venv', 'pip install', 'pip list',
-  'node', 'npx', 'vue --version', 'kubectl get pods', 'kubectl logs -f',
+  'ssh', 'scp', 'curl -X GET', 'curl -X POST',
+  'node', 'npx', 'whoami', 'date',
 ];
+
+const LINUX_COMMANDS = [
+  'ls', 'ls -la', 'cd', 'pwd', 'cat', 'tail -f', 'grep -rn', 'find . -name',
+  'mkdir', 'rm -rf', 'cp -r', 'mv', 'chmod', 'chown', 'ps aux', 'top', 'kill -9',
+  'df -h', 'du -sh', 'free -h', 'uname -a', 'history',
+  'systemctl status', 'systemctl restart', 'systemctl enable', 'journalctl -u',
+  'wget', 'ping', 'netstat -tlnp', 'ss -tlnp', 'rsync -avz',
+  'tar -xzf', 'tar -czf', 'zip -r', 'unzip',
+  'python3', 'python3 -m venv', 'pip install', 'pip list',
+  'vue --version', 'kubectl get pods', 'kubectl logs -f',
+  ...CROSS_PLATFORM_COMMANDS,
+];
+
+const MACOS_COMMANDS = [
+  'ls', 'ls -la', 'cd', 'pwd', 'cat', 'tail -f', 'grep -rn', 'find . -name',
+  'mkdir', 'rm -rf', 'cp -r', 'mv', 'chmod', 'chown', 'ps aux', 'top -o cpu', 'kill -9',
+  'df -h', 'du -sh', 'vm_stat', 'uname -a', 'history', 'sw_vers',
+  'diskutil list', 'launchctl list', 'networksetup -listallhardwareports',
+  'netstat -an', 'scutil --dns', 'open .', 'pbcopy', 'pbpaste', 'softwareupdate -l',
+  'brew update', 'brew upgrade', 'brew install', 'brew list',
+  'ping', 'rsync -avz', 'tar -xzf', 'tar -czf', 'zip -r', 'unzip',
+  'python3', 'python3 -m venv', 'pip install', 'pip list',
+  ...CROSS_PLATFORM_COMMANDS,
+];
+
+const POWERSHELL_COMMANDS = [
+  'Get-ChildItem', 'Get-ChildItem -Force', 'Set-Location', 'Get-Location',
+  'Get-Content', 'Copy-Item', 'Move-Item', 'Remove-Item',
+  'New-Item -ItemType Directory', 'Get-Process', 'Stop-Process -Name',
+  'Get-Service', 'Start-Service', 'Stop-Service', 'Restart-Service',
+  'Get-NetTCPConnection', 'Test-NetConnection', 'Get-NetIPAddress', 'Resolve-DnsName',
+  'Get-ComputerInfo', 'Get-EventLog -LogName System -Newest 20',
+  'Get-CimInstance Win32_OperatingSystem', 'Get-Command', 'Get-Help',
+  'Select-String', 'Measure-Object', 'winget list', 'winget install', 'winget upgrade',
+  ...CROSS_PLATFORM_COMMANDS,
+];
+
+const CMD_COMMANDS = [
+  'dir', 'dir /a', 'cd', 'type', 'findstr /s /i', 'where', 'copy', 'move', 'del',
+  'mkdir', 'rmdir /s /q', 'tasklist', 'taskkill /PID', 'sc query', 'net start',
+  'net stop', 'netstat -ano', 'ipconfig /all', 'ping', 'tracert', 'systeminfo',
+  'set', 'powershell', 'winget list', 'winget install',
+  ...CROSS_PLATFORM_COMMANDS,
+];
+
+const CATALOGS: Record<CommandPlatform, string[]> = {
+  linux: LINUX_COMMANDS,
+  macos: MACOS_COMMANDS,
+  'windows-powershell': POWERSHELL_COMMANDS,
+  'windows-cmd': CMD_COMMANDS,
+};
+
+/** 默认 Linux 常用命令词典（保持既有调用方兼容） */
+export const COMMON_COMMANDS: string[] = [...CATALOGS.linux];
+
+export const platformForLocalHost = (platform: string): CommandPlatform => {
+  if (platform === 'win32') return 'windows-cmd';
+  if (platform === 'darwin') return 'macos';
+  return 'linux';
+};
+
+export const coerceCommandPlatform = (value: unknown): CommandPlatform =>
+  COMMAND_PLATFORM_OPTIONS.some(option => option.platform === value)
+    ? (value as CommandPlatform)
+    : 'linux';
 
 export interface SuggestOptions {
   /** 最多返回几条 */
   limit?: number;
   /** 是否包含常用命令 */
   includeCommon?: boolean;
+  /** 目标本机或远端操作系统 */
+  platform?: CommandPlatform;
 }
 
 /**
@@ -51,7 +127,7 @@ export function suggestCommands(
   snippets: string[],
   options: SuggestOptions = {}
 ): SuggestSource[] {
-  const { limit = 8, includeCommon = true } = options;
+  const { limit = 8, includeCommon = true, platform = 'linux' } = options;
   const p = prefix.trim().toLowerCase();
   if (!p) return [];
 
@@ -73,7 +149,7 @@ export function suggestCommands(
   for (const cmd of snippets) push(cmd, 'snippet');
   for (const cmd of history) push(cmd, 'history');
   if (includeCommon) {
-    for (const cmd of COMMON_COMMANDS) push(cmd, 'common');
+    for (const cmd of CATALOGS[platform] ?? COMMON_COMMANDS) push(cmd, 'common');
   }
 
   return results.slice(0, limit);

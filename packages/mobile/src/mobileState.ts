@@ -1,5 +1,3 @@
-import { quickCommands } from './data';
-
 export type MainView =
   | 'terminal'
   | 'ssh'
@@ -449,7 +447,3 @@ export const desktopFeatureCoverage = [
   'Linux 文件浏览',
   'apk 在线扩展',
 ];
-
-export const mobileCatalog = {
-  quickCommands,
-};

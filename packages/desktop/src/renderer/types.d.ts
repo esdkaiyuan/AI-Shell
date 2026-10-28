@@ -33,6 +33,7 @@ interface SSHConfig {
   hasPrivateKey?: boolean;
   hasPassphrase?: boolean;
   passphrase?: string;
+  platform?: 'linux' | 'macos' | 'windows-powershell' | 'windows-cmd';
   config?: Record<string, unknown>;
 }
 
@@ -113,6 +114,7 @@ interface ElectronAPI {
     listDirectory: (dirPath: string, root?: 'workspace' | 'home') => Promise<FileEntry[]>;
   };
   system: {
+    platform: string;
     getStats: () => Promise<SystemStats>;
     onStats: (callback: (stats: SystemStats) => void) => () => void;
   };

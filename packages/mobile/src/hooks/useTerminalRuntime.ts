@@ -12,7 +12,11 @@ import {
   stopLinuxSession,
   writeLinuxSession,
 } from '../native/nativeBridge';
-import { configStore, type SSHProfile } from '../services/config';
+import {
+  commandPlatformForTerminal,
+  configStore,
+  type SSHProfile,
+} from '../services/config';
 
 type AnsiState = 'normal' | 'esc' | 'csi' | 'osc' | 'charset';
 
@@ -92,6 +96,21 @@ export interface TerminalRuntimeApi {
   restartActive: () => Promise<void>;
 }
 
+export const isCurrentSession = (
+  sessions: Map<string, SessionTarget>,
+  target: SessionTarget,
+  sessionId: string
+): boolean => sessions.get(sessionId) === target;
+
+export const terminalRuntimeKey = (state: MobileState): string =>
+  `${state.activeTerminalId}|${state.terminals
+    .map(
+      terminal =>
+        `${terminal.id}:${terminal.split.enabled ? 'split' : 'single'}:` +
+        terminal.split.panes.map(pane => `${pane.id}:${pane.sessionId || ''}`).join(',')
+    )
+    .join('|')}`;
+
 export const useTerminalRuntime = (
   state: MobileState,
   dispatch: (action: MobileAction) => void,
@@ -140,13 +159,7 @@ export const useTerminalRuntime = (
     [dispatch]
   );
 
-  const layoutKey = state.terminals
-    .map(
-      terminal =>
-        `${terminal.id}:${terminal.split.enabled ? 'split' : 'single'}:` +
-        terminal.split.panes.map(pane => `${pane.id}:${pane.sessionId || ''}`).join(',')
-    )
-    .join('|');
+  const layoutKey = terminalRuntimeKey(state);
 
   useEffect(() => {
     if (!installed) return;
@@ -175,7 +188,8 @@ export const useTerminalRuntime = (
 
       const sessionId = `${key}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       starting.current.add(key);
-      targets.current.set(sessionId, { terminalId: terminal.id, paneId: pane.id });
+      const target = { terminalId: terminal.id, paneId: pane.id };
+      targets.current.set(sessionId, target);
       dispatch({
         type: 'attachSession',
         terminalId: terminal.id,
@@ -196,6 +210,10 @@ export const useTerminalRuntime = (
       })
         .then(() => {
           starting.current.delete(key);
+          if (!isCurrentSession(targets.current, target, sessionId)) {
+            stopLinuxSession(sessionId).catch(() => undefined);
+            return;
+          }
           dispatch({
             type: 'setPaneStatus',
             terminalId: terminal.id,
@@ -205,6 +223,7 @@ export const useTerminalRuntime = (
         })
         .catch(error => {
           starting.current.delete(key);
+          if (!isCurrentSession(targets.current, target, sessionId)) return;
           dispatch({
             type: 'setPaneStatus',
             terminalId: terminal.id,
@@ -284,11 +303,17 @@ export const useTerminalRuntime = (
     if (!command) return false;
     const ok = await writeActive(`${command}\n`);
     if (ok) {
+      const terminal = getActiveTerminal(state);
+      const platform = commandPlatformForTerminal(
+        terminal.type,
+        terminal.sshProfileId,
+        sshProfiles
+      );
       dispatch({ type: 'runCommand' });
-      configStore.addHistory(command).catch(() => undefined);
+      configStore.addHistory(command, 0, platform).catch(() => undefined);
     }
     return ok;
-  }, [state.commandInput, writeActive, dispatch]);
+  }, [state, sshProfiles, writeActive, dispatch]);
 
   const copyOutput = useCallback(async (): Promise<boolean> => {
     const pane = getActivePane(state);
@@ -317,6 +342,7 @@ export const useTerminalRuntime = (
         targets.current.delete(sessionId);
       }
     });
+    starting.current.delete(`${terminal.id}:${pane.id}`);
     dispatch({ type: 'detachSession', terminalId: terminal.id, paneId: pane.id });
     dispatch({ type: 'clearPane', terminalId: terminal.id, paneId: pane.id });
   }, [state, dispatch]);

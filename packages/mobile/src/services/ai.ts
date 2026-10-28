@@ -161,7 +161,10 @@ const wenxin = async (
     `${base}/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/${endpoint}?access_token=${encodeURIComponent(
       tokenData.access_token
     )}`,
-    { messages: withSystem(messages, systemPrompt) },
+    {
+      system: systemPrompt,
+      messages: messages.filter(message => message.role !== 'system'),
+    },
     {}
   );
   const data = await response.json();
@@ -226,7 +229,7 @@ export const listProviderModels = async (provider: AIProviderConfig): Promise<st
     const data = await response.json();
     const models = (data?.data || []).map((item: { id?: string }) => item.id).filter(Boolean);
     return models.length ? models : provider.models;
-  } catch {
-    return provider.models;
+  } catch (error) {
+    throw new Error(`模型列表拉取失败：${error instanceof Error ? error.message : String(error)}`);
   }
 };

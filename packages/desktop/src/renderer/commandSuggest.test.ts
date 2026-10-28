@@ -9,6 +9,9 @@ import {
   resolveDir,
   buildPathSuggestions,
   COMMON_COMMANDS,
+  coerceCommandPlatform,
+  platformForLocalHost,
+  type CommandPlatform,
 } from './commandSuggest';
 
 describe('suggestCommands', () => {
@@ -56,6 +59,35 @@ describe('suggestCommands', () => {
   it('skips empty or blank entries', () => {
     const results = suggestCommands('git', ['', '   ', 'git ok'], [], { includeCommon: false });
     expect(results.map(r => r.command)).toEqual(['git ok']);
+  });
+
+  it('uses platform-specific command catalogs for the same prefixes', () => {
+    const cases: Array<[string, CommandPlatform, string, string]> = [
+      ['g', 'linux', 'grep -rn', 'Get-Process'],
+      ['g', 'windows-powershell', 'Get-Process', 'grep -rn'],
+      ['s', 'macos', 'sw_vers', 'systemctl status'],
+      ['s', 'windows-cmd', 'sc query', 'systemctl status'],
+    ];
+
+    for (const [prefix, platform, expected, excluded] of cases) {
+      const list = suggestCommands(prefix, [], [], { platform, limit: 100 }).map(
+        item => item.command
+      );
+      expect(list).toContain(expected);
+      expect(list).not.toContain(excluded);
+    }
+  });
+
+  it('maps the local host platform to its default shell dialect', () => {
+    expect(platformForLocalHost('win32')).toBe('windows-cmd');
+    expect(platformForLocalHost('darwin')).toBe('macos');
+    expect(platformForLocalHost('linux')).toBe('linux');
+  });
+
+  it('coerces stale or unknown persisted platforms to Linux', () => {
+    expect(coerceCommandPlatform('windows-cmd')).toBe('windows-cmd');
+    expect(coerceCommandPlatform('unknown')).toBe('linux');
+    expect(coerceCommandPlatform(undefined)).toBe('linux');
   });
 });
 
