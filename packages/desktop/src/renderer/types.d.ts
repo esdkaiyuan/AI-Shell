@@ -117,6 +117,8 @@ interface ElectronAPI {
     platform: string;
     getStats: () => Promise<SystemStats>;
     onStats: (callback: (stats: SystemStats) => void) => () => void;
+    onNavigate: (callback: (view: 'settings') => void) => () => void;
+    setShortcutRecording: (active: boolean) => Promise<void>;
   };
   clipboard: {
     write: (text: string) => Promise<void>;

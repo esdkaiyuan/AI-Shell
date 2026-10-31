@@ -1,7 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, CloseIcon, CheckIcon, InfoIcon, RefreshIcon } from './Icons';
 import { ProviderIcon } from './ProviderIcons';
-import { appSettings, AppSettings, TERMINAL_THEMES, TerminalThemeName, CursorStyle } from '../appSettings';
+import {
+  appSettings,
+  AppSettings,
+  TERMINAL_THEMES,
+  TerminalThemeName,
+  CursorStyle,
+} from '../appSettings';
+import {
+  DEFAULT_SHORTCUTS,
+  MAX_SHORTCUT_SCHEMES,
+  SHORTCUT_DEFINITIONS,
+  formatShortcut,
+  shortcutConflict,
+  shortcutFromEvent,
+  shortcutReservedReason,
+  shortcutsEqual,
+  type ShortcutAction,
+  type ShortcutKeyEvent,
+  type ShortcutScheme,
+} from '../shortcuts';
 import './Settings.css';
 
 interface AIProvider {
@@ -54,7 +73,11 @@ const PROVIDER_TEMPLATES: ProviderTemplate[] = [
     name: 'claude',
     displayName: 'Claude',
     description: 'Anthropic Claude 3',
-    defaultModels: ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+    defaultModels: [
+      'claude-3-opus-20240229',
+      'claude-3-sonnet-20240229',
+      'claude-3-haiku-20240307',
+    ],
     keyPlaceholder: 'sk-ant-...',
     helpLink: 'https://console.anthropic.com/',
     isFree: false,
@@ -135,7 +158,7 @@ const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 ];
 
 const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'ai' | 'ssh' | 'general'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'ssh' | 'general' | 'shortcuts'>('ai');
   const [providers, setProviders] = useState<AIProvider[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ProviderTemplate>(PROVIDER_TEMPLATES[0]);
@@ -150,7 +173,9 @@ const Settings: React.FC = () => {
   const [fetchError, setFetchError] = useState('');
   const [fetchInfo, setFetchInfo] = useState('');
   const [manualModelInput, setManualModelInput] = useState('');
-  const [notice, setNotice] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(
+    null
+  );
   const [pendingAction, setPendingAction] = useState<{
     text: string;
     confirmLabel: string;
@@ -162,6 +187,10 @@ const Settings: React.FC = () => {
 
   // 通用设置标签页状态
   const [generalSettings, setGeneralSettings] = useState<AppSettings>(appSettings.get());
+  const [capturingAction, setCapturingAction] = useState<ShortcutAction | null>(null);
+  const [schemeName, setSchemeName] = useState('');
+  const isMacPlatform = window.electronAPI?.system?.platform === 'darwin';
+  const shortcutPlatform = isMacPlatform ? 'mac' : 'other';
 
   useEffect(() => {
     loadProviders();
@@ -198,6 +227,136 @@ const Settings: React.FC = () => {
     setGeneralSettings(appSettings.get());
     setPendingAction(null);
   };
+
+  const applyShortcuts = (shortcuts: AppSettings['shortcuts']) => {
+    appSettings.update({ shortcuts });
+    setGeneralSettings(appSettings.get());
+  };
+
+  const resetShortcuts = () => {
+    applyShortcuts({ ...DEFAULT_SHORTCUTS });
+    setCapturingAction(null);
+    setPendingAction(null);
+    setNotice({ type: 'success', text: '已恢复默认快捷键。' });
+  };
+
+  const saveShortcutScheme = () => {
+    const name = schemeName.trim();
+    if (!name) {
+      setNotice({ type: 'error', text: '请先输入方案名称。' });
+      return;
+    }
+    const existing = generalSettings.shortcutSchemes.find(
+      scheme => scheme.name.toLowerCase() === name.toLowerCase()
+    );
+    if (!existing && generalSettings.shortcutSchemes.length >= MAX_SHORTCUT_SCHEMES) {
+      setNotice({ type: 'error', text: `最多保存 ${MAX_SHORTCUT_SCHEMES} 套快捷键方案。` });
+      return;
+    }
+    const scheme: ShortcutScheme = {
+      id: existing?.id || `shortcut-${Date.now()}`,
+      name,
+      shortcuts: { ...generalSettings.shortcuts },
+      createdAt: Date.now(),
+    };
+    const schemes = [
+      scheme,
+      ...generalSettings.shortcutSchemes.filter(item => item.id !== scheme.id),
+    ].slice(0, MAX_SHORTCUT_SCHEMES);
+    updateGeneralSetting({ shortcutSchemes: schemes });
+    setSchemeName('');
+    setNotice({ type: 'success', text: existing ? '快捷键方案已更新。' : '快捷键方案已保存。' });
+  };
+
+  const applyShortcutScheme = (scheme: ShortcutScheme) => {
+    applyShortcuts({ ...scheme.shortcuts });
+    setCapturingAction(null);
+    setNotice({ type: 'success', text: `已应用方案「${scheme.name}」。` });
+  };
+
+  const deleteShortcutScheme = (scheme: ShortcutScheme) => {
+    setPendingAction({
+      text: `确定删除快捷键方案「${scheme.name}」吗？`,
+      confirmLabel: '删除',
+      run: () => {
+        updateGeneralSetting({
+          shortcutSchemes: generalSettings.shortcutSchemes.filter(item => item.id !== scheme.id),
+        });
+        setPendingAction(null);
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'shortcuts') setCapturingAction(null);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!isMacPlatform || !capturingAction) return;
+    window.electronAPI.system.setShortcutRecording(true).catch(() => undefined);
+    return () => {
+      window.electronAPI.system.setShortcutRecording(false).catch(() => undefined);
+    };
+  }, [capturingAction, isMacPlatform]);
+
+  useEffect(() => {
+    if (!capturingAction) return;
+    const handleCapture = (event: KeyboardEvent) => {
+      if (['Control', 'Meta', 'Alt', 'Shift'].includes(event.key)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      if (event.key === 'Escape') {
+        setCapturingAction(null);
+        return;
+      }
+
+      const keys: ShortcutKeyEvent = {
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        altKey: event.altKey,
+        shiftKey: event.shiftKey,
+      };
+      const shortcut = shortcutFromEvent(keys, shortcutPlatform);
+      if (!shortcut) {
+        setNotice({
+          type: 'error',
+          text: isMacPlatform
+            ? '请使用 Command 或 Option 组合键；Control 组合保留给终端。'
+            : '快捷键需包含 Ctrl、Command 或 Alt。',
+        });
+        return;
+      }
+
+      const reserved = shortcutReservedReason(shortcut, isMacPlatform);
+      if (reserved) {
+        setNotice({ type: 'error', text: reserved });
+        return;
+      }
+
+      const conflict = shortcutConflict(generalSettings.shortcuts, capturingAction, shortcut);
+      if (conflict) {
+        const label =
+          SHORTCUT_DEFINITIONS.find(definition => definition.action === conflict)?.label ||
+          conflict;
+        setNotice({ type: 'error', text: `该组合已被「${label}」占用。` });
+        return;
+      }
+
+      applyShortcuts({ ...generalSettings.shortcuts, [capturingAction]: shortcut });
+      setCapturingAction(null);
+      setNotice({ type: 'success', text: '快捷键已更新。' });
+    };
+
+    window.addEventListener('keydown', handleCapture, true);
+    return () => window.removeEventListener('keydown', handleCapture, true);
+  });
 
   useEffect(() => {
     // 当选择模板变化时，重置表单
@@ -381,7 +540,10 @@ const Settings: React.FC = () => {
   return (
     <div className="settings">
       <div className="settings-header">
-        <h2>设置</h2>
+        <div className="settings-header-copy">
+          <h2>设置</h2>
+          <p>环境、安全与偏好</p>
+        </div>
       </div>
 
       <div className="settings-content">
@@ -403,6 +565,12 @@ const Settings: React.FC = () => {
             onClick={() => setActiveTab('general')}
           >
             通用设置
+          </button>
+          <button
+            className={`tab ${activeTab === 'shortcuts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('shortcuts')}
+          >
+            快捷键
           </button>
         </div>
 
@@ -445,7 +613,9 @@ const Settings: React.FC = () => {
                             <ProviderIcon provider={provider.name} size={20} />
                           </span>
                           <strong>{getProviderDisplayName(provider.name)}</strong>
-                          <span className={`provider-badge ${provider.enabled ? 'enabled' : 'disabled'}`}>
+                          <span
+                            className={`provider-badge ${provider.enabled ? 'enabled' : 'disabled'}`}
+                          >
                             {provider.enabled ? (
                               <>
                                 <CheckIcon size={14} /> 已启用
@@ -457,9 +627,7 @@ const Settings: React.FC = () => {
                             )}
                           </span>
                         </div>
-                        <div className="provider-models">
-                          模型: {provider.models.join(', ')}
-                        </div>
+                        <div className="provider-models">模型: {provider.models.join(', ')}</div>
                       </div>
                       <button
                         className="btn-danger"
@@ -474,10 +642,7 @@ const Settings: React.FC = () => {
 
               {/* 添加新提供商按钮 */}
               {!showAddForm && (
-                <button
-                  className="btn-primary btn-large"
-                  onClick={() => setShowAddForm(true)}
-                >
+                <button className="btn-primary btn-large" onClick={() => setShowAddForm(true)}>
                   <PlusIcon size={16} /> 添加 AI 提供商
                 </button>
               )}
@@ -675,9 +840,7 @@ const Settings: React.FC = () => {
               {sshConfigs.length === 0 ? (
                 <div className="empty-config-state">
                   <p>还没有保存任何 SSH 连接配置。</p>
-                  <p className="form-hint">
-                    点击顶部工具栏的「SSH 连接」图标来新建连接。
-                  </p>
+                  <p className="form-hint">点击顶部工具栏的「SSH 连接」图标来新建连接。</p>
                 </div>
               ) : (
                 <div className="ssh-config-list">
@@ -716,7 +879,11 @@ const Settings: React.FC = () => {
                 </div>
               )}
 
-              <button className="btn-secondary" onClick={loadSSHConfigs} style={{ marginTop: 'var(--spacing-lg)' }}>
+              <button
+                className="btn-secondary"
+                onClick={loadSSHConfigs}
+                style={{ marginTop: 'var(--spacing-lg)' }}
+              >
                 <RefreshIcon size={14} /> 刷新列表
               </button>
             </div>
@@ -787,10 +954,12 @@ const Settings: React.FC = () => {
                       系统等宽（推荐）
                     </option>
                     <option value='"Cascadia Code", "Consolas", monospace'>Cascadia Code</option>
-                    <option value='"Consolas", "Courier New", "DejaVu Sans Mono", monospace'>Consolas</option>
+                    <option value='"Consolas", "Courier New", "DejaVu Sans Mono", monospace'>
+                      Consolas
+                    </option>
                     <option value='"Fira Code", "Consolas", monospace'>Fira Code</option>
                     <option value='"Courier New", monospace'>Courier New</option>
-                    <option value='monospace'>系统等宽字体</option>
+                    <option value="monospace">系统等宽字体</option>
                   </select>
                 </div>
 
@@ -838,7 +1007,9 @@ const Settings: React.FC = () => {
                     max={10000}
                     step={100}
                     value={generalSettings.scrollback}
-                    onChange={e => updateGeneralSetting({ scrollback: parseInt(e.target.value, 10) })}
+                    onChange={e =>
+                      updateGeneralSetting({ scrollback: parseInt(e.target.value, 10) })
+                    }
                     className="form-range"
                   />
                 </div>
@@ -864,6 +1035,124 @@ const Settings: React.FC = () => {
                   <div className="about-signature">esdkaiyuan</div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'shortcuts' && (
+            <div className="shortcuts-settings">
+              <h3>快捷键</h3>
+              <p className="description">
+                点击组合键后按下新的快捷键。
+                {isMacPlatform
+                  ? 'macOS 使用 Command；Control 组合保留给终端。'
+                  : '使用 Ctrl 或 Alt 作为主修饰键。'}
+                标签切换固定为 {isMacPlatform ? '⌘' : 'Ctrl'} + 1…9。
+              </p>
+
+              <div className="shortcut-list">
+                {SHORTCUT_DEFINITIONS.map(definition => {
+                  const capturing = capturingAction === definition.action;
+                  return (
+                    <div key={definition.action} className="shortcut-row">
+                      <div className="shortcut-copy">
+                        <div className="shortcut-label">{definition.label}</div>
+                        <div className="shortcut-description">{definition.description}</div>
+                      </div>
+                      <button
+                        className={`shortcut-key ${capturing ? 'capturing' : ''}`}
+                        onClick={() =>
+                          setCapturingAction(current =>
+                            current === definition.action ? null : definition.action
+                          )
+                        }
+                        aria-label={`修改${definition.label}快捷键`}
+                      >
+                        {capturing
+                          ? '请按下组合键…'
+                          : formatShortcut(
+                              generalSettings.shortcuts[definition.action],
+                              isMacPlatform
+                            )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="shortcut-actions">
+                <button
+                  className="btn-secondary"
+                  onClick={() =>
+                    setPendingAction({
+                      text: '恢复默认快捷键？当前自定义组合将被覆盖。',
+                      confirmLabel: '恢复',
+                      run: resetShortcuts,
+                    })
+                  }
+                >
+                  恢复默认快捷键
+                </button>
+                <span className="shortcut-note">录制时按 Esc 取消</span>
+              </div>
+
+              <h4>快捷方式方案</h4>
+              <div className="scheme-save-row">
+                <input
+                  className="form-input"
+                  value={schemeName}
+                  maxLength={32}
+                  placeholder="方案名称，例如：Mac 习惯"
+                  onChange={event => setSchemeName(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') saveShortcutScheme();
+                  }}
+                />
+                <button className="btn-secondary" onClick={saveShortcutScheme}>
+                  保存当前方案
+                </button>
+              </div>
+
+              {generalSettings.shortcutSchemes.length === 0 ? (
+                <div className="shortcut-empty">
+                  <p>还没有保存的方案。</p>
+                  <p className="form-hint">调整好当前快捷键后，为它命名并保存。</p>
+                </div>
+              ) : (
+                <div className="shortcut-scheme-list">
+                  {generalSettings.shortcutSchemes.map(scheme => {
+                    const active = shortcutsEqual(generalSettings.shortcuts, scheme.shortcuts);
+                    return (
+                      <div key={scheme.id} className={`shortcut-scheme ${active ? 'active' : ''}`}>
+                        <div className="shortcut-scheme-copy">
+                          <div className="shortcut-scheme-name">
+                            {scheme.name}
+                            {active ? (
+                              <span className="shortcut-scheme-active">当前方案</span>
+                            ) : null}
+                          </div>
+                          <div className="shortcut-scheme-meta">
+                            保存于 {new Date(scheme.createdAt).toLocaleString('zh-CN')}
+                          </div>
+                        </div>
+                        <div className="shortcut-scheme-actions">
+                          <button
+                            className="btn-secondary"
+                            onClick={() => applyShortcutScheme(scheme)}
+                          >
+                            应用
+                          </button>
+                          <button
+                            className="btn-danger"
+                            onClick={() => deleteShortcutScheme(scheme)}
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

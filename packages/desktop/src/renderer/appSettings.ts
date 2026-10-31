@@ -3,6 +3,14 @@
 // - 持久化到 localStorage，跨会话保留
 // - 终端组件订阅变化后实时应用（字体、字号、光标、主题等）
 
+import {
+  DEFAULT_SHORTCUTS,
+  normalizeShortcutMap,
+  normalizeShortcutSchemes,
+  type ShortcutMap,
+  type ShortcutScheme,
+} from './shortcuts';
+
 export type TerminalThemeName = 'mono-dark' | 'classic-dark' | 'solarized-dark' | 'light';
 export type CursorStyle = 'block' | 'underline' | 'bar';
 
@@ -23,6 +31,10 @@ export interface AppSettings {
   aiProvider: string;
   /** AI 对话使用的模型名称（空 = 由提供商默认） */
   aiModel: string;
+  /** 当前生效的全局快捷键 */
+  shortcuts: ShortcutMap;
+  /** 用户保存的快捷键方案 */
+  shortcutSchemes: ShortcutScheme[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -37,6 +49,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   splitPaneRatio: 0.5,
   aiProvider: '',
   aiModel: '',
+  shortcuts: { ...DEFAULT_SHORTCUTS },
+  shortcutSchemes: [],
 };
 
 /** 面板尺寸边界，防止拖到看不见 */
@@ -162,20 +176,48 @@ class AppSettingsStore {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        this.settings = { ...DEFAULT_SETTINGS, ...parsed };
+        this.settings = {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          shortcuts: normalizeShortcutMap(parsed.shortcuts),
+          shortcutSchemes: normalizeShortcutSchemes(parsed.shortcutSchemes),
+        };
       }
     } catch (error) {
       console.error('Failed to load app settings:', error);
-      this.settings = { ...DEFAULT_SETTINGS };
+      this.settings = {
+        ...DEFAULT_SETTINGS,
+        shortcuts: { ...DEFAULT_SHORTCUTS },
+        shortcutSchemes: [],
+      };
     }
   }
 
   get(): AppSettings {
-    return { ...this.settings };
+    return {
+      ...this.settings,
+      shortcuts: { ...this.settings.shortcuts },
+      shortcutSchemes: this.settings.shortcutSchemes.map(scheme => ({
+        ...scheme,
+        shortcuts: { ...scheme.shortcuts },
+      })),
+    };
   }
 
   update(partial: Partial<AppSettings>) {
-    this.settings = { ...this.settings, ...partial };
+    this.settings = {
+      ...this.settings,
+      ...partial,
+      shortcuts: partial.shortcuts
+        ? normalizeShortcutMap(partial.shortcuts)
+        : { ...this.settings.shortcuts },
+      shortcutSchemes: partial.shortcutSchemes
+        ? normalizeShortcutSchemes(partial.shortcutSchemes)
+        : this.settings.shortcutSchemes.map(scheme => ({
+            ...scheme,
+            shortcuts: { ...scheme.shortcuts },
+          })),
+    };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
     } catch (error) {
@@ -185,7 +227,14 @@ class AppSettingsStore {
   }
 
   reset() {
-    this.settings = { ...DEFAULT_SETTINGS };
+    this.settings = {
+      ...DEFAULT_SETTINGS,
+      shortcuts: { ...DEFAULT_SHORTCUTS },
+      shortcutSchemes: this.settings.shortcutSchemes.map(scheme => ({
+        ...scheme,
+        shortcuts: { ...scheme.shortcuts },
+      })),
+    };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
     } catch (error) {

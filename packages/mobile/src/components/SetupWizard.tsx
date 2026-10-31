@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FC } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -87,10 +88,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
   const [pickingKey, setPickingKey] = useState(false);
   const [keyFileLabel, setKeyFileLabel] = useState('');
 
-  const preset = useMemo(
-    () => presetById(presetId) || PROVIDER_PRESETS[0],
-    [presetId]
-  );
+  const preset = useMemo(() => presetById(presetId) || PROVIDER_PRESETS[0], [presetId]);
   const platformDescription =
     COMMAND_PLATFORM_OPTIONS.find(option => option.platform === sshForm.platform)?.description ||
     '通用 Shell 命令';
@@ -123,6 +121,16 @@ export const SetupWizard: FC<SetupWizardProps> = ({
   const stepIndex = STEPS.findIndex(item => item.key === step);
   const runtimeReady = runtime.status.installed;
   const aiReady = config.aiProviders.length > 0;
+  const finishTitle = runtimeReady
+    ? '环境已就绪'
+    : nativeAvailable
+      ? '配置已保存，Linux 尚未安装'
+      : '预览配置已完成';
+  const finishDescription = runtimeReady
+    ? '内置 Alpine Linux 与常用工具已经可用，后续无需依赖桌面端中继。'
+    : nativeAvailable
+      ? '可在「运行环境与设置」中安装 Alpine Linux，安装后即可使用真实终端。'
+      : 'Web/Expo Go 预览不会安装内置 Linux；请安装 APK 以启用真实终端。';
 
   const selectPreset = (next: ProviderPreset) => {
     setPresetId(next.id);
@@ -145,7 +153,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
       return;
     }
     if (preset.protocol === 'xinghuo') {
-      setAiMessage(preset.keyFormat || '当前版本暂不支持该 Provider。');
+      setAiMessage(preset.keyFormat || '当前版本暂不支持该提供商。');
       return;
     }
     setFetchingModels(true);
@@ -173,15 +181,13 @@ export const SetupWizard: FC<SetupWizardProps> = ({
       return;
     }
     if (preset.protocol === 'xinghuo') {
-      setAiMessage('当前版本暂不支持讯飞星火，请选择其他 Provider。');
+      setAiMessage('当前版本暂不支持讯飞星火，请选择其他提供商。');
       return;
     }
     setAiBusy(true);
     setAiMessage(null);
     try {
-      await configStore.addProvider(
-        providerFromPreset(preset, { apiKey, model, baseURL })
-      );
+      await configStore.addProvider(providerFromPreset(preset, { apiKey, model, baseURL }));
       setAiBusy(false);
       setStep('ssh');
     } catch (error) {
@@ -246,20 +252,16 @@ export const SetupWizard: FC<SetupWizardProps> = ({
   };
 
   const canGoNext =
-    step === 'environment'
-      ? runtimeReady || !nativeAvailable
-      : step === 'ai'
-        ? true
-        : true;
+    step === 'environment' ? runtimeReady || !nativeAvailable : step === 'ai' ? true : true;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" statusBarTranslucent>
-      <View
-        style={[
-          styles.safeArea,
-          { paddingTop: insets.top, paddingBottom: insets.bottom },
-        ]}
-      >
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      statusBarTranslucent
+    >
+      <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -291,7 +293,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     index === stepIndex && styles.stepDotCurrent,
                   ]}
                 >
-                  <Text style={[styles.stepDotText, index <= stepIndex && styles.stepDotTextActive]}>
+                  <Text
+                    style={[styles.stepDotText, index <= stepIndex && styles.stepDotTextActive]}
+                  >
                     {index + 1}
                   </Text>
                 </View>
@@ -307,19 +311,21 @@ export const SetupWizard: FC<SetupWizardProps> = ({
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
-            {step === 'environment' ? (
-              <EnvironmentStep runtime={runtime} />
-            ) : null}
+            {step === 'environment' ? <EnvironmentStep runtime={runtime} /> : null}
 
             {step === 'ai' ? (
               <View>
-                <Text style={styles.title}>连接 AI Provider</Text>
+                <Text style={styles.title}>连接 AI 提供商</Text>
                 <Text style={styles.subtitle}>
                   Key 会使用 Android Keystore 加密保存在本机，不会写入 APK 或上传到服务器。
                 </Text>
 
                 <Text style={styles.sectionLabel}>选择厂商</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipRow}
+                >
                   {PROVIDER_PRESETS.map(item => {
                     const active = item.id === preset.id;
                     const unsupported = item.protocol === 'xinghuo';
@@ -356,7 +362,10 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         autoCorrect={false}
                         style={styles.keyInput}
                       />
-                      <Pressable style={styles.eyeButton} onPress={() => setShowKey(value => !value)}>
+                      <Pressable
+                        style={styles.eyeButton}
+                        onPress={() => setShowKey(value => !value)}
+                      >
                         <Ionicons
                           name={showKey ? 'eye-off-outline' : 'eye-outline'}
                           size={18}
@@ -378,7 +387,11 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                       autoCorrect={false}
                       style={styles.input}
                     />
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modelRow}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.modelRow}
+                    >
                       {models.map(item => {
                         const active = item === model;
                         return (
@@ -387,7 +400,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                             style={[styles.modelChip, active && styles.modelChipActive]}
                             onPress={() => setModel(item)}
                           >
-                            <Text style={[styles.modelText, active && styles.modelTextActive]}>{item}</Text>
+                            <Text style={[styles.modelText, active && styles.modelTextActive]}>
+                              {item}
+                            </Text>
                           </Pressable>
                         );
                       })}
@@ -424,9 +439,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                   {aiMessage ? <Text style={styles.message}>{aiMessage}</Text> : null}
                 </View>
 
-                <Text style={styles.skipHint}>
-                  也可以稍后配置；未配置 Provider 时 AI 页面会提示。
-                </Text>
+                <Text style={styles.skipHint}>也可以稍后配置；未配置提供商时 AI 页面会提示。</Text>
               </View>
             ) : null}
 
@@ -451,8 +464,19 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                           </Text>
                         </View>
                         <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`删除 ${profile.name}`}
                           style={styles.removeButton}
-                          onPress={() => configStore.removeSshProfile(profile.id)}
+                          onPress={() =>
+                            Alert.alert('删除 SSH 配置', `确定删除「${profile.name}」吗？`, [
+                              { text: '取消', style: 'cancel' },
+                              {
+                                text: '删除',
+                                style: 'destructive',
+                                onPress: () => configStore.removeSshProfile(profile.id),
+                              },
+                            ])
+                          }
                         >
                           <Ionicons name="trash-outline" size={16} color={colors.red} />
                         </Pressable>
@@ -466,7 +490,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     <Text style={styles.fieldLabel}>名称</Text>
                     <TextInput
                       value={sshForm.name}
-                      onChangeText={(value: string) => setSshForm(prev => ({ ...prev, name: value }))}
+                      onChangeText={(value: string) =>
+                        setSshForm(prev => ({ ...prev, name: value }))
+                      }
                       placeholder="生产服务器"
                       placeholderTextColor={colors.textDim}
                       style={styles.input}
@@ -477,7 +503,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                       <Text style={styles.fieldLabel}>主机</Text>
                       <TextInput
                         value={sshForm.host}
-                        onChangeText={(value: string) => setSshForm(prev => ({ ...prev, host: value }))}
+                        onChangeText={(value: string) =>
+                          setSshForm(prev => ({ ...prev, host: value }))
+                        }
                         placeholder="192.168.1.10"
                         placeholderTextColor={colors.textDim}
                         autoCapitalize="none"
@@ -489,7 +517,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                       <Text style={styles.fieldLabel}>端口</Text>
                       <TextInput
                         value={sshForm.port}
-                        onChangeText={(value: string) => setSshForm(prev => ({ ...prev, port: value }))}
+                        onChangeText={(value: string) =>
+                          setSshForm(prev => ({ ...prev, port: value }))
+                        }
                         keyboardType="number-pad"
                         style={styles.input}
                       />
@@ -499,7 +529,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     <Text style={styles.fieldLabel}>用户名</Text>
                     <TextInput
                       value={sshForm.username}
-                      onChangeText={(value: string) => setSshForm(prev => ({ ...prev, username: value }))}
+                      onChangeText={(value: string) =>
+                        setSshForm(prev => ({ ...prev, username: value }))
+                      }
                       placeholder="root"
                       placeholderTextColor={colors.textDim}
                       autoCapitalize="none"
@@ -573,7 +605,11 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         {pickingKey ? (
                           <ActivityIndicator size="small" color={colors.accent} />
                         ) : (
-                          <Ionicons name="document-attach-outline" size={16} color={colors.accent} />
+                          <Ionicons
+                            name="document-attach-outline"
+                            size={16}
+                            color={colors.accent}
+                          />
                         )}
                         <Text style={styles.secondaryActionText}>
                           {pickingKey ? '读取私钥…' : '从文件选择私钥'}
@@ -599,7 +635,8 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                       </Text>
                     ) : null}
                     <Text style={styles.hint}>
-                      支持 OpenSSH、RSA、ECDSA、PKCS#8 与加密 PEM；PuTTY .ppk 请先转换。加密私钥会在连接时提示输入口令。
+                      支持 OpenSSH、RSA、ECDSA、PKCS#8 与加密 PEM；PuTTY .ppk
+                      请先转换。加密私钥会在连接时提示输入口令。
                     </Text>
                   </View>
                   <Pressable style={styles.secondaryAction} onPress={addSshProfile}>
@@ -616,24 +653,28 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                 <View style={styles.finishIcon}>
                   <Ionicons name="checkmark" size={34} color={colors.green} />
                 </View>
-                <Text style={[styles.title, styles.centerText]}>环境已就绪</Text>
-                <Text style={[styles.subtitle, styles.centerText]}>
-                  APK 已包含 Alpine Linux 用户态与常用工具，后续无需依赖桌面端中继。
-                </Text>
+                <Text style={[styles.title, styles.centerText]}>{finishTitle}</Text>
+                <Text style={[styles.subtitle, styles.centerText]}>{finishDescription}</Text>
                 <View style={styles.card}>
                   <SummaryRow
                     icon="cube-outline"
                     label="Linux 运行时"
-                    value={runtimeReady ? `${runtime.status.distro || 'Alpine'} · ${runtime.status.abi}` : '未安装'}
+                    value={
+                      runtimeReady
+                        ? `${runtime.status.distro || 'Alpine'} · ${runtime.status.abi}`
+                        : '未安装'
+                    }
                   />
                   <SummaryRow
                     icon="sparkles-outline"
-                    label="AI Provider"
+                    label="AI 提供商"
                     value={
                       aiReady
                         ? (() => {
                             const provider = activeProvider(config);
-                            return provider ? `${provider.displayName} / ${provider.model}` : '稍后配置';
+                            return provider
+                              ? `${provider.displayName} / ${provider.model}`
+                              : '稍后配置';
                           })()
                         : '稍后配置'
                     }
@@ -641,12 +682,14 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                   <SummaryRow
                     icon="server-outline"
                     label="SSH 配置"
-                    value={config.sshProfiles.length ? `${config.sshProfiles.length} 个连接` : '未配置'}
+                    value={
+                      config.sshProfiles.length ? `${config.sshProfiles.length} 个连接` : '未配置'
+                    }
                   />
                   <SummaryRow
                     icon="shield-checkmark-outline"
                     label="密钥存储"
-                    value="Android Keystore · AES-256-GCM"
+                    value={nativeAvailable ? 'Android Keystore · AES-256-GCM' : '预览存储 · 未加密'}
                   />
                 </View>
               </View>

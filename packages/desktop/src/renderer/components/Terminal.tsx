@@ -63,10 +63,23 @@ const ERROR_PATTERNS = [
   /cannot find module/i,
 ];
 
-const looksLikeError = (text: string): boolean =>
-  ERROR_PATTERNS.some(re => re.test(text));
+const looksLikeError = (text: string): boolean => ERROR_PATTERNS.some(re => re.test(text));
 
-const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', sshConfig, showSearch = false, onSearchClose }) => {
+const SUGGESTION_ORIGIN_LABELS: Record<SuggestSource['origin'], string> = {
+  history: '历史',
+  snippet: '快捷命令',
+  common: '常用',
+  path: '路径',
+};
+
+const Terminal: React.FC<TerminalProps> = ({
+  terminalId,
+  title,
+  type = 'local',
+  sshConfig,
+  showSearch = false,
+  onSearchClose,
+}) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -78,7 +91,10 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
   const contextBufferRef = useRef<string>('');
   // 报错检测节流：上次通知时间
   const lastErrorNotifyRef = useRef<number>(0);
-  const [searchResults, setSearchResults] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+  const [searchResults, setSearchResults] = useState<{ current: number; total: number }>({
+    current: 0,
+    total: 0,
+  });
   // Tab 补全建议
   const [suggestions, setSuggestions] = useState<SuggestSource[]>([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -95,11 +111,7 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
     visible: false,
   });
 
-  const syncSuggestionState = (
-    list: SuggestSource[],
-    index: number,
-    visible: boolean
-  ) => {
+  const syncSuggestionState = (list: SuggestSource[], index: number, visible: boolean) => {
     suggestionStateRef.current = { list, index, visible };
     setSuggestions(list);
     setSuggestionIndex(index);
@@ -222,8 +234,7 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
 
       if (state.visible && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
         const delta = event.key === 'ArrowDown' ? 1 : -1;
-        const nextIndex =
-          (state.index + delta + state.list.length) % state.list.length;
+        const nextIndex = (state.index + delta + state.list.length) % state.list.length;
         syncSuggestionState(state.list, nextIndex, true);
         return false;
       }
@@ -262,25 +273,29 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
           sessionIdRef.current = sessionId;
 
           // 监听 SSH 数据
-          cleanupListenersRef.current.push(window.electronAPI.ssh.onData((sid: string, data: string) => {
-            if (sid === sessionId) {
-              xterm.write(data);
-              // 捕获输出到上下文缓冲
-              const clean = stripAnsi(data);
-              contextBufferRef.current += clean;
-              if (contextBufferRef.current.length > 20000) {
-                contextBufferRef.current = contextBufferRef.current.slice(-20000);
+          cleanupListenersRef.current.push(
+            window.electronAPI.ssh.onData((sid: string, data: string) => {
+              if (sid === sessionId) {
+                xterm.write(data);
+                // 捕获输出到上下文缓冲
+                const clean = stripAnsi(data);
+                contextBufferRef.current += clean;
+                if (contextBufferRef.current.length > 20000) {
+                  contextBufferRef.current = contextBufferRef.current.slice(-20000);
+                }
+                detectError(clean);
               }
-              detectError(clean);
-            }
-          }));
+            })
+          );
 
           // 监听 SSH 关闭
-          cleanupListenersRef.current.push(window.electronAPI.ssh.onClose((sid: string) => {
-            if (sid === sessionId) {
-              xterm.writeln('\r\n\x1b[33mSSH connection closed\x1b[0m');
-            }
-          }));
+          cleanupListenersRef.current.push(
+            window.electronAPI.ssh.onClose((sid: string) => {
+              if (sid === sessionId) {
+                xterm.writeln('\r\n\x1b[33mSSH connection closed\x1b[0m');
+              }
+            })
+          );
 
           // 处理终端输入
           xterm.onData(data => {
@@ -307,26 +322,30 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
           sessionIdRef.current = sessionId;
 
           // 监听来自主进程的Shell数据
-          cleanupListenersRef.current.push(window.electronAPI.shell.onData((sid: string, data: string) => {
-            if (sid === sessionId) {
-              xterm.write(data);
-              // 捕获输出到上下文缓冲（去除 ANSI 颜色码）
-              const clean = stripAnsi(data);
-              contextBufferRef.current += clean;
-              // 保留最近 20KB 字符
-              if (contextBufferRef.current.length > 20000) {
-                contextBufferRef.current = contextBufferRef.current.slice(-20000);
+          cleanupListenersRef.current.push(
+            window.electronAPI.shell.onData((sid: string, data: string) => {
+              if (sid === sessionId) {
+                xterm.write(data);
+                // 捕获输出到上下文缓冲（去除 ANSI 颜色码）
+                const clean = stripAnsi(data);
+                contextBufferRef.current += clean;
+                // 保留最近 20KB 字符
+                if (contextBufferRef.current.length > 20000) {
+                  contextBufferRef.current = contextBufferRef.current.slice(-20000);
+                }
+                detectError(clean);
               }
-              detectError(clean);
-            }
-          }));
+            })
+          );
 
           // 监听Shell退出
-          cleanupListenersRef.current.push(window.electronAPI.shell.onExit((sid: string, exitCode: number) => {
-            if (sid === sessionId) {
-              xterm.writeln(`\r\n\x1b[33mProcess exited with code ${exitCode}\x1b[0m`);
-            }
-          }));
+          cleanupListenersRef.current.push(
+            window.electronAPI.shell.onExit((sid: string, exitCode: number) => {
+              if (sid === sessionId) {
+                xterm.writeln(`\r\n\x1b[33mProcess exited with code ${exitCode}\x1b[0m`);
+              }
+            })
+          );
 
           // 处理终端输入
           xterm.onData(data => {
@@ -446,7 +465,10 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
   }, [terminalId, title, type, sshConfig, completionPlatform]);
 
   // 搜索处理函数
-  const handleSearch = (term: string, options: { caseSensitive: boolean; wholeWord: boolean; regex: boolean }) => {
+  const handleSearch = (
+    term: string,
+    options: { caseSensitive: boolean; wholeWord: boolean; regex: boolean }
+  ) => {
     if (!searchAddonRef.current || !term) {
       setSearchResults({ current: 0, total: 0 });
       return;
@@ -507,7 +529,9 @@ const Terminal: React.FC<TerminalProps> = ({ terminalId, title, type = 'local', 
               aria-selected={idx === suggestionIndex}
             >
               <code className="suggestion-cmd">{s.command}</code>
-              <span className={`suggestion-origin ${s.origin}`}>{s.origin}</span>
+              <span className={`suggestion-origin ${s.origin}`}>
+                {SUGGESTION_ORIGIN_LABELS[s.origin]}
+              </span>
             </div>
           ))}
         </div>

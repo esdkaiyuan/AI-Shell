@@ -11,11 +11,11 @@ interface TerminalPreviewProps {
 }
 
 const statusMeta: Record<PaneSessionStatus, { label: string; color: string }> = {
-  idle: { label: 'IDLE', color: colors.textDim },
-  starting: { label: 'STARTING', color: colors.yellow },
-  ready: { label: 'LIVE', color: colors.green },
-  exited: { label: 'EXITED', color: colors.yellow },
-  error: { label: 'ERROR', color: colors.red },
+  idle: { label: '待连接', color: colors.textDim },
+  starting: { label: '启动中', color: colors.yellow },
+  ready: { label: '已连接', color: colors.green },
+  exited: { label: '已结束', color: colors.yellow },
+  error: { label: '失败', color: colors.red },
 };
 
 const emptyText: Record<PaneSessionStatus, string> = {
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    color: colors.textMuted,
+    color: colors.text,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   dot: { width: 5, height: 5, borderRadius: 3 },
-  badgeText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.4 },
+  badgeText: { fontSize: 10, fontWeight: '600', letterSpacing: 0.2 },
   output: {
     flex: 1,
   },

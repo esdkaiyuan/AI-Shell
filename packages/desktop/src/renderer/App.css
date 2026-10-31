@@ -61,15 +61,8 @@
   font-weight: 500;
 }
 
-.toolbar-view-title {
-  margin-left: auto;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .toolbar-fullscreen {
-  margin-left: 4px;
+  margin-left: auto;
 }
 
 .toolbar-section {
@@ -457,6 +450,14 @@
   font-size: 12px;
   display: inline-flex;
   align-items: center;
+}
+
+.statusbar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+  box-shadow: 0 0 0 2px var(--color-success-bg);
 }
 
 /* System monitor */

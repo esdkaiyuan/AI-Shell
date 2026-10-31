@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CloseIcon, SaveIcon, FolderIcon } from './Icons';
+import { CloseIcon, SaveIcon, FolderIcon, GlobeIcon, TerminalIcon } from './Icons';
 import './SessionManager.css';
 
 interface Session {
@@ -49,6 +49,17 @@ const SessionManager: React.FC<SessionManagerProps> = ({
   useEffect(() => {
     loadSessions();
   }, []);
+
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKey, true);
+    return () => window.removeEventListener('keydown', handleKey, true);
+  }, [onClose]);
 
   const loadSessions = () => {
     try {
@@ -154,10 +165,16 @@ const SessionManager: React.FC<SessionManagerProps> = ({
 
   return (
     <div className="session-manager-overlay" onClick={onClose}>
-      <div className="session-manager" onClick={e => e.stopPropagation()}>
+      <div
+        className="session-manager"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="session-manager-title"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="session-manager-header">
-          <h2>会话管理</h2>
-          <button className="close-btn" onClick={onClose}>
+          <h2 id="session-manager-title">会话管理</h2>
+          <button className="close-btn" aria-label="关闭会话管理" onClick={onClose}>
             <CloseIcon size={16} />
           </button>
         </div>
@@ -184,19 +201,33 @@ const SessionManager: React.FC<SessionManagerProps> = ({
 
           {mode === 'list' ? (
             <>
-              <div className="session-actions">
-                <button className="btn-primary" onClick={() => { setMode('save'); setNotice(null); }}>
-                  <SaveIcon size={14} />
-                  <span>保存当前会话</span>
-                </button>
-              </div>
+              {sessions.length > 0 && (
+                <div className="session-actions">
+                  <button
+                    className="btn-primary"
+                    onClick={() => {
+                      setMode('save');
+                      setNotice(null);
+                    }}
+                  >
+                    <SaveIcon size={14} />
+                    <span>保存当前会话</span>
+                  </button>
+                </div>
+              )}
 
               <div className="session-list">
                 {sessions.length === 0 ? (
                   <div className="empty-state">
                     <FolderIcon size={48} />
                     <p>还没有保存的会话</p>
-                    <button className="btn-primary" onClick={() => { setMode('save'); setNotice(null); }}>
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        setMode('save');
+                        setNotice(null);
+                      }}
+                    >
                       保存当前会话
                     </button>
                   </div>
@@ -214,22 +245,21 @@ const SessionManager: React.FC<SessionManagerProps> = ({
                         <div className="session-item-terminals">
                           {session.terminals.map((t, idx) => (
                             <span key={idx} className="terminal-badge">
-                              {t.type === 'ssh' ? '🌐' : '💻'} {t.title}
+                              {t.type === 'ssh' ? (
+                                <GlobeIcon size={12} />
+                              ) : (
+                                <TerminalIcon size={12} />
+                              )}
+                              <span>{t.title}</span>
                             </span>
                           ))}
                         </div>
                       </div>
                       <div className="session-item-actions">
-                        <button
-                          className="btn-secondary"
-                          onClick={() => handleLoad(session)}
-                        >
+                        <button className="btn-secondary" onClick={() => handleLoad(session)}>
                           加载
                         </button>
-                        <button
-                          className="btn-danger"
-                          onClick={() => handleDelete(session.name)}
-                        >
+                        <button className="btn-danger" onClick={() => handleDelete(session.name)}>
                           删除
                         </button>
                       </div>
@@ -241,9 +271,7 @@ const SessionManager: React.FC<SessionManagerProps> = ({
           ) : (
             <div className="session-save-form">
               <h3>保存当前会话</h3>
-              <p className="session-save-hint">
-                当前有 {currentTerminals.length} 个终端将被保存
-              </p>
+              <p className="session-save-hint">当前有 {currentTerminals.length} 个终端将被保存</p>
 
               <div className="form-group">
                 <label>会话名称</label>
@@ -260,7 +288,7 @@ const SessionManager: React.FC<SessionManagerProps> = ({
                 {currentTerminals.map(t => (
                   <div key={t.id} className="terminal-preview-item">
                     <span className="terminal-preview-icon">
-                      {t.type === 'ssh' ? '🌐' : '💻'}
+                      {t.type === 'ssh' ? <GlobeIcon size={14} /> : <TerminalIcon size={14} />}
                     </span>
                     <span className="terminal-preview-title">{t.title}</span>
                     {t.host && <span className="terminal-preview-host">@{t.host}</span>}

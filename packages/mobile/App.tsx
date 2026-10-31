@@ -64,24 +64,26 @@ import { colors, radius, spacing } from './src/theme';
 import { viewTitle, type PrimaryView } from './src/navigation';
 
 type SetupStep = 'environment' | 'ai' | 'ssh' | 'finish';
-
-const SYSTEM_PROMPT =
-  '你是 AI Shell 手机端的运维助手。用户正在一个内置于 APK 的 Alpine Linux 环境中执行命令。回答要简洁、可执行；给出命令时使用 ```bash 代码块。不要编造未执行过的输出。';
+type MobilePressEvent = { stopPropagation: () => void };
 
 const AppContent: FC = () => {
   const insets = useSafeAreaInsets();
-  const [state, dispatch] = useReducer(
-    mobileReducer,
-    undefined,
-    createInitialMobileState
-  ) as [MobileState, (action: MobileAction) => void];
+  const [state, dispatch] = useReducer(mobileReducer, undefined, createInitialMobileState) as [
+    MobileState,
+    (action: MobileAction) => void,
+  ];
   const config = useAppConfig();
   const runtime = useRuntime();
   const [booted, setBooted] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<SetupStep>('environment');
 
-  const terminalApi = useTerminalRuntime(state, dispatch, runtime.status.installed, config.sshProfiles);
+  const terminalApi = useTerminalRuntime(
+    state,
+    dispatch,
+    runtime.status.installed,
+    config.sshProfiles
+  );
 
   useEffect(() => {
     let alive = true;
@@ -141,6 +143,45 @@ const AppContent: FC = () => {
   };
   const fullHeightWorkspace = state.currentView === 'terminal' || state.currentView === 'ai';
   const secondaryView = ['sessions', 'history', 'settings'].includes(state.currentView);
+  const headerProvider = activeProvider(config);
+  const pageSubtitle = (() => {
+    switch (state.currentView) {
+      case 'terminal':
+        return activeTerminal.title;
+      case 'ai':
+        return headerProvider
+          ? `${headerProvider.displayName} · ${headerProvider.model}`
+          : '未配置 AI 提供商';
+      case 'explorer':
+        return runtime.status.installed
+          ? `${runtime.status.distro || 'Alpine'} · ${state.currentPath}`
+          : '安装内置 Linux 后浏览文件';
+      case 'ssh':
+        return config.sshProfiles.length
+          ? `${config.sshProfiles.length} 个已保存连接`
+          : '添加第一个远程主机';
+      case 'sessions':
+        return `${config.workspaceSessions.length} 个已保存工作区`;
+      case 'history':
+        return `${config.history.length} 条已提交命令`;
+      case 'settings':
+        return '环境、安全与偏好';
+      case 'profile':
+        return 'AI Shell · esdkaiyuan';
+      default:
+        return '';
+    }
+  })();
+  const headerStatus: { label: string; tone: 'green' | 'yellow' } | null =
+    state.currentView === 'ai'
+      ? headerProvider
+        ? { label: 'AI 已配置', tone: 'green' }
+        : { label: '未配置 AI', tone: 'yellow' }
+      : ['terminal', 'explorer', 'ssh'].includes(state.currentView)
+        ? runtime.status.installed
+          ? { label: 'Linux 就绪', tone: 'green' }
+          : { label: '需要配置', tone: 'yellow' }
+        : null;
 
   const renderContent = () => {
     switch (state.currentView) {
@@ -170,12 +211,7 @@ const AppContent: FC = () => {
         );
       case 'ai':
         return (
-          <AIWorkspace
-            state={state}
-            dispatch={dispatch}
-            config={config}
-            onOpenSetup={openSetup}
-          />
+          <AIWorkspace state={state} dispatch={dispatch} config={config} onOpenSetup={openSetup} />
         );
       case 'history':
         return <HistoryWorkspace config={config} dispatch={dispatch} />;
@@ -240,13 +276,10 @@ const AppContent: FC = () => {
         <View style={styles.appBarText}>
           <Text style={styles.appName}>{viewTitle(state.currentView)}</Text>
           <Text numberOfLines={1} style={styles.appSub}>
-            {state.currentView === 'profile' ? 'AI Shell · esdkaiyuan' : activeTerminal.title}
+            {pageSubtitle}
           </Text>
         </View>
-        <StatusPill
-          label={runtime.status.installed ? 'Linux 就绪' : '需要配置'}
-          tone={runtime.status.installed ? 'green' : 'yellow'}
-        />
+        {headerStatus ? <StatusPill label={headerStatus.label} tone={headerStatus.tone} /> : null}
       </View>
 
       <View style={styles.main}>
@@ -349,12 +382,20 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
         </Pressable>
       ) : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabScroll}
+        contentContainerStyle={styles.tabRow}
+      >
         {state.terminals.map(terminal => {
           const active = terminal.id === state.activeTerminalId;
           return (
             <Pressable
               key={terminal.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${terminal.title} 终端`}
+              accessibilityState={{ selected: active }}
               style={[styles.terminalTab, active && styles.terminalTabActive]}
               onPress={() => dispatch({ type: 'selectTerminal', terminalId: terminal.id })}
             >
@@ -366,21 +407,49 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
               <Text numberOfLines={1} style={styles.terminalTabText}>
                 {terminal.title}
               </Text>
-              <Pressable onPress={() => dispatch({ type: 'closeTerminal', terminalId: terminal.id })}>
-                <Ionicons name="close" size={14} color={colors.textDim} />
-              </Pressable>
+              {state.terminals.length > 1 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`关闭 ${terminal.title}`}
+                  hitSlop={8}
+                  style={styles.tabClose}
+                  onPress={(event: MobilePressEvent) => {
+                    event.stopPropagation();
+                    dispatch({ type: 'closeTerminal', terminalId: terminal.id });
+                  }}
+                >
+                  <Ionicons name="close" size={14} color={colors.textDim} />
+                </Pressable>
+              ) : null}
             </Pressable>
           );
         })}
-        <Pressable style={styles.addTab} onPress={() => dispatch({ type: 'newLocalTerminal' })}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="新建本地终端"
+          style={styles.addTab}
+          onPress={() => dispatch({ type: 'newLocalTerminal' })}
+        >
           <Ionicons name="add" size={18} color={colors.textMuted} />
         </Pressable>
       </ScrollView>
 
       <View style={styles.toolbarGrid}>
-        <ToolButton icon="git-compare-outline" label="分屏" onPress={() => dispatch({ type: 'toggleSplit' })} />
-        <ToolButton icon="search-outline" label="查找" onPress={() => dispatch({ type: 'toggleSearch' })} />
-        <ToolButton icon="sparkles-outline" label="AI" onPress={() => dispatch({ type: 'openAiChat' })} />
+        <ToolButton
+          icon="git-compare-outline"
+          label="分屏"
+          onPress={() => dispatch({ type: 'toggleSplit' })}
+        />
+        <ToolButton
+          icon="search-outline"
+          label="查找"
+          onPress={() => dispatch({ type: 'toggleSearch' })}
+        />
+        <ToolButton
+          icon="sparkles-outline"
+          label="AI"
+          onPress={() => dispatch({ type: 'openAiChat' })}
+        />
         <ToolButton
           icon={toolsOpen ? 'chevron-up-outline' : 'ellipsis-horizontal'}
           label={toolsOpen ? '收起' : '更多'}
@@ -389,10 +458,18 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
       </View>
       {toolsOpen ? (
         <View style={styles.secondaryTools}>
-          <ToolButton icon="add" label="本地" onPress={() => dispatch({ type: 'newLocalTerminal' })} />
+          <ToolButton
+            icon="add"
+            label="本地"
+            onPress={() => dispatch({ type: 'newLocalTerminal' })}
+          />
           <ToolButton icon="copy-outline" label="复制" onPress={() => terminalApi.copyOutput()} />
           <ToolButton icon="clipboard-outline" label="粘贴" onPress={paste} />
-          <ToolButton icon="refresh-outline" label="清屏" onPress={() => terminalApi.clearActive()} />
+          <ToolButton
+            icon="refresh-outline"
+            label="清屏"
+            onPress={() => terminalApi.clearActive()}
+          />
         </View>
       ) : null}
 
@@ -415,7 +492,10 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
           {activeTerminal.split.panes.map(pane => (
             <Pressable
               key={pane.id}
-              style={[styles.paneButton, pane.id === activeTerminal.split.activePaneId && styles.paneButtonActive]}
+              style={[
+                styles.paneButton,
+                pane.id === activeTerminal.split.activePaneId && styles.paneButtonActive,
+              ]}
               onPress={() => dispatch({ type: 'focusPane', paneId: pane.id })}
             >
               <Text style={styles.paneButtonText}>{pane.title}</Text>
@@ -437,15 +517,25 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
         status={activePane.sessionStatus}
       />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.keyRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.keyRow}
+      >
         <TerminalKey label="Ctrl+C" onPress={() => terminalApi.sendKey('\x03')} />
         <TerminalKey label="Tab" onPress={() => terminalApi.sendKey('\t')} />
         <TerminalKey label="↑" onPress={() => terminalApi.sendKey('\x1b[A')} />
         <TerminalKey label="↓" onPress={() => terminalApi.sendKey('\x1b[B')} />
         <TerminalKey label="Esc" onPress={() => terminalApi.sendKey('\x1b')} />
         <TerminalKey label="Enter" onPress={() => terminalApi.sendKey('\r')} />
-        <TerminalKey label="|" onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}|` })} />
-        <TerminalKey label="/" onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}/` })} />
+        <TerminalKey
+          label="|"
+          onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}|` })}
+        />
+        <TerminalKey
+          label="/"
+          onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}/` })}
+        />
       </ScrollView>
 
       {state.commandInput.trim() ? (
@@ -467,9 +557,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
                   accessibilityRole="button"
                   accessibilityLabel={`补全为 ${item.command}`}
                   style={styles.suggestionCard}
-                  onPress={() =>
-                    dispatch({ type: 'insertCommand', command: item.command })
-                  }
+                  onPress={() => dispatch({ type: 'insertCommand', command: item.command })}
                 >
                   <Text numberOfLines={1} style={styles.suggestionCommand}>
                     {item.command}
@@ -505,7 +593,9 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
         <TextInput
           value={state.commandInput}
           onChangeText={(value: string) => dispatch({ type: 'setCommandInput', value })}
-          placeholder={activePane.sessionStatus === 'ready' ? `输入 ${platformLabel} 命令…` : '等待会话就绪…'}
+          placeholder={
+            activePane.sessionStatus === 'ready' ? `输入 ${platformLabel} 命令…` : '等待会话就绪…'
+          }
           placeholderTextColor={colors.textDim}
           autoCapitalize="none"
           autoCorrect={false}
@@ -516,7 +606,10 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="执行命令"
-          style={[styles.runButton, activePane.sessionStatus !== 'ready' && styles.runButtonDisabled]}
+          style={[
+            styles.runButton,
+            activePane.sessionStatus !== 'ready' && styles.runButtonDisabled,
+          ]}
           onPress={() => terminalApi.runCommand()}
           disabled={activePane.sessionStatus !== 'ready'}
         >
@@ -538,53 +631,74 @@ interface SSHWorkspaceProps extends WorkspaceProps {
   onOpenSetup: (step?: SetupStep) => void;
 }
 
-const SSHWorkspace: FC<SSHWorkspaceProps> = ({ config, dispatch, onOpenSetup }) => (
-  <>
-    <View style={styles.pageActionRow}>
-      <Text style={styles.pageActionLabel}>
-        {config.sshProfiles.length ? `${config.sshProfiles.length} 个已保存连接` : 'OpenSSH 已内置'}
-      </Text>
-      <Pressable style={styles.smallAction} onPress={() => onOpenSetup('ssh')}>
-        <Ionicons name="add" size={16} color={colors.text} />
-        <Text style={styles.smallActionText}>新增连接</Text>
-      </Pressable>
-    </View>
+const SSHWorkspace: FC<SSHWorkspaceProps> = ({ config, dispatch, onOpenSetup }) => {
+  const removeProfile = (profile: SSHProfile) =>
+    Alert.alert('删除 SSH 配置', `确定删除「${profile.name}」吗？`, [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '删除',
+        style: 'destructive',
+        onPress: () => {
+          configStore.removeSshProfile(profile.id).catch(() => undefined);
+        },
+      },
+    ]);
 
-    {config.sshProfiles.length === 0 ? (
-      <View style={styles.emptyState}>
-        <View style={styles.emptyIcon}>
-          <Ionicons name="server-outline" size={26} color={colors.accent} />
-        </View>
-        <Text style={styles.emptyTitle}>还没有 SSH 配置</Text>
-        <Text style={styles.emptyText}>
-          内置环境已包含 OpenSSH 客户端。添加主机后可直接在 Linux 终端中连接。
+  return (
+    <>
+      <View style={styles.pageActionRow}>
+        <Text style={styles.pageActionLabel}>
+          {config.sshProfiles.length
+            ? `${config.sshProfiles.length} 个已保存连接`
+            : 'OpenSSH 已内置'}
         </Text>
-        <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ssh')}>
-          <Ionicons name="add" size={17} color="#fff" />
-          <Text style={styles.emptyButtonText}>配置 SSH</Text>
+        <Pressable style={styles.smallAction} onPress={() => onOpenSetup('ssh')}>
+          <Ionicons name="add" size={16} color={colors.text} />
+          <Text style={styles.smallActionText}>新增连接</Text>
         </Pressable>
       </View>
-    ) : (
-      <View style={styles.stack}>
-        {config.sshProfiles.map(profile => (
-          <SSHCard
-            key={profile.id}
-            profile={profile}
-            onConnect={() => dispatch({ type: 'connectSsh', profile })}
-            onDelete={() => configStore.removeSshProfile(profile.id)}
-          />
-        ))}
-      </View>
-    )}
-  </>
-);
+
+      {config.sshProfiles.length === 0 ? (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIcon}>
+            <Ionicons name="server-outline" size={26} color={colors.accent} />
+          </View>
+          <Text style={styles.emptyTitle}>还没有 SSH 配置</Text>
+          <Text style={styles.emptyText}>
+            内置环境已包含 OpenSSH 客户端。添加主机后可直接在 Linux 终端中连接。
+          </Text>
+          <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ssh')}>
+            <Ionicons name="add" size={17} color="#fff" />
+            <Text style={styles.emptyButtonText}>配置 SSH</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.stack}>
+          {config.sshProfiles.map(profile => (
+            <SSHCard
+              key={profile.id}
+              profile={profile}
+              onConnect={() => dispatch({ type: 'connectSsh', profile })}
+              onDelete={() => removeProfile(profile)}
+            />
+          ))}
+        </View>
+      )}
+    </>
+  );
+};
 
 const SSHCard: FC<{ profile: SSHProfile; onConnect: () => void; onDelete: () => void }> = ({
   profile,
   onConnect,
   onDelete,
 }) => (
-  <Pressable style={styles.card} onPress={onConnect}>
+  <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={`连接 ${profile.name}`}
+    style={styles.card}
+    onPress={onConnect}
+  >
     <View style={styles.cardIcon}>
       <Ionicons name="server-outline" size={20} color={colors.accent} />
     </View>
@@ -602,7 +716,15 @@ const SSHCard: FC<{ profile: SSHProfile; onConnect: () => void; onDelete: () => 
         {COMMAND_PLATFORM_LABELS[sshProfilePlatform(profile)]} · 点击在内置 Linux 中连接
       </Text>
     </View>
-    <Pressable style={styles.cardDelete} onPress={onDelete}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`删除 ${profile.name}`}
+      style={styles.cardDelete}
+      onPress={(event: MobilePressEvent) => {
+        event.stopPropagation();
+        onDelete();
+      }}
+    >
       <Ionicons name="trash-outline" size={16} color={colors.red} />
     </Pressable>
   </Pressable>
@@ -671,6 +793,8 @@ const SessionWorkspace: FC<SessionWorkspaceProps> = ({ config, state, dispatch }
           {config.workspaceSessions.map(session => (
             <Pressable
               key={session.id}
+              accessibilityRole="button"
+              accessibilityLabel={`恢复工作区 ${session.name}`}
               style={styles.card}
               onPress={() =>
                 dispatch({
@@ -686,15 +810,32 @@ const SessionWorkspace: FC<SessionWorkspaceProps> = ({ config, state, dispatch }
               <View style={styles.cardBody}>
                 <View style={styles.cardTop}>
                   <Text style={styles.cardTitle}>{session.name}</Text>
-                  <Text style={styles.cardMeta}>{new Date(session.updatedAt).toLocaleString()}</Text>
+                  <Text style={styles.cardMeta}>
+                    {new Date(session.updatedAt).toLocaleString()}
+                  </Text>
                 </View>
                 <Text style={styles.cardMeta}>
-                  {session.terminals.length} 个标签 / 当前: {session.terminals[session.activeIndex]?.title || '—'}
+                  {session.terminals.length} 个标签 / 当前:{' '}
+                  {session.terminals[session.activeIndex]?.title || '—'}
                 </Text>
               </View>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`删除工作区 ${session.name}`}
                 style={styles.cardDelete}
-                onPress={() => configStore.removeWorkspace(session.id)}
+                onPress={(event: MobilePressEvent) => {
+                  event.stopPropagation();
+                  Alert.alert('删除工作区', `确定删除「${session.name}」吗？`, [
+                    { text: '取消', style: 'cancel' },
+                    {
+                      text: '删除',
+                      style: 'destructive',
+                      onPress: () => {
+                        configStore.removeWorkspace(session.id).catch(() => undefined);
+                      },
+                    },
+                  ]);
+                }}
               >
                 <Ionicons name="trash-outline" size={16} color={colors.red} />
               </Pressable>
@@ -720,7 +861,12 @@ const formatSize = (size: number): string => {
   return `${(size / 1024 / 1024 / 1024).toFixed(1)} GB`;
 };
 
-const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({ state, dispatch, runtime, onOpenSetup }) => {
+const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({
+  state,
+  dispatch,
+  runtime,
+  onOpenSetup,
+}) => {
   const [entries, setEntries] = useState<LinuxDirEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -733,25 +879,28 @@ const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({ state, dispatch, runtim
     size: number;
   } | null>(null);
 
-  const load = useCallback(async (path: string) => {
-    if (!runtime.installed) {
-      setError('内置 Linux 未安装，无法浏览文件。');
-      setEntries([]);
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      const list = await listLinuxDirectory(path);
-      setEntries(list);
-      dispatch({ type: 'setCurrentPath', path });
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
-      setEntries([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [runtime.installed, dispatch]);
+  const load = useCallback(
+    async (path: string) => {
+      if (!runtime.installed) {
+        setError('内置 Linux 未安装，无法浏览文件。');
+        setEntries([]);
+        return;
+      }
+      setLoading(true);
+      setError('');
+      try {
+        const list = await listLinuxDirectory(path);
+        setEntries(list);
+        dispatch({ type: 'setCurrentPath', path });
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : String(reason));
+        setEntries([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [runtime.installed, dispatch]
+  );
 
   useEffect(() => {
     load(state.currentPath);
@@ -905,28 +1054,42 @@ interface AIWorkspaceProps extends WorkspaceProps {
 const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetup }) => {
   const provider = activeProvider(config);
   const chatActive = state.aiWorkspaceMode === 'chat';
+  const activeTerminal = getActiveTerminal(state);
+  const platformLabel =
+    COMMAND_PLATFORM_LABELS[
+      commandPlatformForTerminal(
+        activeTerminal.type,
+        activeTerminal.sshProfileId,
+        config.sshProfiles
+      )
+    ];
 
   const send = async () => {
     const content = state.aiPrompt.trim();
     if (!content || state.aiLoading) return;
     if (!provider) {
-      dispatch({ type: 'aiError', message: '尚未配置 AI Provider，请先完成配置。' });
+      dispatch({ type: 'aiError', message: '尚未配置 AI 提供商，请先完成配置。' });
       return;
     }
     const history: AIChatMessage[] = state.aiMessages
-      .filter(message => !message.content.startsWith('内置 Linux 已就绪'))
+      .filter(message => !message.content.startsWith('可以让我解释'))
       .map(message => ({ role: message.role, content: message.content }));
     const terminalContext = getActivePane(state)
       .lines.slice(-60)
       .map(line => line.text)
       .join('\n')
       .slice(-3000);
+    const basePrompt = `你是 AI Shell 手机端的运维助手。当前终端目标系统是 ${platformLabel}。回答要简洁、可执行，给出的命令必须适用于该系统；不要编造未执行过的输出。`;
     const systemPrompt = terminalContext.trim()
-      ? `${SYSTEM_PROMPT}\n\n当前终端最近输出：\n\`\`\`\n${terminalContext}\n\`\`\``
-      : SYSTEM_PROMPT;
+      ? `${basePrompt}\n\n当前终端最近输出：\n\`\`\`\n${terminalContext}\n\`\`\``
+      : basePrompt;
     dispatch({ type: 'aiRequestStart', content });
     try {
-      const answer = await sendChat(provider, [...history, { role: 'user', content }], systemPrompt);
+      const answer = await sendChat(
+        provider,
+        [...history, { role: 'user', content }],
+        systemPrompt
+      );
       dispatch({ type: 'aiResponse', content: answer });
     } catch (error) {
       dispatch({
@@ -954,7 +1117,11 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
           style={[styles.segmentButton, !chatActive && styles.segmentButtonActive]}
           onPress={() => dispatch({ type: 'openAiProviders' })}
         >
-          <Ionicons name="key-outline" size={15} color={!chatActive ? colors.text : colors.textDim} />
+          <Ionicons
+            name="key-outline"
+            size={15}
+            color={!chatActive ? colors.text : colors.textDim}
+          />
           <Text style={[styles.segmentText, !chatActive && styles.segmentTextActive]}>模型</Text>
         </Pressable>
       </View>
@@ -966,16 +1133,19 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
               <View style={styles.flexText}>
                 <Text style={styles.aiRole}>当前上下文</Text>
                 <Text style={styles.aiText}>
-                  终端：{getActiveTerminal(state).title} · 已绑定命令输出与 Linux 环境信息。
+                  终端：{activeTerminal.title} · 已绑定命令输出与 {platformLabel} 环境信息。
                 </Text>
               </View>
-              <Pressable style={styles.secondaryAction} onPress={() => dispatch({ type: 'openAiProviders' })}>
+              <Pressable
+                style={styles.secondaryAction}
+                onPress={() => dispatch({ type: 'openAiProviders' })}
+              >
                 <Ionicons name="options-outline" size={15} color={colors.textMuted} />
                 <Text style={styles.secondaryActionText}>模型</Text>
               </Pressable>
             </View>
             <Text style={styles.providerModel}>
-              {provider ? `${provider.model} / ${provider.baseURL}` : '尚未配置 Provider'}
+              {provider ? `${provider.model} / ${provider.baseURL}` : '尚未配置 AI 提供商'}
             </Text>
           </View>
 
@@ -989,12 +1159,17 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
               return (
                 <View
                   key={`${message.role}-${index}`}
-                  style={[styles.chatBubble, user ? styles.chatBubbleUser : styles.chatBubbleAssistant]}
+                  style={[
+                    styles.chatBubble,
+                    user ? styles.chatBubbleUser : styles.chatBubbleAssistant,
+                  ]}
                 >
                   <Text style={[styles.chatRole, user && styles.chatRoleUser]}>
                     {user ? '你' : provider?.displayName || 'AI'}
                   </Text>
-                  <Text style={[styles.chatText, user && styles.chatTextUser]}>{message.content}</Text>
+                  <Text style={[styles.chatText, user && styles.chatTextUser]}>
+                    {message.content}
+                  </Text>
                 </View>
               );
             })}
@@ -1022,7 +1197,12 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
               style={styles.aiPromptInput}
             />
             <Pressable
-              style={[styles.sendButton, (!provider || state.aiLoading) && styles.sendButtonDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel="发送 AI 消息"
+              style={[
+                styles.sendButton,
+                (!provider || state.aiLoading) && styles.sendButtonDisabled,
+              ]}
               onPress={send}
               disabled={!provider || state.aiLoading}
             >
@@ -1036,7 +1216,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
           {!provider ? (
             <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ai')}>
               <Ionicons name="key-outline" size={16} color="#fff" />
-              <Text style={styles.emptyButtonText}>配置 AI Provider</Text>
+              <Text style={styles.emptyButtonText}>配置 AI 提供商</Text>
             </Pressable>
           ) : null}
         </>
@@ -1051,13 +1231,14 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
               <View style={styles.emptyIcon}>
                 <Ionicons name="sparkles-outline" size={26} color={colors.accent} />
               </View>
-              <Text style={styles.emptyTitle}>还没有 AI Provider</Text>
+              <Text style={styles.emptyTitle}>还没有 AI 提供商</Text>
               <Text style={styles.emptyText}>
-                Key 使用 Android Keystore 加密保存。支持 OpenAI、Claude、DeepSeek、GLM、通义、Kimi、Ollama 与文心。
+                Key 使用 Android Keystore 加密保存。支持
+                OpenAI、Claude、DeepSeek、GLM、通义、Kimi、Ollama 与文心。
               </Text>
               <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ai')}>
                 <Ionicons name="add" size={17} color="#fff" />
-                <Text style={styles.emptyButtonText}>添加 Provider</Text>
+                <Text style={styles.emptyButtonText}>添加提供商</Text>
               </Pressable>
             </View>
           ) : (
@@ -1067,6 +1248,9 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
                 return (
                   <Pressable
                     key={item.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`使用 ${item.displayName} ${item.model}`}
+                    accessibilityState={{ selected: active }}
                     style={[styles.providerCard, active && styles.providerCardActive]}
                     onPress={() => configStore.setActiveProvider(item.id)}
                   >
@@ -1093,7 +1277,10 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
                           <Pressable
                             key={model}
                             style={[styles.modelChip, selected && styles.modelChipActive]}
-                            onPress={() => configStore.setActiveProvider(item.id, model)}
+                            onPress={(event: MobilePressEvent) => {
+                              event.stopPropagation();
+                              configStore.setActiveProvider(item.id, model);
+                            }}
                           >
                             <Text style={[styles.modelText, selected && styles.modelTextActive]}>
                               {model}
@@ -1105,13 +1292,31 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
                     <View style={styles.providerActions}>
                       <Pressable
                         style={styles.secondaryAction}
-                        onPress={() => configStore.removeProvider(item.id)}
+                        onPress={(event: MobilePressEvent) => {
+                          event.stopPropagation();
+                          Alert.alert('删除 AI 提供商', `确定删除「${item.displayName}」吗？`, [
+                            { text: '取消', style: 'cancel' },
+                            {
+                              text: '删除',
+                              style: 'destructive',
+                              onPress: () => {
+                                configStore.removeProvider(item.id).catch(() => undefined);
+                              },
+                            },
+                          ]);
+                        }}
                       >
                         <Ionicons name="trash-outline" size={15} color={colors.red} />
                         <Text style={[styles.secondaryActionText, styles.dangerText]}>删除</Text>
                       </Pressable>
                       {active ? (
-                        <Pressable style={styles.secondaryAction} onPress={() => onOpenSetup('ai')}>
+                        <Pressable
+                          style={styles.secondaryAction}
+                          onPress={(event: MobilePressEvent) => {
+                            event.stopPropagation();
+                            onOpenSetup('ai');
+                          }}
+                        >
                           <Ionicons name="create-outline" size={15} color={colors.accent} />
                           <Text style={styles.secondaryActionText}>编辑</Text>
                         </Pressable>
@@ -1122,13 +1327,11 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
               })}
               <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ai')}>
                 <Ionicons name="add" size={17} color="#fff" />
-                <Text style={styles.emptyButtonText}>添加 Provider</Text>
+                <Text style={styles.emptyButtonText}>添加提供商</Text>
               </Pressable>
             </View>
           )}
-          <Text style={styles.hintText}>
-            移动端使用非流式请求；星火 WebSocket 鉴权暂未接入。
-          </Text>
+          <Text style={styles.hintText}>移动端使用非流式请求；星火 WebSocket 鉴权暂未接入。</Text>
         </ScrollView>
       )}
     </>
@@ -1145,7 +1348,16 @@ const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => (
       <Text style={styles.pageActionLabel}>{config.history.length} 条已提交命令</Text>
       <Pressable
         style={[styles.smallAction, config.history.length === 0 && styles.runButtonDisabled]}
-        onPress={() => configStore.clearHistory()}
+        onPress={() =>
+          Alert.alert('清空命令历史', '将删除全部已提交命令记录，此操作无法撤销。', [
+            { text: '取消', style: 'cancel' },
+            {
+              text: '清空',
+              style: 'destructive',
+              onPress: () => configStore.clearHistory().catch(() => undefined),
+            },
+          ])
+        }
         disabled={config.history.length === 0}
       >
         <Ionicons name="trash-outline" size={16} color={colors.text} />
@@ -1201,7 +1413,9 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
   const [storage, setStorage] = useState<Awaited<ReturnType<typeof getStorageInfo>> | null>(null);
 
   useEffect(() => {
-    getStorageInfo().then(setStorage).catch(() => setStorage(null));
+    getStorageInfo()
+      .then(setStorage)
+      .catch(() => setStorage(null));
   }, []);
 
   const provider = activeProvider(config);
@@ -1216,7 +1430,7 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
         />
         <SettingRow
           icon="sparkles-outline"
-          title="AI Provider"
+          title="AI 提供商"
           value={provider ? `${provider.displayName} / ${provider.model}` : '未配置'}
         />
         <SettingRow
@@ -1279,7 +1493,8 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
       </View>
 
       <Text style={styles.hintText}>
-        Linux 运行时来自 APK 内置 Alpine 3.20.3。第三方许可见 APK 的 licenses 资源；PRoot 采用 GPL-2.0。
+        Linux 运行时来自 APK 内置 Alpine 3.20.3。第三方许可见 APK 的 licenses 资源；PRoot 采用
+        GPL-2.0。
       </Text>
     </>
   );
@@ -1448,19 +1663,29 @@ const styles = StyleSheet.create({
   },
   pageActionLabel: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   stack: { gap: 10 },
-  tabRow: { gap: spacing.sm, paddingBottom: 10 },
+  tabScroll: { flexGrow: 0, flexShrink: 0, maxHeight: 54 },
+  tabRow: { gap: spacing.sm, paddingBottom: 10, alignItems: 'center' },
   terminalTab: {
-    maxWidth: 168,
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
+    height: 44,
+    maxWidth: 192,
+    paddingLeft: spacing.md,
+    paddingRight: 4,
     borderRadius: 10,
     backgroundColor: colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 0,
   },
   terminalTabActive: { backgroundColor: colors.selection },
-  terminalTabText: { maxWidth: 96, color: colors.text, fontSize: 12.5, fontWeight: '600' },
+  terminalTabText: { maxWidth: 112, color: colors.text, fontSize: 12.5, fontWeight: '600' },
+  tabClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   addTab: {
     width: 44,
     height: 44,
@@ -1468,6 +1693,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   toolbarGrid: {
     flexDirection: 'row',
@@ -1671,7 +1897,12 @@ const styles = StyleSheet.create({
   filePreviewHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   filePreviewName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
   filePreviewScroll: { maxHeight: 200 },
-  filePreviewContent: { color: colors.textMuted, fontFamily: 'Courier', fontSize: 11.5, lineHeight: 17 },
+  filePreviewContent: {
+    color: colors.textMuted,
+    fontFamily: 'Courier',
+    fontSize: 11.5,
+    lineHeight: 17,
+  },
   hintText: { color: colors.textDim, fontSize: 11, lineHeight: 17, marginTop: spacing.md },
   saveBar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   saveInput: {

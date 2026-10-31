@@ -129,17 +129,13 @@ export type MobileAction =
 
 const MAX_TERMINAL_LINES = 800;
 
-const createPane = (
-  seed: Omit<TerminalPane, 'lines' | 'sessionStatus'>
-): TerminalPane => ({
+const createPane = (seed: Omit<TerminalPane, 'lines' | 'sessionStatus'>): TerminalPane => ({
   ...seed,
   lines: [],
   sessionStatus: 'idle',
 });
 
-const createTerminal = (
-  seed: Omit<TerminalTab, 'showSearch' | 'split'>
-): TerminalTab => {
+const createTerminal = (seed: Omit<TerminalTab, 'showSearch' | 'split'>): TerminalTab => {
   const pane = createPane({
     id: `${seed.id}-pane-1`,
     title: seed.title,
@@ -174,7 +170,7 @@ export const createInitialMobileState = (): MobileState => ({
   aiMessages: [
     {
       role: 'assistant',
-      content: '内置 Linux 已就绪后，可以让我解释命令输出、生成命令或排查 SSH / 服务问题。',
+      content: '可以让我解释命令输出、生成命令，或排查 SSH / 服务问题。',
     },
   ],
   aiLoading: false,
@@ -441,7 +437,7 @@ export const desktopFeatureCoverage = [
   'APK 内置 Alpine Linux',
   '真实 PTY 终端',
   'OpenSSH 客户端',
-  'AI Provider 直连',
+  'AI 提供商直连',
   'Android Keystore 加密',
   '离线可用',
   'Linux 文件浏览',

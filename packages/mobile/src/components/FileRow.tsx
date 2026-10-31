@@ -12,6 +12,9 @@ interface FileRowProps {
 
 export const FileRow: FC<FileRowProps> = ({ item, active = false, onPress }) => (
   <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={`${item.type === 'directory' ? '目录' : '文件'} ${item.name}，路径 ${item.path}`}
+    accessibilityState={{ selected: active }}
     onPress={() => onPress(item.id)}
     style={({ pressed }: { pressed: boolean }) => [
       styles.row,

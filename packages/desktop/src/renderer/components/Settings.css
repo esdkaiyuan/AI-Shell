@@ -8,7 +8,7 @@
 .settings-header {
   display: flex;
   align-items: center;
-  height: 52px;
+  height: 58px;
   padding: 0 24px;
   border-bottom: 1px solid var(--color-border-primary);
   background: var(--material-chrome);
@@ -17,11 +17,21 @@
   flex-shrink: 0;
 }
 
+.settings-header-copy {
+  min-width: 0;
+}
+
 .settings-header h2 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--color-text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+}
+
+.settings-header-copy p {
+  margin-top: 3px;
+  color: var(--color-text-tertiary);
+  font-size: 11.5px;
 }
 
 .settings-content {
@@ -52,7 +62,8 @@
   font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-apple),
+  transition:
+    background-color var(--duration-fast) var(--ease-apple),
     color var(--duration-fast) var(--ease-apple);
 }
 
@@ -79,11 +90,11 @@
 }
 
 .settings-panel h3 {
-  font-size: 20px;
+  font-size: 22px;
   color: var(--color-text-primary);
   margin-bottom: 6px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 .settings-panel h4 {
@@ -240,7 +251,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: background-color var(--duration-fast) var(--ease-apple),
+  transition:
+    background-color var(--duration-fast) var(--ease-apple),
     color var(--duration-fast) var(--ease-apple);
 }
 
@@ -279,7 +291,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background-color var(--duration-fast) var(--ease-apple),
+  transition:
+    background-color var(--duration-fast) var(--ease-apple),
     color var(--duration-fast) var(--ease-apple);
 }
 
@@ -368,7 +381,8 @@
   border-radius: var(--radius-md);
   padding: 14px 12px;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-apple),
+  transition:
+    background-color var(--duration-fast) var(--ease-apple),
     border-color var(--duration-fast) var(--ease-apple),
     box-shadow var(--duration-fast) var(--ease-apple);
   text-align: center;
@@ -430,18 +444,22 @@
   width: 100%;
   height: 38px;
   padding: 0 12px;
-  background-color: var(--color-bg-secondary);
-  border: 1px solid transparent;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: 13px;
   font-family: var(--font-mono);
 }
 
+.form-input:hover:not(:disabled) {
+  border-color: var(--color-border-secondary);
+}
+
 .form-input:focus {
   outline: none;
   border-color: var(--color-accent);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-primary);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
@@ -829,7 +847,8 @@
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-apple),
+  transition:
+    border-color var(--duration-fast) var(--ease-apple),
     background-color var(--duration-fast) var(--ease-apple);
 }
 
@@ -924,6 +943,183 @@
 
 select.form-input {
   cursor: pointer;
+  appearance: auto;
+}
+
+/* Keyboard shortcuts */
+.shortcuts-settings {
+  max-width: 720px;
+}
+
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 58px;
+  padding: 10px 14px;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+}
+
+.shortcut-copy {
+  min-width: 0;
+}
+
+.shortcut-label {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.shortcut-description {
+  margin-top: 3px;
+  color: var(--color-text-tertiary);
+  font-size: 11.5px;
+}
+
+.shortcut-key {
+  min-width: 150px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-apple),
+    background-color var(--duration-fast) var(--ease-apple),
+    color var(--duration-fast) var(--ease-apple);
+}
+
+.shortcut-key:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-raised);
+}
+
+.shortcut-key.capturing {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-muted);
+  color: var(--color-accent-hover);
+}
+
+.shortcut-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.shortcut-note {
+  color: var(--color-text-tertiary);
+  font-size: 11.5px;
+}
+
+.shortcut-settings h4,
+.shortcuts-settings h4 {
+  margin-top: 30px;
+}
+
+.scheme-save-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.shortcut-empty {
+  padding: 20px;
+  border: 1px dashed var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+.shortcut-empty p {
+  line-height: 1.6;
+}
+
+.shortcut-scheme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-scheme {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+}
+
+.shortcut-scheme.active {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-soft);
+}
+
+.shortcut-scheme-copy {
+  min-width: 0;
+}
+
+.shortcut-scheme-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.shortcut-scheme-active {
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-accent-muted);
+  color: var(--color-accent-hover);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.shortcut-scheme-meta {
+  margin-top: 4px;
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+}
+
+.shortcut-scheme-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .shortcut-row,
+  .shortcut-scheme {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .shortcut-key {
+    width: 100%;
+  }
+
+  .scheme-save-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .about-card {

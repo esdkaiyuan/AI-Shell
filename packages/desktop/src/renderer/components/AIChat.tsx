@@ -96,9 +96,7 @@ const AIChat: React.FC = () => {
       chatStore.replaceMessages(finalMessages);
     } catch (error: unknown) {
       const finalMessages: Message[] = messagesRef.current.map((m, i) =>
-        i === placeholderIndex
-          ? { ...m, content: `Error: ${getErrorMessage(error)}` }
-          : m
+        i === placeholderIndex ? { ...m, content: `Error: ${getErrorMessage(error)}` } : m
       );
       setMessages(finalMessages);
       chatStore.replaceMessages(finalMessages);
@@ -119,7 +117,10 @@ const AIChat: React.FC = () => {
   return (
     <div className="ai-chat">
       <div className="chat-header">
-        <h2>AI Assistant</h2>
+        <div className="chat-header-copy">
+          <h2>AI 助手</h2>
+          <p>分析终端输出，生成可执行命令</p>
+        </div>
         <ModelSelector />
         <ChatConversationBar />
       </div>
@@ -130,8 +131,8 @@ const AIChat: React.FC = () => {
             <div className="empty-icon">
               <BotIcon size={48} />
             </div>
-            <p>Hi! I am your AI assistant.</p>
-            <p>Ask me anything about shell commands, programming, or general questions.</p>
+            <p className="empty-title">你好，我是 AI 助手</p>
+            <p>可以分析终端输出、解释报错，或生成可执行命令。</p>
           </div>
         )}
 
@@ -169,15 +170,25 @@ const AIChat: React.FC = () => {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+          placeholder="输入消息…（Enter 发送，Shift+Enter 换行）"
           disabled={loading}
         />
         {loading ? (
-          <button className="stop-button" onClick={handleStop} title="停止生成">
+          <button
+            className="stop-button"
+            onClick={handleStop}
+            title="停止生成"
+            aria-label="停止生成"
+          >
             <StopIcon size={18} />
           </button>
         ) : (
-          <button onClick={handleSend} disabled={!input.trim()}>
+          <button
+            onClick={handleSend}
+            disabled={!input.trim()}
+            title="发送消息"
+            aria-label="发送消息"
+          >
             <SendIcon size={18} />
           </button>
         )}

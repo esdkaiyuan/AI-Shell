@@ -94,13 +94,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
       messages: AIMessage[],
       provider: string | undefined,
       model: string | undefined,
-      onChunk: (chunk: { content: string; done: boolean; final?: boolean; aborted?: boolean; error?: string }) => void
+      onChunk: (chunk: {
+        content: string;
+        done: boolean;
+        final?: boolean;
+        aborted?: boolean;
+        error?: string;
+      }) => void
     ) => {
       const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const listener = (
         _: Electron.IpcRendererEvent,
         id: string,
-        payload: { content: string; done: boolean; final?: boolean; aborted?: boolean; error?: string }
+        payload: {
+          content: string;
+          done: boolean;
+          final?: boolean;
+          aborted?: boolean;
+          error?: string;
+        }
       ) => {
         if (id === streamId) onChunk(payload);
       };
@@ -145,6 +157,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('system:stats', listener);
       return () => ipcRenderer.removeListener('system:stats', listener);
     },
+    onNavigate: (callback: (view: 'settings') => void) => {
+      const listener = (_: Electron.IpcRendererEvent, view: 'settings') => callback(view);
+      ipcRenderer.on('app:navigate', listener);
+      return () => ipcRenderer.removeListener('app:navigate', listener);
+    },
+    setShortcutRecording: (active: boolean) =>
+      ipcRenderer.invoke('app:shortcut-recording', active) as Promise<void>,
   },
 
   // 剪贴板操作（工具栏复制/粘贴）

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, safeStorage, clipboard } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage, clipboard, Menu } from 'electron';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs/promises';
@@ -202,7 +202,9 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
   const resolvedTarget = path.resolve(targetPath);
   const resolvedRoot = path.resolve(rootPath);
   const relative = path.relative(resolvedRoot, resolvedTarget);
-  return relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+  return (
+    relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative))
+  );
 }
 
 function normalizeTerminalSize(cols: number, rows: number): { cols: number; rows: number } {
@@ -270,6 +272,81 @@ try {
   sshManager = new SSHManager(null);
 } catch (error) {
   console.warn('ssh2 not available, SSH feature disabled:', error);
+}
+
+function configureApplicationMenu() {
+  if (process.platform !== 'darwin') return;
+
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        {
+          label: '设置…',
+          accelerator: 'Cmd+,',
+          click: () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('app:navigate', 'settings');
+            }
+          },
+        },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    {
+      label: '编辑',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'pasteAndMatchStyle' },
+        { role: 'delete' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: '显示',
+      submenu: [{ role: 'togglefullscreen' }],
+    },
+    {
+      label: '窗口',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'front' },
+        { type: 'separator' },
+        {
+          label: '关闭窗口',
+          accelerator: 'Cmd+Shift+W',
+          click: () => BrowserWindow.getFocusedWindow()?.close(),
+        },
+      ],
+    },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function setShortcutRecording(active: boolean) {
+  if (process.platform !== 'darwin') return;
+  if (active) {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([{ label: app.name, submenu: [] }]));
+  } else {
+    configureApplicationMenu();
+  }
 }
 
 function createWindow() {
@@ -353,6 +430,7 @@ async function initializeServices() {
 
 app.whenReady().then(async () => {
   await initializeServices();
+  configureApplicationMenu();
   createWindow();
   setupIPC();
 
@@ -391,6 +469,10 @@ app.on('before-quit', () => {
 });
 
 function setupIPC() {
+  ipcMain.handle('app:shortcut-recording', (_, active: boolean) => {
+    setShortcutRecording(active);
+  });
+
   // Shell operations
   ipcMain.handle('shell:create', async (_, shell: string, cwd: string) => {
     if (!shellManager) throw new Error('Terminal feature unavailable: node-pty not installed');
@@ -516,45 +598,48 @@ function setupIPC() {
   });
 
   // 流式对话：按 streamId 逐块推送到渲染进程，结束时推 done 标记
-  ipcMain.handle('ai:chat-stream', async (event, streamId: string, messages, provider?: string, model?: string) => {
-    const send = (payload: Record<string, unknown>) => {
-      if (!event.sender.isDestroyed()) {
-        event.sender.send('ai:chat-chunk', streamId, payload);
-      }
-    };
+  ipcMain.handle(
+    'ai:chat-stream',
+    async (event, streamId: string, messages, provider?: string, model?: string) => {
+      const send = (payload: Record<string, unknown>) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('ai:chat-chunk', streamId, payload);
+        }
+      };
 
-    // 每路流式请求独立 controller，供「停止生成」中断
-    const controller = new AbortController();
-    aiStreamControllers.set(streamId, controller);
+      // 每路流式请求独立 controller，供「停止生成」中断
+      const controller = new AbortController();
+      aiStreamControllers.set(streamId, controller);
 
-    try {
-      let fullContent = '';
-      for await (const chunk of aiService.streamChat(
-        messages,
-        provider,
-        model,
-        controller.signal
-      )) {
-        if (controller.signal.aborted) break;
-        fullContent += chunk.content;
-        send({ content: chunk.content, done: chunk.done ?? false });
+      try {
+        let fullContent = '';
+        for await (const chunk of aiService.streamChat(
+          messages,
+          provider,
+          model,
+          controller.signal
+        )) {
+          if (controller.signal.aborted) break;
+          fullContent += chunk.content;
+          send({ content: chunk.content, done: chunk.done ?? false });
+        }
+        const aborted = controller.signal.aborted;
+        send({ content: '', done: true, final: true, aborted });
+        return { content: fullContent, model: model || '', aborted };
+      } catch (error: unknown) {
+        // 中断导致的取消不当作错误上报
+        if (controller.signal.aborted) {
+          send({ content: '', done: true, final: true, aborted: true });
+          return { content: '', model: model || '', aborted: true };
+        }
+        console.error('AI chat stream error:', error);
+        send({ content: '', done: true, error: getErrorMessage(error) });
+        throw new Error(`AI chat stream error: ${getErrorMessage(error)}`);
+      } finally {
+        aiStreamControllers.delete(streamId);
       }
-      const aborted = controller.signal.aborted;
-      send({ content: '', done: true, final: true, aborted });
-      return { content: fullContent, model: model || '', aborted };
-    } catch (error: unknown) {
-      // 中断导致的取消不当作错误上报
-      if (controller.signal.aborted) {
-        send({ content: '', done: true, final: true, aborted: true });
-        return { content: '', model: model || '', aborted: true };
-      }
-      console.error('AI chat stream error:', error);
-      send({ content: '', done: true, error: getErrorMessage(error) });
-      throw new Error(`AI chat stream error: ${getErrorMessage(error)}`);
-    } finally {
-      aiStreamControllers.delete(streamId);
     }
-  });
+  );
 
   // 中断指定流式请求
   ipcMain.handle('ai:chat-abort', (_, streamId: string) => {
@@ -655,43 +740,48 @@ function setupIPC() {
     return resolveExplorerRoot('workspace');
   });
 
-  ipcMain.handle('files:list-directory', async (_, dirPath: string, root: 'workspace' | 'home' = 'workspace'): Promise<FileEntry[]> => {
-    try {
-      const rootPath = resolveExplorerRoot(root);
-      if (!isPathInsideRoot(dirPath, rootPath)) {
-        throw new Error('Directory is outside the allowed explorer root');
+  ipcMain.handle(
+    'files:list-directory',
+    async (_, dirPath: string, root: 'workspace' | 'home' = 'workspace'): Promise<FileEntry[]> => {
+      try {
+        const rootPath = resolveExplorerRoot(root);
+        if (!isPathInsideRoot(dirPath, rootPath)) {
+          throw new Error('Directory is outside the allowed explorer root');
+        }
+
+        const entries = await fs.readdir(dirPath, { withFileTypes: true });
+        const limitedEntries = entries.slice(0, MAX_DIRECTORY_ENTRIES);
+        const result = await Promise.all(
+          limitedEntries.map(async entry => {
+            const fullPath = path.join(dirPath, entry.name);
+            try {
+              const stats = await fs.lstat(fullPath);
+              return {
+                name: entry.name,
+                path: fullPath,
+                type: entry.isDirectory() ? 'directory' : 'file',
+                size: stats.size,
+                modifiedAt: stats.mtimeMs,
+                hidden: entry.name.startsWith('.'),
+              } satisfies FileEntry;
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        return result
+          .filter((entry): entry is FileEntry => entry !== null)
+          .sort((a, b) => {
+            if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+          });
+      } catch (error: unknown) {
+        console.error('Failed to list directory:', error);
+        throw new Error(`Failed to list directory: ${getErrorMessage(error)}`);
       }
-
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      const limitedEntries = entries.slice(0, MAX_DIRECTORY_ENTRIES);
-      const result = await Promise.all(
-        limitedEntries.map(async entry => {
-          const fullPath = path.join(dirPath, entry.name);
-          try {
-            const stats = await fs.lstat(fullPath);
-            return {
-              name: entry.name,
-              path: fullPath,
-              type: entry.isDirectory() ? 'directory' : 'file',
-              size: stats.size,
-              modifiedAt: stats.mtimeMs,
-              hidden: entry.name.startsWith('.'),
-            } satisfies FileEntry;
-          } catch {
-            return null;
-          }
-        })
-      );
-
-      return result.filter((entry): entry is FileEntry => entry !== null).sort((a, b) => {
-        if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-      });
-    } catch (error: unknown) {
-      console.error('Failed to list directory:', error);
-      throw new Error(`Failed to list directory: ${getErrorMessage(error)}`);
     }
-  });
+  );
 
   // 系统监控：获取一次真实系统指标
   ipcMain.handle('system:get-stats', async () => getSystemStats());

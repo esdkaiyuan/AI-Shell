@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { CloseIcon, ZapIcon, PlusIcon, TrashIcon, EditIcon, PlayIcon, CopyIcon, CornerDownLeftIcon } from './Icons';
+import {
+  CloseIcon,
+  ZapIcon,
+  PlusIcon,
+  TrashIcon,
+  EditIcon,
+  PlayIcon,
+  CopyIcon,
+  CornerDownLeftIcon,
+} from './Icons';
 import { snippetStore, CommandSnippet } from '../snippets';
 import { terminalBus } from '../terminalBus';
 import './SnippetManager.css';
@@ -8,10 +17,7 @@ interface SnippetManagerProps {
   onClose: () => void;
 }
 
-type EditingState =
-  | { mode: 'create' }
-  | { mode: 'edit'; id: string }
-  | null;
+type EditingState = { mode: 'create' } | { mode: 'edit'; id: string } | null;
 
 const SnippetManager: React.FC<SnippetManagerProps> = ({ onClose }) => {
   const [snippets, setSnippets] = useState<CommandSnippet[]>(snippetStore.getAll());
@@ -104,7 +110,13 @@ const SnippetManager: React.FC<SnippetManagerProps> = ({ onClose }) => {
 
   return (
     <div className="snippet-overlay" onClick={onClose}>
-      <div className="snippet-manager" onClick={e => e.stopPropagation()}>
+      <div
+        className="snippet-manager"
+        role="dialog"
+        aria-modal="true"
+        aria-label="快捷命令"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="snippet-header">
           <div className="snippet-title">
             <ZapIcon size={16} />
@@ -116,7 +128,12 @@ const SnippetManager: React.FC<SnippetManagerProps> = ({ onClose }) => {
               <PlusIcon size={14} />
               新建
             </button>
-            <button className="snippet-btn icon" onClick={onClose} title="关闭 (Esc)">
+            <button
+              className="snippet-btn icon"
+              onClick={onClose}
+              title="关闭 (Esc)"
+              aria-label="关闭快捷命令"
+            >
               <CloseIcon size={14} />
             </button>
           </div>

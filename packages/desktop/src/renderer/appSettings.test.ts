@@ -88,4 +88,69 @@ describe('appSettings', () => {
     expect(clamp(-1, 1, 10)).toBe(1);
     expect(clamp(99, 1, 10)).toBe(10);
   });
+
+  it('persists custom shortcuts and saved schemes', async () => {
+    const { appSettings, DEFAULT_SETTINGS } = await load();
+    appSettings.update({
+      shortcuts: { ...DEFAULT_SETTINGS.shortcuts, newTerminal: 'Ctrl+M' },
+      shortcutSchemes: [
+        {
+          id: 'mine',
+          name: '我的方案',
+          shortcuts: { ...DEFAULT_SETTINGS.shortcuts, newTerminal: 'Ctrl+M' },
+          createdAt: 1,
+        },
+      ],
+    });
+
+    expect(appSettings.get().shortcuts.newTerminal).toBe('Ctrl+M');
+    vi.resetModules();
+    const reloaded = await import('./appSettings');
+    expect(reloaded.appSettings.get().shortcutSchemes[0].name).toBe('我的方案');
+  });
+
+  it('normalizes invalid shortcuts loaded from storage', async () => {
+    localStorage.setItem(
+      'shellai.appSettings',
+      JSON.stringify({ shortcuts: { newTerminal: 'M', closeTerminal: 'Ctrl+Q' } })
+    );
+    const { appSettings, DEFAULT_SETTINGS } = await load();
+    expect(appSettings.get().shortcuts.newTerminal).toBe(DEFAULT_SETTINGS.shortcuts.newTerminal);
+    expect(appSettings.get().shortcuts.closeTerminal).toBe('Ctrl+Q');
+  });
+
+  it('keeps saved shortcut schemes when restoring general defaults', async () => {
+    const { appSettings, DEFAULT_SETTINGS } = await load();
+    appSettings.update({
+      shortcutSchemes: [
+        {
+          id: 'backup',
+          name: '备份方案',
+          shortcuts: { ...DEFAULT_SETTINGS.shortcuts, newTerminal: 'Ctrl+M' },
+          createdAt: 1,
+        },
+      ],
+      shortcuts: { ...DEFAULT_SETTINGS.shortcuts, newTerminal: 'Ctrl+M' },
+    });
+
+    appSettings.reset();
+
+    expect(appSettings.get().shortcuts.newTerminal).toBe(DEFAULT_SETTINGS.shortcuts.newTerminal);
+    expect(appSettings.get().shortcutSchemes).toHaveLength(1);
+    expect(appSettings.get().shortcutSchemes[0].shortcuts.newTerminal).toBe('Ctrl+M');
+  });
+
+  it('returns nested shortcut data as copies', async () => {
+    const { appSettings } = await load();
+    const snapshot = appSettings.get();
+    snapshot.shortcuts.newTerminal = 'Ctrl+M';
+    snapshot.shortcutSchemes.push({
+      id: 'x',
+      name: 'x',
+      shortcuts: snapshot.shortcuts,
+      createdAt: 0,
+    });
+    expect(appSettings.get().shortcuts.newTerminal).not.toBe('Ctrl+M');
+    expect(appSettings.get().shortcutSchemes).toHaveLength(0);
+  });
 });

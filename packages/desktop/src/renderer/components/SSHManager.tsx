@@ -54,6 +54,17 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
     loadConfigs();
   }, []);
 
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKey, true);
+    return () => window.removeEventListener('keydown', handleKey, true);
+  }, [onClose]);
+
   const loadConfigs = async () => {
     try {
       const list = await window.electronAPI.ssh.listConfigs();
@@ -144,10 +155,16 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
 
   return (
     <div className="ssh-manager-overlay" onClick={onClose}>
-      <div className="ssh-manager" onClick={e => e.stopPropagation()}>
+      <div
+        className="ssh-manager"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ssh-manager-title"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="ssh-manager-header">
-          <h2>SSH 连接管理</h2>
-          <button className="close-btn" onClick={onClose}>
+          <h2 id="ssh-manager-title">SSH 连接管理</h2>
+          <button className="close-btn" aria-label="关闭 SSH 连接管理" onClick={onClose}>
             <CloseIcon size={16} />
           </button>
         </div>
@@ -214,16 +231,10 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                         </div>
                       </div>
                       <div className="ssh-item-actions">
-                        <button
-                          className="btn-secondary"
-                          onClick={() => handleConnect(config)}
-                        >
+                        <button className="btn-secondary" onClick={() => handleConnect(config)}>
                           连接
                         </button>
-                        <button
-                          className="btn-secondary"
-                          onClick={() => handleEdit(config)}
-                        >
+                        <button className="btn-secondary" onClick={() => handleEdit(config)}>
                           编辑
                         </button>
                         <button
@@ -344,7 +355,9 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                       type="text"
                       value={formData.privateKey || ''}
                       onChange={e => setFormData({ ...formData, privateKey: e.target.value })}
-                      placeholder={editing?.hasPrivateKey ? '留空保留已保存私钥路径' : '例如：~/.ssh/id_rsa'}
+                      placeholder={
+                        editing?.hasPrivateKey ? '留空保留已保存私钥路径' : '例如：~/.ssh/id_rsa'
+                      }
                     />
                   </div>
                   <div className="form-group">
@@ -353,7 +366,9 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                       type="password"
                       value={formData.passphrase || ''}
                       onChange={e => setFormData({ ...formData, passphrase: e.target.value })}
-                      placeholder={editing?.hasPassphrase ? '留空保留已保存密钥密码' : '如果密钥有密码保护'}
+                      placeholder={
+                        editing?.hasPassphrase ? '留空保留已保存密钥密码' : '如果密钥有密码保护'
+                      }
                     />
                   </div>
                 </>

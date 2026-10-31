@@ -8,7 +8,7 @@ export const colors = {
   borderSoft: 'rgba(255, 255, 255, 0.08)',
   text: '#f5f5f7',
   textMuted: '#a1a1a6',
-  textDim: '#6e6e73',
+  textDim: '#98989d',
   accent: '#0a84ff',
   accentSoft: 'rgba(10, 132, 255, 0.16)',
   green: '#30d158',

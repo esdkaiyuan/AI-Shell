@@ -12,6 +12,12 @@ import { terminalBus } from './terminalBus';
 import { appSettings, PANEL_LIMITS, clamp } from './appSettings';
 import { useDragResize } from './useDragResize';
 import {
+  findShortcutAction,
+  formatShortcut,
+  type ShortcutAction,
+  type ShortcutMap,
+} from './shortcuts';
+import {
   PlusIcon,
   FolderIcon,
   SaveIcon,
@@ -25,7 +31,6 @@ import {
   SettingsIcon,
   HardDriveIcon,
   GlobeIcon,
-  WifiIcon,
   KeyboardIcon,
   MonitorIcon,
   ZapIcon,
@@ -38,13 +43,6 @@ const Settings = lazy(() => import('./components/Settings'));
 
 type View = 'terminal' | 'explorer' | 'ai' | 'settings';
 type PanelPosition = 'right' | 'bottom';
-
-const viewTitles: Record<View, string> = {
-  terminal: '终端',
-  explorer: '文件',
-  ai: 'AI 助手',
-  settings: '设置',
-};
 
 interface SSHConfig {
   id?: number;
@@ -86,12 +84,13 @@ interface SavedSession {
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('terminal');
   const [terminals, setTerminals] = useState<TerminalTab[]>([
-    { id: '1', title: 'Local', type: 'local' },
+    { id: '1', title: '本地', type: 'local' },
   ]);
   const [activeTerminal, setActiveTerminal] = useState('1');
   const [showAIPanel, setShowAIPanel] = useState(true); // AI 面板显示状态
   const [aiPanelPosition, setAIPanelPosition] = useState<PanelPosition>('right'); // AI 面板位置
   const [showSSHManager, setShowSSHManager] = useState(false); // SSH 管理器显示状态
+  const [shortcuts, setShortcuts] = useState<ShortcutMap>(() => appSettings.get().shortcuts);
   const [showSessionManager, setShowSessionManager] = useState(false); // 会话管理器显示状态
   const [showSnippetManager, setShowSnippetManager] = useState(false); // 快捷命令管理器显示状态
   const [panelSizes, setPanelSizes] = useState(() => {
@@ -113,6 +112,16 @@ const App: React.FC = () => {
   useEffect(() => {
     terminalBus.setActive(activeTerminal);
   }, [activeTerminal]);
+
+  useEffect(() => appSettings.subscribe(settings => setShortcuts(settings.shortcuts)), []);
+
+  useEffect(
+    () =>
+      window.electronAPI.system.onNavigate(view => {
+        if (view === 'settings') setCurrentView('settings');
+      }),
+    []
+  );
 
   // 订阅主进程推送的系统监控真实数据（首次拉取一次，之后由主进程每 2 秒推送）
   useEffect(() => {
@@ -139,18 +148,15 @@ const App: React.FC = () => {
   // 面板停靠在右侧：水平拖动改变宽度（向左拖变宽）
   const aiPanelResize = useDragResize({
     orientation: 'vertical',
-    onDelta: useCallback(
-      (delta: number) => {
-        const base = dragStartSizeRef.current.width;
-        const next = clamp(
-          base - delta,
-          PANEL_LIMITS.aiPanelWidth.min,
-          PANEL_LIMITS.aiPanelWidth.max
-        );
-        setPanelSizes(prev => ({ ...prev, aiPanelWidth: next }));
-      },
-      []
-    ),
+    onDelta: useCallback((delta: number) => {
+      const base = dragStartSizeRef.current.width;
+      const next = clamp(
+        base - delta,
+        PANEL_LIMITS.aiPanelWidth.min,
+        PANEL_LIMITS.aiPanelWidth.max
+      );
+      setPanelSizes(prev => ({ ...prev, aiPanelWidth: next }));
+    }, []),
     onEnd: useCallback(() => {
       setPanelSizes(prev => {
         appSettings.update({ aiPanelWidth: prev.aiPanelWidth });
@@ -162,18 +168,15 @@ const App: React.FC = () => {
   // 面板停靠在底部：垂直拖动改变高度（向上拖变高）
   const aiPanelResizeBottom = useDragResize({
     orientation: 'horizontal',
-    onDelta: useCallback(
-      (delta: number) => {
-        const base = dragStartSizeRef.current.height;
-        const next = clamp(
-          base - delta,
-          PANEL_LIMITS.aiPanelHeight.min,
-          PANEL_LIMITS.aiPanelHeight.max
-        );
-        setPanelSizes(prev => ({ ...prev, aiPanelHeight: next }));
-      },
-      []
-    ),
+    onDelta: useCallback((delta: number) => {
+      const base = dragStartSizeRef.current.height;
+      const next = clamp(
+        base - delta,
+        PANEL_LIMITS.aiPanelHeight.min,
+        PANEL_LIMITS.aiPanelHeight.max
+      );
+      setPanelSizes(prev => ({ ...prev, aiPanelHeight: next }));
+    }, []),
     onEnd: useCallback(() => {
       setPanelSizes(prev => {
         appSettings.update({ aiPanelHeight: prev.aiPanelHeight });
@@ -184,7 +187,10 @@ const App: React.FC = () => {
 
   const addTerminal = () => {
     const newId = String(Date.now());
-    setTerminals([...terminals, { id: newId, title: `Terminal ${terminals.length + 1}`, type: 'local' }]);
+    setTerminals([
+      ...terminals,
+      { id: newId, title: `终端 ${terminals.length + 1}`, type: 'local' },
+    ]);
     setActiveTerminal(newId);
   };
 
@@ -225,15 +231,13 @@ const App: React.FC = () => {
   };
 
   const toggleSearch = () => {
-    setTerminals(terminals.map(t =>
-      t.id === activeTerminal ? { ...t, showSearch: !t.showSearch } : t
-    ));
+    setTerminals(
+      terminals.map(t => (t.id === activeTerminal ? { ...t, showSearch: !t.showSearch } : t))
+    );
   };
 
   const closeSearch = () => {
-    setTerminals(terminals.map(t =>
-      t.id === activeTerminal ? { ...t, showSearch: false } : t
-    ));
+    setTerminals(terminals.map(t => (t.id === activeTerminal ? { ...t, showSearch: false } : t)));
   };
 
   const handleLoadSession = (session: SavedSession) => {
@@ -252,38 +256,38 @@ const App: React.FC = () => {
 
     if (activeTab.split?.enabled) {
       // 关闭分屏
-      setTerminals(terminals.map(t =>
-        t.id === activeTerminal ? { ...t, split: undefined } : t
-      ));
+      setTerminals(terminals.map(t => (t.id === activeTerminal ? { ...t, split: undefined } : t)));
     } else {
       // 开启分屏（水平分屏，两个窗格）
       const newTerminalId = String(Date.now());
-      setTerminals(terminals.map(t =>
-        t.id === activeTerminal
-          ? {
-              ...t,
-              split: {
-                enabled: true,
-                layout: 'horizontal',
-                panes: [
-                  {
-                    id: 'pane-1',
-                    terminalId: t.id,
-                    title: t.title,
-                    type: t.type,
-                    sshConfig: t.sshConfig,
-                  },
-                  {
-                    id: 'pane-2',
-                    terminalId: newTerminalId,
-                    title: 'Terminal',
-                    type: 'local',
-                  },
-                ],
-              },
-            }
-          : t
-      ));
+      setTerminals(
+        terminals.map(t =>
+          t.id === activeTerminal
+            ? {
+                ...t,
+                split: {
+                  enabled: true,
+                  layout: 'horizontal',
+                  panes: [
+                    {
+                      id: 'pane-1',
+                      terminalId: t.id,
+                      title: t.title,
+                      type: t.type,
+                      sshConfig: t.sshConfig,
+                    },
+                    {
+                      id: 'pane-2',
+                      terminalId: newTerminalId,
+                      title: 'Terminal',
+                      type: 'local',
+                    },
+                  ],
+                },
+              }
+            : t
+        )
+      );
     }
   };
 
@@ -320,71 +324,60 @@ const App: React.FC = () => {
     }
   };
 
+  const isMacPlatform = window.electronAPI?.system?.platform === 'darwin';
+  const shortcutPlatform = isMacPlatform ? 'mac' : 'other';
+  const shortcutLabel = (action: ShortcutAction) =>
+    formatShortcut(shortcuts[action], isMacPlatform);
+
   // ---- 全局快捷键 ----
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const ctrl = e.ctrlKey || e.metaKey;
-      if (!ctrl) return;
-
-      // 输入框内不拦截普通按键（但 Ctrl 组合键仍处理）
       const target = e.target as HTMLElement | null;
       const inEditable =
         target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable);
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
 
-      switch (e.key.toLowerCase()) {
-        case 't':
-          // Ctrl+T 新建终端
-          e.preventDefault();
-          addTerminal();
-          break;
-        case 'w':
-          // Ctrl+W 关闭当前终端
-          e.preventDefault();
-          if (activeTerminal) closeTerminal(activeTerminal);
-          break;
-        case 'f':
-          // Ctrl+F 查找
-          e.preventDefault();
-          if (currentView === 'terminal') toggleSearch();
-          break;
-        case 'n':
-          // Ctrl+N 分屏切换
-          e.preventDefault();
-          if (currentView === 'terminal') toggleSplit();
-          break;
-        case 'b':
-          // Ctrl+B 切换快捷命令面板
-          e.preventDefault();
-          setShowSnippetManager(prev => !prev);
-          break;
-        case 'a':
-          // Ctrl+Shift+A 切换 AI 面板
-          if (e.shiftKey) {
-            e.preventDefault();
+      const action = findShortcutAction(e, shortcuts, shortcutPlatform);
+      if (action) {
+        if (action === 'clearTerminal' && inEditable) return;
+        if (inEditable && !e.altKey && (e.ctrlKey || e.metaKey) && /^[cvxazy]$/i.test(e.key)) {
+          return;
+        }
+        e.preventDefault();
+        switch (action) {
+          case 'newTerminal':
+            addTerminal();
+            break;
+          case 'closeTerminal':
+            if (activeTerminal) closeTerminal(activeTerminal);
+            break;
+          case 'terminalSearch':
+            if (currentView === 'terminal') toggleSearch();
+            break;
+          case 'toggleSplit':
+            if (currentView === 'terminal') toggleSplit();
+            break;
+          case 'toggleSnippets':
+            setShowSnippetManager(prev => !prev);
+            break;
+          case 'toggleAIPanel':
             if (currentView === 'terminal') setShowAIPanel(prev => !prev);
-          }
-          break;
-        case 'l':
-          // Ctrl+L 聚焦终端（通过向活动终端发送清屏）
-          if (!inEditable) {
-            e.preventDefault();
+            break;
+          case 'clearTerminal':
             terminalBus.runOnActive('clear');
-          }
-          break;
-        default:
-          // Ctrl+1..9 切换到第 N 个标签
-          if (!inEditable && e.key >= '1' && e.key <= '9') {
-            const index = Number(e.key) - 1;
-            const tab = terminals[index];
-            if (tab) {
-              e.preventDefault();
-              setActiveTerminal(tab.id);
-            }
-          }
-          break;
+            break;
+        }
+        return;
+      }
+
+      // 标签切换固定使用平台主修饰键 + 1..9
+      const primaryPressed = isMacPlatform ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
+      if (!inEditable && primaryPressed && !e.altKey && e.key >= '1' && e.key <= '9') {
+        const tab = terminals[Number(e.key) - 1];
+        if (tab) {
+          e.preventDefault();
+          setActiveTerminal(tab.id);
+        }
       }
     };
 
@@ -400,7 +393,6 @@ const App: React.FC = () => {
           <span className="toolbar-brand-text">AI Shell</span>
           <span className="toolbar-signature">esdkaiyuan</span>
         </div>
-        <div className="toolbar-view-title">{viewTitles[currentView]}</div>
         <button
           className="toolbar-button toolbar-fullscreen"
           aria-label="切换全屏"
@@ -462,56 +454,104 @@ const App: React.FC = () => {
         {/* 内容区域 */}
         <div className="app-content">
           {currentView === 'terminal' && (
-            <div className={`terminal-view-container ${showAIPanel ? `with-ai-${aiPanelPosition}` : ''}`}>
+            <div
+              className={`terminal-view-container ${showAIPanel ? `with-ai-${aiPanelPosition}` : ''}`}
+            >
               <div className="terminal-view">
                 <div className="terminal-page-toolbar" aria-label="终端工具">
                   <div className="terminal-tool-group">
-                    <button className="terminal-tool-button primary" title="新建本地终端 (Ctrl+T)" onClick={addTerminal}>
+                    <button
+                      className="terminal-tool-button primary"
+                      aria-label="新建本地终端"
+                      title={`新建本地终端 (${shortcutLabel('newTerminal')})`}
+                      onClick={addTerminal}
+                    >
                       <PlusIcon size={15} />
                       <span className="terminal-tool-label">新建</span>
                     </button>
-                    <button className="terminal-tool-button" title="SSH 连接" onClick={() => setShowSSHManager(true)}>
+                    <button
+                      className="terminal-tool-button"
+                      aria-label="SSH 连接"
+                      title="SSH 连接"
+                      onClick={() => setShowSSHManager(true)}
+                    >
                       <GlobeIcon size={15} />
                       <span className="terminal-tool-label">SSH</span>
                     </button>
                   </div>
                   <div className="terminal-tool-group">
-                    <button className="terminal-tool-button" title="打开会话" onClick={() => setShowSessionManager(true)}>
+                    <button
+                      className="terminal-tool-button"
+                      aria-label="打开会话"
+                      title="打开会话"
+                      onClick={() => setShowSessionManager(true)}
+                    >
                       <FolderIcon size={15} />
                       <span className="terminal-tool-label">会话</span>
                     </button>
-                    <button className="terminal-tool-button" title="保存会话" onClick={() => setShowSessionManager(true)}>
+                    <button
+                      className="terminal-tool-button"
+                      aria-label="保存会话"
+                      title="保存会话"
+                      onClick={() => setShowSessionManager(true)}
+                    >
                       <SaveIcon size={15} />
                       <span className="terminal-tool-label">保存</span>
                     </button>
                   </div>
                   <div className="terminal-tool-group">
-                    <button className="terminal-tool-button" title="复制" onClick={handleCopy}>
+                    <button
+                      className="terminal-tool-button"
+                      aria-label="复制终端输出"
+                      title="复制"
+                      onClick={handleCopy}
+                    >
                       <CopyIcon size={15} />
                       <span className="terminal-tool-label">复制</span>
                     </button>
-                    <button className="terminal-tool-button" title="粘贴" onClick={handlePaste}>
+                    <button
+                      className="terminal-tool-button"
+                      aria-label="粘贴到终端"
+                      title="粘贴"
+                      onClick={handlePaste}
+                    >
                       <PasteIcon size={15} />
                       <span className="terminal-tool-label">粘贴</span>
                     </button>
-                    <button className="terminal-tool-button" title="查找 (Ctrl+F)" onClick={toggleSearch}>
+                    <button
+                      className="terminal-tool-button"
+                      aria-label="查找终端内容"
+                      title={`查找 (${shortcutLabel('terminalSearch')})`}
+                      onClick={toggleSearch}
+                    >
                       <SearchIcon size={15} />
                       <span className="terminal-tool-label">查找</span>
                     </button>
                   </div>
                   <div className="terminal-tool-group">
-                    <button className="terminal-tool-button" title="快捷命令 (Ctrl+B)" onClick={() => setShowSnippetManager(true)}>
+                    <button
+                      className="terminal-tool-button"
+                      aria-label="快捷命令"
+                      title={`快捷命令 (${shortcutLabel('toggleSnippets')})`}
+                      onClick={() => setShowSnippetManager(true)}
+                    >
                       <ZapIcon size={15} />
                       <span className="terminal-tool-label">命令</span>
                     </button>
-                    <button className="terminal-tool-button" title="分屏 (Ctrl+N)" onClick={toggleSplit}>
+                    <button
+                      className="terminal-tool-button"
+                      aria-label="切换分屏"
+                      title={`分屏 (${shortcutLabel('toggleSplit')})`}
+                      onClick={toggleSplit}
+                    >
                       <SplitIcon size={15} />
                       <span className="terminal-tool-label">分屏</span>
                     </button>
                     <button
                       className={`terminal-tool-button ${showAIPanel ? 'active' : ''}`}
+                      aria-label="切换 AI 停靠面板"
                       aria-pressed={showAIPanel}
-                      title="切换 AI 停靠面板 (Ctrl+Shift+A)"
+                      title={`切换 AI 停靠面板 (${shortcutLabel('toggleAIPanel')})`}
                       onClick={() => setShowAIPanel(prev => !prev)}
                     >
                       <AIIcon size={15} />
@@ -527,9 +567,7 @@ const App: React.FC = () => {
                   onClose={closeTerminal}
                   onCreate={addTerminal}
                   onRename={(id, title) => {
-                    setTerminals(prev =>
-                      prev.map(t => (t.id === id ? { ...t, title } : t))
-                    );
+                    setTerminals(prev => prev.map(t => (t.id === id ? { ...t, title } : t)));
                   }}
                   onReorder={handleReorderTabs}
                 />
@@ -632,10 +670,8 @@ const App: React.FC = () => {
       <div className="app-statusbar">
         <div className="statusbar-section">
           <div className="statusbar-item">
-            <span className="statusbar-icon">
-              <WifiIcon size={14} />
-            </span>
-            <span>已连接</span>
+            <span className="statusbar-dot" aria-hidden="true" />
+            <span>就绪</span>
           </div>
           <div className="statusbar-item">
             <span className="statusbar-icon">
@@ -647,7 +683,7 @@ const App: React.FC = () => {
             <span className="statusbar-icon">
               <MonitorIcon size={14} />
             </span>
-            <span>{terminals.find(t => t.id === activeTerminal)?.title || 'Local'}</span>
+            <span>{terminals.find(t => t.id === activeTerminal)?.title || '本地'}</span>
           </div>
         </div>
 
@@ -662,10 +698,7 @@ const App: React.FC = () => {
 
       {/* SSH 管理器对话框 */}
       {showSSHManager && (
-        <SSHManager
-          onClose={() => setShowSSHManager(false)}
-          onConnect={addSSHTerminal}
-        />
+        <SSHManager onClose={() => setShowSSHManager(false)} onConnect={addSSHTerminal} />
       )}
 
       {/* 会话管理器对话框 */}
@@ -679,9 +712,7 @@ const App: React.FC = () => {
       )}
 
       {/* 快捷命令管理器对话框 */}
-      {showSnippetManager && (
-        <SnippetManager onClose={() => setShowSnippetManager(false)} />
-      )}
+      {showSnippetManager && <SnippetManager onClose={() => setShowSnippetManager(false)} />}
     </div>
   );
 };

@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 52px;
+  height: 58px;
   padding: 0 24px;
   border-bottom: 1px solid var(--color-border-primary);
   background: var(--material-chrome);
@@ -18,12 +18,22 @@
   flex-shrink: 0;
 }
 
+.chat-header-copy {
+  min-width: 0;
+  margin-right: auto;
+}
+
 .chat-header h2 {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--color-text-primary);
-  letter-spacing: -0.01em;
-  margin-right: auto;
+  letter-spacing: -0.02em;
+}
+
+.chat-header-copy p {
+  margin-top: 3px;
+  color: var(--color-text-tertiary);
+  font-size: 11.5px;
 }
 
 .chat-messages {
@@ -62,6 +72,13 @@
   font-size: 13px;
   line-height: 1.6;
   max-width: 340px;
+}
+
+.empty-state .empty-title {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .message {

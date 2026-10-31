@@ -22,10 +22,19 @@ const destinations: Array<{
   title: string;
   subtitle: string;
 }> = [
-  { key: 'sessions', icon: 'albums-outline', title: '工作区会话', subtitle: '保存与恢复终端标签布局' },
+  {
+    key: 'sessions',
+    icon: 'albums-outline',
+    title: '工作区会话',
+    subtitle: '保存与恢复终端标签布局',
+  },
   { key: 'history', icon: 'time-outline', title: '命令历史', subtitle: '查看和重新填入已提交命令' },
-  { key: 'settings', icon: 'cube-outline', title: '运行环境', subtitle: '查看 Alpine、ABI 与内置能力' },
-  { key: 'settings', icon: 'settings-outline', title: '设置', subtitle: '配置环境、密钥与危险操作' },
+  {
+    key: 'settings',
+    icon: 'settings-outline',
+    title: '运行环境与设置',
+    subtitle: '查看 Alpine、密钥与危险操作',
+  },
 ];
 
 export const ProfileHome: FC<ProfileHomeProps> = ({ config, runtime, onOpen }) => {

@@ -130,7 +130,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     baseURL: 'https://spark-api.xf-yun.com/v3.5',
     models: ['spark-3.5', 'spark-3.0', 'spark-2.0'],
     keyPlaceholder: 'APPID:APISecret:APIKey',
-    keyFormat: '该厂商需要 WebSocket 签名，当前版本请选择其他 Provider',
+    keyFormat: '该厂商需要 WebSocket 签名，当前版本请选择其他提供商',
     helpLink: 'https://console.xfyun.cn/services/bm3',
   },
 ];

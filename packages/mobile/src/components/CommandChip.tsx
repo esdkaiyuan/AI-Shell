@@ -9,6 +9,8 @@ interface CommandChipProps {
 
 export const CommandChip: FC<CommandChipProps> = ({ command, onPress }) => (
   <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={`填入命令 ${command}`}
     onPress={() => onPress(command)}
     style={({ pressed }: { pressed: boolean }) => [styles.chip, pressed && styles.pressed]}
   >
