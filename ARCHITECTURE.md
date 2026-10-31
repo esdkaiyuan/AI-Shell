@@ -1,462 +1,166 @@
-# AI Shell 工具架构设计
+# AI Shell 架构说明
 
-## 项目概述
+## 1. 总览
 
-一个支持AI辅助的跨平台Shell终端工具，支持本地命令执行、SSH远程连接、多AI厂商集成、设备间同步等功能。
+AI Shell 使用 pnpm monorepo，桌面端与 Android 端共享核心 AI/存储类型，但分别运行在 Electron 和 React Native 环境中。
 
-## 技术栈
-
-### PC端（优先开发）
-- **框架**: Electron 28+
-- **前端**: React 18 + TypeScript
-- **UI库**: Ant Design / Material-UI
-- **状态管理**: Zustand / Redux Toolkit
-- **终端**: xterm.js + node-pty
-- **SSH**: ssh2 (Node.js)
-
-### 移动端（后续开发）
-- **框架**: React Native
-- **终端**: react-native-terminal-component
-- **SSH**: react-native-ssh
-
-### 后端服务（可选云端）
-- **框架**: Node.js + Express / Fastify
-- **数据库**: SQLite (本地) + PostgreSQL (云端)
-- **同步**: WebSocket + REST API
-- **认证**: JWT
-
-## 系统架构
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        前端层 (React)                        │
-├──────────────┬──────────────┬──────────────┬────────────────┤
-│  终端UI组件   │  AI对话界面   │  设置页面     │  SSH管理器     │
-└──────────────┴──────────────┴──────────────┴────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                      业务逻辑层 (Services)                    │
-├──────────────┬──────────────┬──────────────┬────────────────┤
-│ Shell执行器   │  AI适配器     │  同步服务     │  SSH客户端     │
-└──────────────┴──────────────┴──────────────┴────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                    Electron主进程 / 原生层                    │
-├──────────────┬──────────────┬──────────────┬────────────────┤
-│  进程管理     │  文件系统     │  网络通信     │  系统集成      │
-└──────────────┴──────────────┴──────────────┴────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                        外部服务                              │
-├──────────────┬──────────────┬──────────────┬────────────────┤
-│  AI API      │  云端同步     │  SSH服务器    │  本地Shell     │
-└──────────────┴──────────────┴──────────────┴────────────────┘
+```text
+┌──────────────────────────────┐
+│ packages/core                │
+│ AI 适配器 / SQLite 存储 / 控制器 │
+└──────────────┬───────────────┘
+               │
+      ┌────────┴────────┐
+      │                 │
+┌─────▼─────────┐  ┌────▼────────────────────┐
+│ Desktop       │  │ Mobile                   │
+│ Electron      │  │ React Native / Expo      │
+│ node-pty      │  │ Kotlin Native Modules    │
+│ ssh2          │  │ Alpine + PRoot + OpenSSH │
+└───────────────┘  └──────────────────────────┘
 ```
 
-## 核心模块设计
+## 2. 包结构
 
-### 1. Shell终端模块
+| 路径                     | 职责                                                                      |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `packages/core`          | 多 Provider AI 适配器、SQLite/sql.js 存储、文心/Claude 等协议实现、控制器 |
+| `packages/desktop`       | Electron 主进程、preload、React 渲染层、终端/SSH/文件/设置                |
+| `packages/mobile`        | React Native UI、运行时服务、Android Kotlin 原生模块、内置 rootfs         |
+| `packages/shared-assets` | 品牌图标等共享资产                                                        |
 
-**功能**:
-- 本地Shell执行（支持bash/zsh/powershell/cmd）
-- 命令历史记录
-- 自动补全
-- 多标签页管理
-- 命令输出解析
+## 3. 桌面端
 
-**技术实现**:
-```typescript
-// 使用node-pty创建伪终端
-import * as pty from 'node-pty';
+### 3.1 进程边界
 
-class ShellExecutor {
-  private ptyProcess: pty.IPty;
-  
-  spawn(shell: string, cwd: string) {
-    this.ptyProcess = pty.spawn(shell, [], {
-      name: 'xterm-color',
-      cols: 80,
-      rows: 30,
-      cwd: cwd,
-      env: process.env
-    });
-  }
-  
-  write(data: string) {
-    this.ptyProcess.write(data);
-  }
-  
-  onData(callback: (data: string) => void) {
-    this.ptyProcess.onData(callback);
-  }
-}
+- **主进程**：窗口、IPC、`node-pty`、ssh2、SQLite、`safeStorage`、系统监控、macOS 原生菜单。
+- **preload**：通过 `contextBridge` 暴露受控 API，启用 `contextIsolation`，关闭 `nodeIntegration`。
+- **渲染进程**：React 页面、xterm.js、设置、文件浏览和快捷键状态。
+
+```text
+Renderer
+  │ contextBridge API
+  ▼
+Preload
+  │ IPC invoke / event
+  ▼
+Main
+  ├─ ShellManager (node-pty)
+  ├─ SSHManager (ssh2)
+  ├─ LocalStorage (sql.js)
+  └─ safeStorage (凭据加解密)
 ```
 
-### 2. SSH远程连接模块
+### 3.2 终端与 SSH 数据流
 
-**功能**:
-- SSH连接管理
-- 多服务器配置
-- 密钥认证
-- 端口转发
-- SFTP文件传输
-
-**技术实现**:
-```typescript
-import { Client } from 'ssh2';
-
-class SSHManager {
-  private connections: Map<string, Client>;
-  
-  async connect(config: SSHConfig) {
-    const conn = new Client();
-    
-    return new Promise((resolve, reject) => {
-      conn.on('ready', () => {
-        conn.shell((err, stream) => {
-          if (err) reject(err);
-          resolve(stream);
-        });
-      }).connect({
-        host: config.host,
-        port: config.port,
-        username: config.username,
-        privateKey: config.privateKey
-      });
-    });
-  }
-}
+```text
+键盘/粘贴 → xterm input tracker → IPC → node-pty / ssh2
+PTY/SSH data → IPC event → xterm.write + AI 上下文缓冲
+命令提交 → shell:write → 历史记录 → 输出与退出事件
 ```
 
-### 3. AI集成模块
+- ANSI 清理和输入行跟踪用于 Tab 补全、错误检测和 AI 上下文。
+- SSH 私钥读取可在主进程将文件路径解析为 PEM 内容。
+- 终端标签、分屏和 AI 面板尺寸保存在渲染层设置中。
 
-**支持的AI厂商**:
-- OpenAI (GPT-3.5, GPT-4)
-- Anthropic (Claude)
-- 百度文心一言
-- 阿里通义千问
-- 智谱GLM
-- 讯飞星火
-- Moonshot
-- Ollama (本地模型)
+### 3.3 命令补全
 
-**统一接口设计**:
-```typescript
-interface AIProvider {
-  name: string;
-  apiKey: string;
-  baseURL?: string;
-  models: string[];
-}
+- 补全候选来源：历史命令、快捷片段、系统命令目录。
+- 目标系统由本机 `process.platform` 或 SSH 配置的远端系统决定。
+- 支持 Alpine、Linux、macOS、Windows PowerShell、Windows CMD。
+- 路径补全根据末尾 token 读取资源管理器目录，仅替换该 token。
 
-interface AIMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
+### 3.4 快捷键
 
-abstract class AIAdapter {
-  abstract chat(messages: AIMessage[], model: string): Promise<string>;
-  abstract streamChat(messages: AIMessage[], model: string): AsyncGenerator<string>;
-}
+- `shortcuts.ts` 统一快捷键动作、默认值、规范化、冲突和方案模型。
+- Windows/Linux 使用 Ctrl；macOS 使用 Command，Control 组合保留给终端。
+- 快捷键保存在 `appSettings`，支持默认恢复、命名方案和持久化。
+- macOS 主进程注册原生菜单：`⌘W` 关闭标签，`⇧⌘W` 关闭窗口，`⌘,` 打开设置；录制期间临时挂起菜单加速器。
 
-class OpenAIAdapter extends AIAdapter {
-  async chat(messages: AIMessage[], model: string): Promise<string> {
-    // OpenAI API调用实现
-  }
-}
+## 4. Android 手机端
 
-class ClaudeAdapter extends AIAdapter {
-  async chat(messages: AIMessage[], model: string): Promise<string> {
-    // Claude API调用实现
-  }
-}
+### 4.1 JS 与原生边界
 
-// 工厂模式创建适配器
-class AIFactory {
-  static createAdapter(provider: string, config: AIProvider): AIAdapter {
-    switch(provider) {
-      case 'openai': return new OpenAIAdapter(config);
-      case 'claude': return new ClaudeAdapter(config);
-      case 'wenxin': return new WenxinAdapter(config);
-      case 'tongyi': return new TongyiAdapter(config);
-      case 'glm': return new GLMAdapter(config);
-      case 'xinghuo': return new XinghuoAdapter(config);
-      case 'moonshot': return new MoonshotAdapter(config);
-      case 'ollama': return new OllamaAdapter(config);
-      default: throw new Error(`Unknown provider: ${provider}`);
-    }
-  }
-}
+```text
+React Native UI
+  │ NativeModules / DeviceEventEmitter
+  ▼
+Kotlin Native Modules
+  ├─ LinuxRuntimeModule
+  ├─ RootfsInstaller
+  ├─ SecureConfigModule
+  └─ DeviceUtilityModule
+  ▼
+App-private rootfs + PRoot + OpenSSH
 ```
 
-### 4. 命令控制器模块
+### 4.2 内置运行时
 
-**内置控制器**:
-- `ai`: AI对话和命令解释
-- `explain`: 解释命令含义
-- `suggest`: 命令建议
-- `fix`: 错误修复建议
-- `translate`: 命令翻译（自然语言转Shell）
-- `optimize`: 命令优化
-- `history`: 智能历史搜索
+- rootfs 与 runtime 元数据位于 `android/app/src/main/assets/linux/`。
+- 首次安装解压到应用私有目录，并把 PRoot/loader 链接到当前 `nativeLibraryDir`。
+- `LinuxRuntimeModule` 通过 PRoot 启动 bash/SSH，使用 `script` 提供 PTY。
+- 文件浏览把 `/root/shared`、`/root/android` 映射到外置应用目录，其余路径限制在 rootfs。
 
-**实现示例**:
-```typescript
-interface CommandController {
-  name: string;
-  description: string;
-  execute(args: string[], context: ShellContext): Promise<string>;
-}
+### 4.3 会话与私钥生命周期
 
-class AICommandController implements CommandController {
-  name = 'ai';
-  description = 'AI助手对话';
-  
-  async execute(args: string[], context: ShellContext): Promise<string> {
-    const query = args.join(' ');
-    const aiService = context.getAIService();
-    return await aiService.chat([
-      { role: 'system', content: 'You are a helpful shell assistant.' },
-      { role: 'user', content: query }
-    ]);
-  }
-}
+- `SessionRegistry` 原子管理 pending/active 会话，避免停止与启动竞态。
+- `SessionPrivateKeys` 创建临时权限为 0600 的 PEM 文件，在停止、退出、重置、模块销毁和下次启动时清理。
+- SSH 每次会话可指定远端系统，用于补全、历史标签和 AI 系统提示。
 
-class ExplainController implements CommandController {
-  name = 'explain';
-  description = '解释Shell命令';
-  
-  async execute(args: string[], context: ShellContext): Promise<string> {
-    const command = args.join(' ');
-    const aiService = context.getAIService();
-    return await aiService.chat([
-      { role: 'system', content: 'Explain the following shell command in detail.' },
-      { role: 'user', content: command }
-    ]);
-  }
-}
-```
+### 4.4 配置存储
 
-### 5. 设备同步模块
+- Android 原生 `SecureConfigModule` 使用 Android Keystore AES-256-GCM 加密配置。
+- Web/Expo 预览退化为 `localStorage`，仅用于界面预览，不应录入真实凭据。
+- 配置文件包含 AI Provider、SSH 主机、工作区和命令历史；私钥不会写入 APK assets。
 
-**同步内容**:
-- 命令历史
-- SSH配置
-- AI配置
-- 自定义脚本
-- 主题设置
+## 5. AI 层
 
-**技术方案**:
-```typescript
-interface SyncData {
-  deviceId: string;
-  timestamp: number;
-  type: 'history' | 'config' | 'ssh' | 'ai';
-  data: any;
-}
+### 5.1 core 适配器
 
-class SyncService {
-  private ws: WebSocket;
-  private localDB: Database;
-  
-  async sync() {
-    // 1. 获取本地最后同步时间
-    const lastSync = await this.localDB.getLastSyncTime();
-    
-    // 2. 拉取服务器更新
-    const updates = await this.fetchUpdates(lastSync);
-    
-    // 3. 合并冲突
-    const merged = this.mergeConflicts(updates);
-    
-    // 4. 推送本地更改
-    await this.pushLocalChanges();
-    
-    // 5. 更新本地数据库
-    await this.localDB.applyUpdates(merged);
-  }
-  
-  private mergeConflicts(updates: SyncData[]): SyncData[] {
-    // 冲突解决策略：最后写入胜出
-    return updates.sort((a, b) => b.timestamp - a.timestamp);
-  }
-}
-```
+- `AIServiceImpl` 根据 Provider 配置选择适配器。
+- 支持 OpenAI 兼容协议、Claude、Ollama、文心、讯飞星火。
+- 流式能力由 adapter 的 `streamChat` 提供，并支持 AbortSignal 中断。
 
-### 6. 数据存储模块
+### 5.2 移动端协议
 
-**本地存储**:
-```typescript
-import Database from 'better-sqlite3';
+- 移动端直接调用 Provider HTTP API，不经过桌面中继。
+- 当前为非流式请求；星火 WebSocket 鉴权暂未接入。
+- 系统提示会根据当前终端系统生成对应命令建议。
 
-class LocalStorage {
-  private db: Database.Database;
-  
-  constructor(dbPath: string) {
-    this.db = new Database(dbPath);
-    this.initTables();
-  }
-  
-  private initTables() {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS command_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        command TEXT NOT NULL,
-        cwd TEXT,
-        timestamp INTEGER,
-        exit_code INTEGER
-      );
-      
-      CREATE TABLE IF NOT EXISTS ssh_configs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        host TEXT,
-        port INTEGER,
-        username TEXT,
-        private_key TEXT,
-        config TEXT
-      );
-      
-      CREATE TABLE IF NOT EXISTS ai_providers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        provider TEXT,
-        api_key TEXT,
-        base_url TEXT,
-        models TEXT,
-        enabled INTEGER DEFAULT 1
-      );
-      
-      CREATE TABLE IF NOT EXISTS sync_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        device_id TEXT,
-        sync_type TEXT,
-        timestamp INTEGER,
-        status TEXT
-      );
-    `);
-  }
-  
-  saveCommand(command: string, cwd: string, exitCode: number) {
-    const stmt = this.db.prepare(
-      'INSERT INTO command_history (command, cwd, timestamp, exit_code) VALUES (?, ?, ?, ?)'
-    );
-    stmt.run(command, cwd, Date.now(), exitCode);
-  }
-  
-  getCommandHistory(limit: number = 100): CommandHistory[] {
-    const stmt = this.db.prepare(
-      'SELECT * FROM command_history ORDER BY timestamp DESC LIMIT ?'
-    );
-    return stmt.all(limit);
-  }
-}
-```
+## 6. 存储
 
-## 项目目录结构
+### 桌面
 
-```
-ai-shell/
-├── packages/
-│   ├── desktop/                 # Electron桌面端
-│   │   ├── src/
-│   │   │   ├── main/           # 主进程
-│   │   │   │   ├── index.ts
-│   │   │   │   ├── shell/      # Shell执行
-│   │   │   │   ├── ssh/        # SSH管理
-│   │   │   │   └── ipc/        # 进程通信
-│   │   │   ├── renderer/       # 渲染进程
-│   │   │   │   ├── App.tsx
-│   │   │   │   ├── components/ # UI组件
-│   │   │   │   ├── pages/      # 页面
-│   │   │   │   └── hooks/      # React Hooks
-│   │   │   └── preload/        # 预加载脚本
-│   │   ├── package.json
-│   │   └── electron-builder.json
-│   │
-│   ├── mobile/                  # React Native移动端
-│   │   ├── src/
-│   │   │   ├── screens/
-│   │   │   ├── components/
-│   │   │   └── services/
-│   │   └── package.json
-│   │
-│   ├── core/                    # 共享核心逻辑
-│   │   ├── src/
-│   │   │   ├── ai/             # AI适配器
-│   │   │   │   ├── adapters/
-│   │   │   │   │   ├── openai.ts
-│   │   │   │   │   ├── claude.ts
-│   │   │   │   │   ├── wenxin.ts
-│   │   │   │   │   ├── tongyi.ts
-│   │   │   │   │   ├── glm.ts
-│   │   │   │   │   ├── xinghuo.ts
-│   │   │   │   │   ├── moonshot.ts
-│   │   │   │   │   └── ollama.ts
-│   │   │   │   ├── factory.ts
-│   │   │   │   └── types.ts
-│   │   │   ├── controllers/    # 命令控制器
-│   │   │   ├── sync/           # 同步服务
-│   │   │   ├── storage/        # 数据存储
-│   │   │   └── utils/          # 工具函数
-│   │   └── package.json
-│   │
-│   └── server/                  # 云端同步服务（可选）
-│       ├── src/
-│       │   ├── api/
-│       │   ├── sync/
-│       │   └── auth/
-│       └── package.json
-│
-├── docs/                        # 文档
-├── scripts/                     # 构建脚本
-├── package.json                 # 根配置
-├── pnpm-workspace.yaml         # Monorepo配置
-└── README.md
-```
+- `LocalStorage` 基于 sql.js，保存 AI Provider、SSH 配置、命令历史等。
+- 凭据字段在 Electron `safeStorage` 可用时加密后落库；不可用时当前代码保留明文，因此生产环境必须确认系统密钥环可用。
+- 对外返回的 SSH/AI 配置只包含掩码或能力标记。
 
-## 安全考虑
+### Android
 
-1. **API密钥加密存储**: 使用系统密钥链（keytar）或加密存储
-2. **SSH密钥管理**: 支持密钥文件和密码，加密存储
-3. **命令执行隔离**: 防止命令注入
-4. **网络通信加密**: HTTPS/WSS
-5. **权限控制**: 最小权限原则
+- SecureConfig 管理加密 JSON。
+- rootfs 内的临时私钥和 rootfs 文件由原生模块管理，不进入配置数据库。
 
-## 性能优化
+## 7. 设计系统
 
-1. **虚拟滚动**: 终端输出使用虚拟滚动
-2. **命令缓存**: 常用命令结果缓存
-3. **懒加载**: AI模型按需加载
-4. **增量同步**: 只同步变更数据
-5. **Worker线程**: 耗时操作放入Worker
+- 深色三级表面、系统蓝单一强调色、语义成功/警告/错误色。
+- Apple HIG 风格圆角、间距、状态胶囊、焦点环和减少动态效果支持。
+- 详情见 [docs/UI_DESIGN.md](docs/UI_DESIGN.md) 和
+  [全端重设计规格](docs/superpowers/specs/2026-10-27-all-pages-redesign-design.md)。
 
-## 开发计划
+## 8. 构建与产物
 
-### Phase 1: 核心功能（2-3周）
-- [x] 项目架构设计
-- [ ] 基础项目搭建
-- [ ] 本地Shell终端实现
-- [ ] 基础UI界面
+| 目标          | 命令                                       | 主要产物                   |
+| ------------- | ------------------------------------------ | -------------------------- |
+| 类型检查      | `pnpm type-check`                          | —                          |
+| 全仓测试      | `pnpm test`                                | Vitest 结果                |
+| 桌面构建      | `pnpm build:desktop`                       | `packages/desktop/dist`    |
+| 桌面打包      | `pnpm --filter @ai-shell/desktop package`  | `packages/desktop/release` |
+| 移动 Web      | `pnpm --filter @ai-shell/mobile build:web` | `packages/mobile/dist`     |
+| Android Debug | `./gradlew assembleDebug`                  | `app-debug.apk`            |
 
-### Phase 2: AI集成（2周）
-- [ ] AI适配器框架
-- [ ] OpenAI集成
-- [ ] Claude集成
-- [ ] 国内厂商集成
-- [ ] Ollama本地模型支持
+## 9. 已知边界
 
-### Phase 3: 远程功能（2周）
-- [ ] SSH连接实现
-- [ ] 设备同步服务
-- [ ] 云端服务搭建
-
-### Phase 4: 移动端（3-4周）
-- [ ] React Native项目搭建
-- [ ] 核心功能移植
-- [ ] 移动端UI适配
-
-### Phase 5: 优化和发布（1-2周）
-- [ ] 性能优化
-- [ ] 测试和修复
-- [ ] 文档完善
-- [ ] 打包发布
+- 没有持续连接的 Android 真机；PRoot/PTY/SSH 需真机验收。
+- macOS 菜单通过源码与渲染层模拟验证，仍需物理 Mac 验收。
+- Release APK 当前沿用 debug keystore，不适合正式分发。
+- 首次 SSH 连接采用 `accept-new`，高安全环境应增加指纹确认。

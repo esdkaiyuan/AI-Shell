@@ -1,324 +1,217 @@
-# 安装指南
+# 安装与构建
 
-## 系统要求
+## 1. 系统要求
 
-### 最低配置
+### 桌面端
 
-- **操作系统**: Windows 10+, macOS 10.13+, Ubuntu 18.04+
-- **内存**: 4GB RAM
-- **存储**: 500MB 可用空间
-- **网络**: 互联网连接（用于AI功能）
+- Windows 10+、macOS 或主流 Linux。
+- 4 GB 内存；推荐 8 GB+。
+- Node.js >= 18、pnpm >= 8。
+- 安装与打包原生依赖需要 C++ 构建工具。
 
-### 推荐配置
+### Android 构建
 
-- **内存**: 8GB+ RAM
-- **存储**: 1GB+ 可用空间
-- **处理器**: 多核处理器
+- JDK 17。
+- Android SDK、NDK 和 platform-tools。
+- 建议使用 Node.js 18 运行 Expo/Metro 导出。
+- 内置 runtime 仅包含 64 位 `arm64-v8a` 与 `x86_64`。
 
-## 从源码安装
-
-### 1. 安装前置依赖
-
-#### Node.js
-
-访问 [nodejs.org](https://nodejs.org/) 下载并安装 Node.js 18.0.0 或更高版本。
-
-验证安装：
-```bash
-node --version  # 应显示 v18.0.0 或更高
-npm --version
-```
-
-#### pnpm
+## 2. 获取源码
 
 ```bash
-npm install -g pnpm
-pnpm --version  # 应显示 8.0.0 或更高
-```
-
-#### 构建工具
-
-**Windows:**
-```bash
-npm install --global windows-build-tools
-```
-
-**macOS:**
-```bash
-xcode-select --install
-```
-
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt-get update
-sudo apt-get install build-essential libxtst-dev libpng-dev
-```
-
-### 2. 克隆仓库
-
-```bash
-git clone https://github.com/yourusername/ai-shell.git
-cd ai-shell
-```
-
-### 3. 安装依赖
-
-```bash
+git clone https://github.com/esdkaiyuan/AI-Shell.git
+cd AI-Shell
 pnpm install
 ```
 
-这将安装所有必要的依赖包。
-
-### 4. 构建项目
+验证环境：
 
 ```bash
-pnpm build
+node --version
+pnpm --version
+pnpm type-check
+pnpm test
 ```
 
-### 5. 运行应用
+## 3. 桌面端
 
-#### 开发模式
+### 开发
 
 ```bash
 pnpm dev
 ```
 
-#### 生产模式
+该命令先编译 preload，再同时 watch 主进程、preload 和 Vite 渲染进程。
+
+### 生产构建
 
 ```bash
-cd packages/desktop
-pnpm start
+pnpm build:desktop
 ```
 
-### 6. 打包应用（可选）
+产物位于 `packages/desktop/dist/`。
+
+### 打包安装包
 
 ```bash
-cd packages/desktop
-pnpm package
+pnpm --filter @ai-shell/desktop package
 ```
 
-打包后的应用位于 `packages/desktop/release/` 目录。
+输出位于 `packages/desktop/release/`。electron-builder 配置包含：
 
-## 从预编译包安装
+- Windows：NSIS + portable。
+- macOS：DMG + ZIP。
+- Linux：AppImage + DEB。
 
-### Windows
+macOS 原生菜单、Command 快捷键和窗口行为必须在 macOS 上打包并验收。
 
-1. 下载 `AI-Shell-Setup-0.1.0.exe`
-2. 双击运行安装程序
-3. 按照安装向导完成安装
-4. 从开始菜单启动 AI Shell
+## 4. Android APK
 
-**便携版:**
-1. 下载 `AI-Shell-0.1.0-portable.exe`
-2. 直接运行，无需安装
-
-### macOS
-
-1. 下载 `AI-Shell-0.1.0.dmg`
-2. 打开 DMG 文件
-3. 将 AI Shell 拖到 Applications 文件夹
-4. 从 Launchpad 或 Applications 启动
-
-**首次运行可能需要:**
-```bash
-# 如果遇到"无法打开，因为它来自身份不明的开发者"
-xattr -cr /Applications/AI\ Shell.app
-```
-
-### Linux
-
-#### AppImage
-
-1. 下载 `AI-Shell-0.1.0.AppImage`
-2. 添加执行权限：
-```bash
-chmod +x AI-Shell-0.1.0.AppImage
-```
-3. 运行：
-```bash
-./AI-Shell-0.1.0.AppImage
-```
-
-#### DEB 包 (Ubuntu/Debian)
+### Debug APK
 
 ```bash
-sudo dpkg -i ai-shell_0.1.0_amd64.deb
-sudo apt-get install -f  # 安装依赖
+cd packages/mobile/android
+./gradlew assembleDebug
 ```
 
-启动：
-```bash
-ai-shell
+Windows：
+
+```powershell
+cd packages/mobile/android
+.\gradlew.bat assembleDebug
 ```
 
-#### RPM 包 (Fedora/RHEL)
+产物：
 
-```bash
-sudo rpm -i ai-shell-0.1.0.x86_64.rpm
+```text
+packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## 配置
-
-### 首次启动
-
-1. 启动应用
-2. 点击左侧 **设置** 图标
-3. 选择 **AI Providers** 标签
-4. 添加至少一个AI提供商
-
-### 配置AI提供商
-
-#### OpenAI
-
-1. 访问 [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-2. 创建新的API密钥
-3. 在AI Shell设置中：
-   - 选择 "OpenAI (GPT)"
-   - 粘贴API密钥
-   - 点击 "Add Provider"
-
-#### Claude
-
-1. 访问 [console.anthropic.com](https://console.anthropic.com/)
-2. 获取API密钥
-3. 在AI Shell设置中添加
-
-#### 百度文心一言
-
-1. 访问 [cloud.baidu.com](https://cloud.baidu.com/)
-2. 获取 API Key 和 Secret Key
-3. 在AI Shell设置中：
-   - API Key格式: `API_KEY:SECRET_KEY`
-
-#### Ollama (本地)
-
-1. 安装 Ollama: [ollama.ai](https://ollama.ai/)
-2. 拉取模型：
-```bash
-ollama pull llama2
-```
-3. 在AI Shell设置中：
-   - 选择 "Ollama (本地)"
-   - API Key可以留空
-   - Base URL: `http://localhost:11434`
-
-### 数据位置
-
-应用数据存储在：
-
-- **Windows**: `%USERPROFILE%\AppData\Roaming\ai-shell`
-- **macOS**: `~/Library/Application Support/ai-shell`
-- **Linux**: `~/.config/ai-shell`
-
-包含：
-- `ai-shell.db` - 本地数据库
-- `logs/` - 应用日志
-- `config.json` - 配置文件
-
-## 更新
-
-### 自动更新
-
-应用会自动检查更新。当有新版本时，会提示下载并安装。
-
-### 手动更新
-
-#### 从源码
+### Release APK
 
 ```bash
-cd ai-shell
-git pull
-pnpm install
-pnpm build
+cd packages/mobile/android
+./gradlew assembleRelease
 ```
 
-#### 从预编译包
+仅在模拟器架构上构建：
 
-下载并安装最新版本，会自动覆盖旧版本。
-
-## 卸载
-
-### Windows
-
-1. 控制面板 → 程序和功能
-2. 找到 "AI Shell"
-3. 点击卸载
-
-或使用安装目录中的 `Uninstall AI Shell.exe`
-
-### macOS
-
-1. 打开 Finder
-2. 进入 Applications 文件夹
-3. 将 AI Shell 拖到废纸篓
-4. 清空废纸篓
-
-删除用户数据：
-```bash
-rm -rf ~/Library/Application\ Support/ai-shell
-rm -rf ~/Library/Logs/ai-shell
+```powershell
+.\gradlew.bat assembleRelease -PreactNativeArchitectures=x86_64 --console=plain
 ```
 
-### Linux
+Release 产物：
 
-#### DEB 包
+```text
+packages/mobile/android/app/build/outputs/apk/release/app-release.apk
+```
+
+当前仓库的 release 配置仍使用 `app/debug.keystore`，仅适合内部测试。正式分发前必须配置自有 release keystore。
+
+### 安装到设备
 
 ```bash
-sudo apt-get remove ai-shell
+adb install -r app-debug.apk
 ```
 
-#### RPM 包
+首次启动会在应用私有目录解压 Alpine rootfs，约 100 MB，不联网下载运行时。
+
+## 5. 移动 Web 预览
 
 ```bash
-sudo rpm -e ai-shell
+pnpm --filter @ai-shell/mobile build:web
 ```
 
-#### AppImage
+建议使用 Node.js 18。导出结果位于 `packages/mobile/dist/`。移动 Web 仅用于界面预览，不具备 Android Keystore、PRoot、PTY 和真实系统文件能力。
 
-直接删除 AppImage 文件。
+## 6. 预编译产物
 
-删除用户数据：
+当对应版本的 GitHub Release 提供产物时，文件名由 electron-builder 和 Gradle 配置决定。不要假设所有平台都有现成安装包；当前仓库验证基线为：
+
+- Windows Electron 开发与生产构建。
+- Android Debug APK 构建。
+- 移动 Web 导出。
+
+macOS/Linux 安装包需要分别在对应系统上构建。
+
+## 7. 首次配置
+
+### 桌面端
+
+1. 启动应用。
+2. 打开 **设置 → AI 提供商**。
+3. 选择 Provider，填写 API Key。
+4. 获取模型列表或手动填写模型。
+5. 保存。
+6. 如需 SSH，打开 SSH 管理器，配置主机、认证和远端系统。
+
+### 手机端
+
+首次启动向导依次完成：
+
+1. 安装内置 Linux。
+2. 配置 AI 提供商。
+3. 可选配置 SSH。
+4. 进入工作台。
+
+可在“我的 → 运行环境与设置”中重新打开配置向导或重置环境。
+
+## 8. 凭据和数据
+
+- 桌面端 SQLite 数据库位于 Electron `app.getPath('userData')` 下的 `ai-shell.db`。
+- 桌面凭据字段在 `safeStorage` 可用时加密；密钥环不可用时当前实现会退化为明文，需确认系统安全存储状态。
+- Android 配置由 Keystore AES-256-GCM 加密，rootfs 位于应用私有目录。
+- 手机端 Web 预览使用 `localStorage`，不具备原生加密，不应输入生产凭据。
+- 私钥不会打包进 APK；会话临时私钥在停止、退出、重置或下次启动时清理。
+
+## 9. 卸载
+
+### 桌面端
+
+使用安装包自带卸载程序，或删除对应应用。是否需要保留用户数据由用户决定；用户数据库位于 Electron userData 目录。
+
+### Android
+
+卸载应用会删除应用私有目录中的 rootfs 和加密配置。
+
+## 10. 常见问题
+
+### `node-pty` 或原生依赖构建失败
+
+安装系统 C++ 构建工具后重新执行 `pnpm install`。
+
+### 桌面页面空白或系统 API 未定义
+
+确认 preload 已编译：
+
 ```bash
-rm -rf ~/.config/ai-shell
+pnpm --filter @ai-shell/desktop build:preload
 ```
 
-## 故障排查
+### 移动 Web 导出失败
 
-### 应用无法启动
+切换到 Node.js 18，清理 Metro 缓存后重试：
 
-1. 检查系统要求
-2. 查看日志文件
-3. 尝试以管理员/root权限运行
-4. 重新安装应用
+```bash
+pnpm --filter @ai-shell/mobile exec expo start --clear
+```
 
-### AI功能不工作
+### Android 构建找不到 SDK
 
-1. 检查网络连接
-2. 验证API密钥是否正确
-3. 检查API配额是否用完
-4. 查看应用日志
+确认 `ANDROID_HOME`、`ANDROID_SDK_ROOT`、`JAVA_HOME` 指向 JDK 17 和有效 Android SDK。
 
-### 终端无法输入
+### AI 请求失败
 
-1. 重启应用
-2. 创建新的终端标签
-3. 检查Shell路径是否正确
+检查网络、API Key、配额、模型名和自定义 Base URL。Ollama 可填写局域网地址。
 
-### 性能问题
+### SSH 私钥无法加载
 
-1. 关闭不用的终端标签
-2. 清除命令历史
-3. 增加系统内存
-4. 更新到最新版本
+手机端请导入完整 PEM 私钥，不要导入公钥、证书或 PuTTY `.ppk`。加密私钥连接时需在终端输入口令。
 
-## 获取帮助
+## 11. 更多文档
 
-- **文档**: [docs/](./docs/)
-- **问题反馈**: [GitHub Issues](https://github.com/yourusername/ai-shell/issues)
-- **讨论**: [GitHub Discussions](https://github.com/yourusername/ai-shell/discussions)
-
-## 下一步
-
-- 阅读 [用户指南](./README.md#使用指南)
-- 查看 [开发文档](./docs/DEVELOPMENT.md)
-- 探索 [API文档](./docs/API.md)
+- [使用说明](USAGE.md)
+- [开发指南](DEVELOPMENT.md)
+- [架构说明](../ARCHITECTURE.md)
+- [安全说明](../SECURITY.md)
+- [AI 配置指南](AI_SETUP_GUIDE.md)

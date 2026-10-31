@@ -1,314 +1,181 @@
 # 开发指南
 
-## 项目结构
+## 1. 环境
 
-```
-ai-shell/
-├── packages/
-│   ├── core/                    # 核心逻辑包
-│   │   ├── src/
-│   │   │   ├── ai/             # AI适配器
-│   │   │   │   ├── adapters/   # 各厂商适配器实现
-│   │   │   │   ├── factory.ts  # 适配器工厂
-│   │   │   │   └── service.ts  # AI服务
-│   │   │   ├── controllers/    # 命令控制器
-│   │   │   ├── storage/        # 数据存储
-│   │   │   └── types.ts        # 类型定义
-│   │   └── package.json
-│   │
-│   └── desktop/                 # 桌面端应用
-│       ├── src/
-│       │   ├── main/           # Electron主进程
-│       │   │   ├── index.ts    # 主进程入口
-│       │   │   ├── shell/      # Shell管理
-│       │   │   └── ssh/        # SSH管理
-│       │   ├── renderer/       # React渲染进程
-│       │   │   ├── components/ # UI组件
-│       │   │   ├── App.tsx     # 主应用
-│       │   │   └── main.tsx    # 渲染进程入口
-│       │   └── preload/        # 预加载脚本
-│       └── package.json
-```
-
-## 开发环境设置
-
-### 1. 安装依赖
+- Node.js >= 18；移动 Web 导出建议固定 Node.js 18。
+- pnpm >= 8。
+- 桌面端原生依赖需要 C++ 构建工具；Windows 推荐 VS Build Tools，macOS 安装 Xcode Command Line Tools。
+- Android 构建需要 JDK 17、Android SDK、NDK。
 
 ```bash
-# 使用pnpm安装所有依赖
 pnpm install
-```
-
-### 2. 开发模式
-
-```bash
-# 启动开发服务器（推荐）
-pnpm dev
-
-# 或者分别启动主进程和渲染进程
-pnpm dev:main      # 终端1: 编译主进程
-pnpm dev:renderer  # 终端2: 启动Vite开发服务器
-pnpm start         # 终端3: 启动Electron
-```
-
-### 3. 代码规范
-
-项目使用ESLint和Prettier进行代码格式化：
-
-```bash
-# 检查代码规范
-pnpm lint
-
-# 类型检查
 pnpm type-check
-```
-
-## 添加新的AI提供商
-
-### 1. 创建适配器
-
-在 `packages/core/src/ai/adapters/` 创建新文件，例如 `newprovider.ts`:
-
-```typescript
-import axios, { AxiosInstance } from 'axios';
-import { AIAdapter, AIMessage, AIResponse, StreamChunk, AIProvider } from '../types';
-
-export class NewProviderAdapter extends AIAdapter {
-  private client: AxiosInstance;
-
-  constructor(config: AIProvider) {
-    super(config);
-    this.client = axios.create({
-      baseURL: config.baseURL || 'https://api.newprovider.com',
-      headers: {
-        'Authorization': `Bearer ${config.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-
-  async chat(messages: AIMessage[], model?: string): Promise<AIResponse> {
-    // 实现聊天逻辑
-    const response = await this.client.post('/chat', {
-      model: model || this.config.models[0],
-      messages: messages,
-    });
-
-    return {
-      content: response.data.content,
-      model: response.data.model,
-      usage: {
-        promptTokens: response.data.usage.prompt_tokens,
-        completionTokens: response.data.usage.completion_tokens,
-        totalTokens: response.data.usage.total_tokens,
-      },
-    };
-  }
-
-  async *streamChat(messages: AIMessage[], model?: string): AsyncGenerator<StreamChunk> {
-    // 实现流式聊天逻辑
-    const response = await this.client.post('/chat/stream', {
-      model: model || this.config.models[0],
-      messages: messages,
-      stream: true,
-    }, {
-      responseType: 'stream',
-    });
-
-    for await (const chunk of response.data) {
-      // 解析并yield数据块
-      yield { content: chunk.toString(), done: false };
-    }
-  }
-
-  async listModels(): Promise<string[]> {
-    // 返回支持的模型列表
-    return ['model-1', 'model-2'];
-  }
-}
-```
-
-### 2. 注册适配器
-
-在 `packages/core/src/ai/factory.ts` 中添加：
-
-```typescript
-import { NewProviderAdapter } from './adapters/newprovider';
-
-export class AIFactory {
-  static createAdapter(provider: string, config: AIProvider): AIAdapter {
-    switch (provider.toLowerCase()) {
-      // ... 其他提供商
-      case 'newprovider':
-        return new NewProviderAdapter(config);
-      default:
-        throw new Error(`Unknown AI provider: ${provider}`);
-    }
-  }
-}
-```
-
-### 3. 更新UI
-
-在 `packages/desktop/src/renderer/components/Settings.tsx` 的下拉列表中添加选项：
-
-```tsx
-<select value={newProvider.name} onChange={...}>
-  {/* ... 其他选项 */}
-  <option value="newprovider">New Provider</option>
-</select>
-```
-
-## 添加新的命令控制器
-
-### 1. 创建控制器
-
-在 `packages/core/src/controllers/ai-controllers.ts` 中添加：
-
-```typescript
-export class MyCustomController implements CommandController {
-  name = 'mycommand';
-  description = '我的自定义命令';
-  usage = 'mycommand <args>';
-
-  async execute(args: string[], context: ShellContext): Promise<string> {
-    // 实现命令逻辑
-    const aiService = context.getAIService();
-    
-    const response = await aiService.chat([
-      { role: 'system', content: 'System prompt' },
-      { role: 'user', content: args.join(' ') },
-    ]);
-
-    return response.content;
-  }
-}
-```
-
-### 2. 注册控制器
-
-在 `packages/core/src/controllers/registry.ts` 中注册：
-
-```typescript
-private registerDefaultControllers(): void {
-  const defaultControllers = [
-    // ... 其他控制器
-    new MyCustomController(),
-  ];
-
-  defaultControllers.forEach(controller => {
-    this.register(controller);
-  });
-}
-```
-
-## 调试技巧
-
-### 1. 主进程调试
-
-在 `packages/desktop/src/main/index.ts` 中添加断点，然后：
-
-```bash
-# 使用VS Code的调试功能
-# 或者在代码中添加
-console.log('Debug info:', data);
-```
-
-### 2. 渲染进程调试
-
-开发模式下会自动打开DevTools，可以直接使用Chrome调试工具。
-
-### 3. 查看日志
-
-```bash
-# 主进程日志会输出到终端
-# 渲染进程日志在DevTools Console中查看
-```
-
-## 构建和打包
-
-### 开发构建
-
-```bash
-pnpm build
-```
-
-### 生产打包
-
-```bash
-cd packages/desktop
-pnpm package
-```
-
-打包后的文件在 `packages/desktop/release/` 目录。
-
-## 测试
-
-```bash
-# 运行测试
 pnpm test
-
-# 运行特定包的测试
-pnpm --filter @ai-shell/core test
 ```
 
-## 常见问题
+## 2. 仓库结构
 
-### 1. node-pty编译失败
-
-确保安装了构建工具：
-
-**Windows:**
-```bash
-npm install --global windows-build-tools
+```text
+packages/
+├── core/                 # AI 适配器、存储、控制器
+│   └── src/
+│       ├── ai/           # Provider 适配器、流式服务
+│       ├── controllers/  # 命令控制器
+│       ├── storage/      # sql.js 本地存储
+│       └── types.ts
+├── desktop/
+│   ├── src/main/         # Electron 主进程、PTY、SSH、菜单
+│   ├── src/preload/      # contextBridge API
+│   ├── src/renderer/     # React 页面与组件
+│   └── scripts/          # 主进程 bundle 脚本
+├── mobile/
+│   ├── App.tsx           # 手机端页面状态与工作区
+│   ├── src/              # 服务、组件、原生桥接
+│   └── android/          # Kotlin 模块、rootfs、Gradle
+└── shared-assets/
+docs/
 ```
 
-**macOS:**
-```bash
-xcode-select --install
-```
+## 3. 常用命令
 
-**Linux:**
-```bash
-sudo apt-get install build-essential
-```
-
-### 2. Electron启动失败
-
-清除缓存并重新安装：
-
-```bash
-rm -rf node_modules
-pnpm install
-```
-
-### 3. TypeScript类型错误
-
-确保所有包都已构建：
+### 桌面端
 
 ```bash
-pnpm build
+pnpm dev                    # preload 构建 + 主进程/preload watch + Vite
+pnpm build:desktop          # 主进程、preload、bundle、renderer
+pnpm --filter @ai-shell/desktop package
 ```
 
-## 贡献指南
+桌面端 preload 必须单独编译到 `dist/preload/index.js`。修改 `src/preload/` 后开发模式会自动 watch；生产构建由 `build:preload` 生成。
 
-1. Fork项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
+### 手机端
 
-## 代码风格
+```bash
+pnpm --filter @ai-shell/mobile start
+pnpm --filter @ai-shell/mobile android
+pnpm --filter @ai-shell/mobile test
+pnpm --filter @ai-shell/mobile type-check
+pnpm --filter @ai-shell/mobile build:web
+```
 
-- 使用TypeScript
-- 遵循ESLint规则
-- 使用Prettier格式化代码
-- 编写清晰的注释
-- 保持函数简洁（单一职责）
+移动 Web 导出：
 
-## 性能优化建议
+```bash
+node18 ./node_modules/pnpm/bin/pnpm.cjs --dir packages/mobile run build:web
+```
 
-1. **终端性能**: 使用虚拟滚动处理大量输出
-2. **AI请求**: 实现请求缓存和防抖
-3. **数据库**: 为常用查询添加索引
-4. **内存管理**: 及时清理不用的会话和监听器
+具体 Node 18 路径以本机安装为准。Node 24 在当前 Expo 50/Metro 组合下可能触发 `node:sea` 兼容错误。
+
+Android：
+
+```bash
+cd packages/mobile/android
+./gradlew testDebugUnitTest
+./gradlew assembleDebug
+```
+
+Windows 使用 `gradlew.bat`。Release 构建当前仍使用 debug keystore，仅适合内部测试。
+
+## 4. 桌面端模块
+
+| 文件                                   | 职责                                  |
+| -------------------------------------- | ------------------------------------- |
+| `src/main/index.ts`                    | 窗口、IPC、存储、系统监控、macOS 菜单 |
+| `src/main/shell/manager.ts`            | node-pty 本地终端                     |
+| `src/main/ssh/manager.ts`              | ssh2 会话                             |
+| `src/preload/index.ts`                 | 受控 renderer API                     |
+| `src/renderer/App.tsx`                 | 外壳、终端视图、全局快捷键            |
+| `src/renderer/commandSuggest.ts`       | Tab 补全与路径补全                    |
+| `src/renderer/shortcuts.ts`            | 快捷键动作、匹配、冲突、方案模型      |
+| `src/renderer/appSettings.ts`          | 外观、快捷键和方案持久化              |
+| `src/renderer/components/Settings.tsx` | AI/SSH/通用/快捷键设置                |
+
+### 终端数据流
+
+```text
+xterm input → input tracker → shell/ssh write
+PTY/SSH output → IPC event → xterm + 上下文缓冲
+```
+
+修改终端输出处理时必须保留跨 chunk ANSI 状态和未完成行合并逻辑。
+
+### 添加快捷键
+
+1. 在 `SHORTCUT_DEFINITIONS` 和 `DEFAULT_SHORTCUTS` 增加动作。
+2. 在 `App.tsx` 的动作分发中实现行为。
+3. 更新工具栏提示，使用 `formatShortcut` 展示平台键位。
+4. 增加 `shortcuts.test.ts` 覆盖匹配、冲突和平台规则。
+
+### macOS
+
+- 主进程只在 `darwin` 注册原生菜单。
+- `⌘W` 留给标签关闭，`⇧⌘W` 关闭窗口，`⌘,` 发送导航事件打开设置。
+- 录制快捷键期间主进程临时挂起菜单加速器。
+- 不要使用 `navigator.platform`；平台来自 preload 的 `system.platform`。
+
+## 5. 手机端模块
+
+| 文件                                 | 职责                                    |
+| ------------------------------------ | --------------------------------------- |
+| `App.tsx`                            | 页面、导航、工作区和表单交互            |
+| `src/components/SetupWizard.tsx`     | 首启向导、PEM 导入、AI/SSH 配置         |
+| `src/hooks/useTerminalRuntime.ts`    | 会话启动、输出过滤、重启和历史平台标签  |
+| `src/services/config.ts`             | 加密配置、Provider、SSH、历史和会话模型 |
+| `src/services/ai.ts`                 | Provider HTTP 直连                      |
+| `src/services/commandCatalog.ts`     | 多系统指令集与自动补全                  |
+| `src/services/sshKeys.ts`            | PEM 识别、规范化和校验                  |
+| `src/services/sshKeyFiles.ts`        | 文件选择、大小限制和缓存清理            |
+| `android/.../RootfsInstaller.kt`     | rootfs 解压、PRoot 链接，APK 更新修复   |
+| `android/.../LinuxRuntimeModule.kt`  | PTY、SSH、文件、会话生命周期            |
+| `android/.../SessionRegistry.kt`     | 会话启动/停止竞态控制                   |
+| `android/.../SessionPrivateKeys.kt`  | 会话临时私钥创建和清理                  |
+| `android/.../RuntimePathResolver.kt` | rootfs 与 bind mount 路径解析           |
+| `android/.../SecureConfigModule.kt`  | Android Keystore 加密配置               |
+
+### 新增系统指令集
+
+1. 在 `commandCatalog.ts` 增加 `CommandPlatform`、标签、平台选项和命令。
+2. 在 SSH 表单和配置归一化中加入平台值。
+3. 更新桌面 `commandSuggest.ts` 的对应目录。
+4. 测试历史隔离、常用命令和冲突系统。
+
+### 密钥处理要求
+
+- 私钥不得写入 APK assets 或源码。
+- 文件选择缓存副本必须删除。
+- 私钥配置由 Keystore 加密；会话临时文件使用 0600 权限并及时清理。
+- 新增生命周期路径时同步更新 `SessionPrivateKeysTest`。
+
+## 6. AI Provider
+
+- 桌面端完整适配器位于 `packages/core/src/ai/adapters/`。
+- 移动端协议实现位于 `packages/mobile/src/services/ai.ts`，当前为非流式。
+- 新增 Provider 时需要同时更新桌面模板、移动预设、模型列表能力和错误提示。
+- 流式修改必须保留 AbortSignal 和停止生成链路。
+
+## 7. 测试
+
+```bash
+pnpm test
+pnpm exec vitest run packages/desktop/src/renderer/shortcuts.test.ts
+cd packages/mobile/android && ./gradlew testDebugUnitTest
+```
+
+覆盖重点：
+
+- 桌面补全、路径解析、设置、快捷键、会话持久化、流式中断。
+- 移动状态、AI 请求格式、PEM 解析、文件清理、命令目录。
+- Android 会话注册竞态、私钥生命周期、rootfs/bind 路径边界。
+
+UI 验收建议使用真实 Electron 和移动 Web：
+
+- 桌面：800×600、1280×800、1440×900；检查弹层、焦点、Escape 和长文本。
+- 移动：360、390、430px；检查底部导航、44px 触控目标、键盘和安全区。
+- 真实 macOS 菜单、真机 PRoot/PTY/SSH 需要在对应设备补充验收。
+
+## 8. 代码规范
+
+- TypeScript 严格类型，避免未验证的 `any`。
+- 界面文案统一中文；平台化快捷键统一使用 `formatShortcut`。
+- 不以构建通过代替界面验收。
+- 不提交真实凭据、构建产物、日志或临时截图。

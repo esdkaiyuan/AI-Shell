@@ -1,134 +1,97 @@
-# Security Policy
+# 安全说明
 
-## Supported Versions
+## 支持版本
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1   | :x:                |
+| 版本  | 支持 |
+| ----- | ---- |
+| 0.1.x | 是   |
+| < 0.1 | 否   |
 
-## Reporting a Vulnerability
+## 报告安全问题
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+不要通过公开 Issue 披露可利用细节、真实凭据或用户数据。
 
-Instead, please report them via email to: [security@example.com](mailto:security@example.com)
+优先使用 GitHub 仓库的 **Security → Report a vulnerability** 私密报告功能：
 
-You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
+- <https://github.com/esdkaiyuan/AI-Shell/security>
 
-Please include the following information:
+如果该功能不可用，请通过仓库所有者的 GitHub 主页联系。报告应包含：
 
-- Type of issue (e.g., buffer overflow, SQL injection, cross-site scripting, etc.)
-- Full paths of source file(s) related to the issue
-- Location of the affected source code (tag/branch/commit or direct URL)
-- Step-by-step instructions to reproduce the issue
-- Proof-of-concept or exploit code (if possible)
-- Impact of the issue, including how an attacker might exploit it
+- 影响版本和平台。
+- 复现步骤或最小示例。
+- 影响范围。
+- 是否涉及真实密钥、远程命令执行或数据泄露。
+- 建议修复方向（如有）。
 
-## Security Best Practices
+## 凭据与私钥
 
-### For Users
+### 桌面端
 
-1. **API Keys**
-   - Never share your API keys
-   - Rotate keys regularly
-   - Use environment-specific keys
-   - Revoke unused keys
+- SQLite 数据库位于 Electron `app.getPath('userData')`。
+- 系统安全存储可用时，API Key、SSH 密码、私钥和密钥口令使用 Electron `safeStorage` 加密后落库。
+- `safeStorage` 是否可用取决于操作系统密钥环。当前实现检测到不可用时会保留原始值，因此不要在无密钥环或安全存储不可用的环境录入生产凭据。
+- 渲染层对 Provider Key 只显示脱敏值。
 
-2. **Updates**
-   - Keep the application updated
-   - Enable automatic updates
-   - Review release notes for security fixes
+### Android
 
-3. **SSH**
-   - Use key-based authentication
-   - Avoid storing passwords
-   - Use strong passphrases
-   - Regularly rotate SSH keys
+- 配置由 Android Keystore AES-256-GCM 加密。
+- 私钥不写入 APK assets 或源码。
+- 私钥文件可粘贴 PEM 或通过 DocumentPicker 导入。
+- 文件选择器产生的缓存副本在读取后删除。
+- 每次 SSH 会话在应用私有 rootfs 写入 0600 临时私钥，并在停止、退出、重置、模块销毁或下次启动时清理。
+- APK 卸载会删除应用私有数据。
 
-4. **Network**
-   - Use secure networks
-   - Avoid public WiFi for sensitive operations
-   - Consider using VPN
+### Web 预览
 
-### For Developers
+- Web/Expo 预览使用 `localStorage`，不具备原生安全存储。
+- 不要把真实 API Key、SSH 密码或私钥输入 Web 预览。
+- Web 版本不能视为生产安全边界。
 
-1. **Dependencies**
-   - Regularly update dependencies
-   - Run `pnpm audit` to check for vulnerabilities
-   - Review dependency changes
+## SSH 主机验证
 
-2. **Code**
-   - Validate all user input
-   - Sanitize command execution
-   - Use parameterized queries
-   - Avoid eval() and similar functions
+- 当前手机端首次连接使用 `StrictHostKeyChecking=accept-new`，会自动接受新主机密钥。
+- 该策略降低了首次连接的人工确认成本，也意味着首次连接存在被中间人攻击的风险。
+- 高安全环境应在后续版本中增加主机指纹展示和人工确认。
+- 用户应核对服务器指纹、网络环境和 DNS，不要在不可信网络首次连接关键主机。
 
-3. **Secrets**
-   - Never commit API keys or secrets
-   - Use environment variables
-   - Encrypt sensitive data at rest
-   - Use secure key storage (keytar)
+## 命令执行
 
-4. **Communication**
-   - Use HTTPS/WSS for all network requests
-   - Validate SSL certificates
-   - Implement proper authentication
-   - Use secure WebSocket connections
+- 终端以当前用户/应用权限执行命令。
+- AI 生成的命令不会自动获得额外权限，但执行前仍应人工审查。
+- 文件浏览保持只读；写入、删除、移动和权限变更应通过终端显式执行。
+- AI 上下文可能包含终端输出中的敏感信息；发送前应检查当前终端内容。
 
-## Known Security Considerations
+## 网络与第三方数据
 
-### API Key Storage
+- AI 请求会发送到用户配置的 Provider。
+- 可能发送：对话内容、当前终端最近输出、系统类型和模型参数。
+- Provider 的日志、训练和保留策略由第三方决定，请阅读对应隐私政策。
+- Ollama 可配置局域网地址；非 HTTPS 地址仅建议用于可信本地网络。
+- 文件浏览器不允许任意网络文件系统挂载。
 
-API keys are stored locally using the system's secure storage mechanism:
-- **Windows**: Windows Credential Manager
-- **macOS**: Keychain
-- **Linux**: libsecret
+## 本地数据
 
-### Command Execution
+- 桌面端保存 AI 配置、SSH 配置、命令历史和工作区。
+- Android 保存加密配置、rootfs、会话历史和命令历史。
+- 手机端 `/root/shared`、`/root/android` 映射到应用外置目录，路径通过 canonical 边界校验。
+- PRoot 进程运行在应用沙箱内，但不能替代系统级隔离。
 
-The application executes shell commands with the user's permissions. Users should:
-- Review commands before execution
-- Be cautious with AI-generated commands
-- Understand command implications
+## 发布与签名
 
-### Network Requests
+- 当前 Release APK 配置仍使用 `app/debug.keystore`，只适合内部测试。
+- 正式分发前必须使用自有 release keystore，并保护签名密钥。
+- 桌面安装包应从可信构建流水线生成。
+- 当前项目没有内置自动更新器；不要假设应用会自动安装安全补丁。
 
-All AI API requests are made over HTTPS. However:
-- API keys are transmitted to third-party services
-- Command history may be sent to AI providers
-- Review each provider's privacy policy
+## PRoot 许可
 
-### Local Data
+APK 内置 PRoot 使用 GPL-2.0。分发时必须保留内置许可文件，并履行对应源码提供义务。
 
-The application stores data locally:
-- Command history
-- SSH configurations
-- AI provider settings
+## 安全开发要求
 
-This data is stored unencrypted in the user's application data directory.
-
-## Disclosure Policy
-
-When we receive a security bug report, we will:
-
-1. Confirm the problem and determine affected versions
-2. Audit code to find similar problems
-3. Prepare fixes for all supported versions
-4. Release new versions as soon as possible
-
-## Comments on this Policy
-
-If you have suggestions on how this process could be improved, please submit a pull request.
-
-## Security Updates
-
-Security updates will be released as patch versions and announced via:
-- GitHub Security Advisories
-- Release notes
-- Project README
-
-## Contact
-
-For security concerns, contact: [security@example.com](mailto:security@example.com)
-
-For general questions, use GitHub Issues or Discussions.
+- 不在日志、错误文案、截图或测试数据中写入真实凭据。
+- 新增文件、SSH 或原生生命周期路径时同步清理敏感临时文件。
+- 新增 IPC 时校验参数和路径边界。
+- 修改会话启动/停止逻辑时保持 `SessionRegistry` 的原子注册和取消语义。
+- 修改快捷键或菜单时避免覆盖系统保留组合和终端编辑组合。
+- 提交前执行 `pnpm type-check`、`pnpm test` 和对应平台构建。

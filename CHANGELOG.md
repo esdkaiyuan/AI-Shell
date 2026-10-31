@@ -8,44 +8,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- 手机端 APK 内置 Alpine Linux 3.20.3 + Termux PRoot（arm64-v8a / x86_64），首次启动向导解压环境，终端、OpenSSH、git、curl、apk 可离线使用
-- 手机端真实 PTY 终端：多标签/分屏/搜索/命令键/Ctrl+C/Tab/方向键/清屏/会话保存恢复，跨 chunk ANSI 过滤与未完成行合并
-- 手机端首次启动向导：环境安装进度、AI Provider 配置、SSH 私钥配置；Key 使用 Android Keystore AES-256-GCM 加密
-- 手机端原生模块：rootfs 安装与 APK 更新后链接修复、PTY 会话管理、只读文件浏览、剪贴板、CPU/内存/磁盘统计
-- 手机端真实 AI 直连（OpenAI/Claude/DeepSeek/GLM/通义/Moonshot/Ollama/文心），自动附带终端最近输出
-- 手机端真实 SSH：内置 OpenSSH 客户端、密码交互/私钥认证、session 终端接入
-- AI 对话持久化：多会话列表，支持新建/切换/重命名/删除，刷新或重启后对话仍在（chatStore + 会话切换器）
-- 终端标签页双击重命名、拖拽调整顺序（标签栏重构为 TerminalTabBar，修正原嵌套 button 的无效 HTML）
-- 流式输出支持「停止生成」：AbortSignal 全链路贯通（core 接口 → 9 个 adapter → 主进程 controller → 界面停止按钮）
-- AI 流式输出：对话/报错分析逐 token 渲染（ai:chat-stream IPC + chunk 推送，双面板接入）
-- Tab 路径补全：识别末尾路径 token（含 ~/ ./ 相对/绝对），列目录候选，目录自动补斜杠，仅替换末尾 token
-- AI 面板与分屏窗格支持拖动调整尺寸（宽度/高度/比例，自动持久化）
-- AI 助手面板与 AI Chat 内置提供商/模型切换器，选择结果全局生效并持久化
-- 终端 Tab 命令自动补全：基于历史命令 + 快捷片段 + 常用命令词典，Tab 循环、Enter 接受、Esc 关闭
-- 快捷命令片段管理器（Ctrl+B）：分组、搜索、增删改、一键插入/执行/复制
-- 全局快捷键：Ctrl+T 新建终端、Ctrl+W 关闭、Ctrl+F 查找、Ctrl+N 分屏、Ctrl+B 快捷命令、Ctrl+Shift+A AI 面板、Ctrl+1..9 切换标签
+
+- 桌面端与手机端统一 Apple HIG 深色视觉体系：页面标题层级、状态语义、对比度、焦点和响应式布局
+- 手机端底部五项导航（终端/AI/文件/SSH/我的），会话、历史、设置调整为二级入口
+- SSH 私钥文件导入：支持 OpenSSH、RSA、ECDSA、PKCS#8、加密 PEM；拒绝证书、公钥、PuTTY `.ppk`
+- 多系统命令补全：Alpine、Linux、macOS、Windows PowerShell、Windows CMD
+- SSH 远端系统选择，历史命令按系统标记，补全和 AI 提示随系统变化
+- 桌面自定义快捷键：录制、冲突校验、恢复默认、最多 12 套命名方案
+- macOS 快捷键适配：Command 主修饰键、`⌘W` 关闭标签、`⇧⌘W` 关闭窗口、`⌘,` 打开设置、录制期菜单挂起
+- 手机端 APK 内置 Alpine Linux 3.20.3 + Termux PRoot（arm64-v8a / x86_64）
+- 手机端真实 PTY、OpenSSH、AI 直连、文件浏览、会话、历史与系统统计
+- AI 对话持久化、多会话切换、流式输出与停止生成
+- 终端标签重命名/拖拽排序、Tab 路径补全、快捷命令片段和 AI 面板拖拽尺寸
+- 桌面状态栏与页面空状态移除虚假连接和演示数据
 
 ### Fixed
-- 根 `pnpm type-check` 全绿：改为按包编排（core/desktop/mobile 各自 tsc），消除 desktop 与 mobile 两份 @types/react 版本冲突导致的 55 个假错误
-- core 控制器 2 处未用参数（Suggest/Fix Controller）改名 _args
-- 清理全部 8 个 ESLint error（xinghuo 未用变量、ptyAvailable 未用、no-var-requires、未转义引号）
-- 讯飞星火适配器增加 API Key 格式校验（APPID:APISecret:APIKey）
+
+- 修复移动会话启动/停止竞态、过期启动回调和临时私钥残留
+- 修复 bind mount 文件路径与终端实际目录不一致
+- 修复删除 SSH/会话/Provider 时嵌套点击触发外层连接或加载
+- 修复移动标签卡纵向拉伸、页头错误上下文和向导完成态与实际环境矛盾
+- 修复千帆/文心兼容请求格式、模型拉取失败反馈和 OpenSSH 私钥换行兼容
+- 修复桌面生产构建未编译 preload 的问题
+- 根 `pnpm type-check` 改为按包编排，消除 desktop/mobile React 类型冲突
 
 ### Changed
-- 手机端移除桌面中继与 mock 命令/AI/文件数据，全部页面切换为真实运行时状态
-- 手机端限制为 64 位 ABIs（arm64-v8a / x86_64），权限收紧为 INTERNET，允许局域网 Ollama 明文 HTTP
-- 桌面端核心逻辑新增单元测试（补全/片段/设置/终端总线/路径解析/对话持久化/流式中断），vitest 88/88 通过
-- 打包拆包：设置页与资源管理器改为懒加载，xterm/react 拆为独立 chunk，最大包 527KB → 298KB，消除体积警告
+
+- 辅助文字对比度提升到约 5:1 以上；统一中文状态和危险操作确认
+- 桌面页头移除重复标题，AI 页面与手机页面完善上下文副标题
+- 快捷键平台化：Windows/Linux 使用 Ctrl，macOS 使用 Command，Control 组合保留给终端
+- 手机端限制为 64 位 ABIs（arm64-v8a / x86_64），权限收紧为 INTERNET
+- 桌面设置页与资源管理器继续按需加载，保持 chunk 拆分
+- 文档按当前功能、构建命令、安全边界和真机验收范围重写
 
 ### Planned
+
 - 设备同步服务
 - 插件系统
-- 命令自动补全（终端内联语法高亮）
-- 语法高亮
+- 物理 macOS 与 Android 真机自动化验收
+- 终端内联语法高亮
 
 ## [0.1.0] - 2024-01-XX
 
 ### Added
+
 - SSH 连接管理与配置存储
 - 命令历史与搜索
 - 多标签与分屏终端
@@ -84,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive documentation
 
 ### Technical Details
+
 - Electron 28+ for desktop application
 - React 18 with TypeScript for UI
 - xterm.js for terminal emulation
@@ -93,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - IPC communication between main and renderer processes
 
 ### Documentation
+
 - README with quick start guide
 - Architecture documentation
 - Development guide
@@ -103,12 +111,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.1] - 2024-01-XX
 
 ### Added
+
 - Project initialization
 - Basic project structure
 - Core module setup
 - Desktop package setup
 - Build configuration
 
-[Unreleased]: https://github.com/yourusername/ai-shell/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/yourusername/ai-shell/releases/tag/v0.1.0
-[0.0.1]: https://github.com/yourusername/ai-shell/releases/tag/v0.0.1
+[Unreleased]: https://github.com/esdkaiyuan/AI-Shell/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/esdkaiyuan/AI-Shell/releases/tag/v0.1.0
+[0.0.1]: https://github.com/esdkaiyuan/AI-Shell/releases/tag/v0.0.1

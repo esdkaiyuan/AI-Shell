@@ -1,459 +1,166 @@
-# 部署指南
+# 构建与部署
 
-## 桌面端部署
+本文描述当前仓库实际包含的桌面端和 Android 构建流程。项目不包含服务端、账号系统或自动更新服务。
 
-### 开发环境
+## 1. 桌面端
 
-#### 前置要求
-
-- Node.js >= 18.0.0
-- pnpm >= 8.0.0
-- 构建工具（根据平台）
-
-#### 安装依赖
+### 构建
 
 ```bash
 pnpm install
-```
-
-#### 启动开发服务器
-
-```bash
-pnpm dev
-```
-
-### 生产构建
-
-#### 1. 构建应用
-
-```bash
-# 构建所有包
-pnpm build
-
-# 或仅构建桌面端
+pnpm type-check
+pnpm test
 pnpm build:desktop
 ```
 
-#### 2. 打包应用
+构建会依次生成主进程、preload、主进程 bundle 和 renderer：
+
+```text
+packages/desktop/dist/main
+packages/desktop/dist/preload
+packages/desktop/dist/renderer
+```
+
+如果页面空白或 `window.electronAPI` 未定义，优先检查 `dist/preload/index.js` 是否由 `build:preload` 生成。
+
+### 打包
 
 ```bash
-cd packages/desktop
-pnpm package
+pnpm --filter @ai-shell/desktop package
 ```
 
-打包后的文件位于 `packages/desktop/release/` 目录。
+electron-builder 输出到 `packages/desktop/release/`：
 
-### 平台特定说明
+- Windows：NSIS 安装包 + portable。
+- macOS：DMG + ZIP。
+- Linux：AppImage + DEB。
 
-#### Windows
+### 平台要求
 
-**构建要求:**
-- Visual Studio Build Tools 或 Visual Studio
-- Python 3.x
+- 在目标平台构建对应安装包。跨平台打包原生依赖（node-pty/ssh2）不可靠。
+- macOS 签名、公证和原生菜单验收必须在 macOS 完成。
+- Windows 正式分发建议配置代码签名证书，避免 SmartScreen 警告。
+- 发布前确认 `safeStorage` 在目标系统可用。
 
-**安装构建工具:**
-```bash
-npm install --global windows-build-tools
-```
+### 数据位置
 
-**打包格式:**
-- NSIS安装程序 (.exe)
-- 便携版 (.exe)
+桌面数据库位于 Electron `app.getPath('userData')` 下的 `ai-shell.db`。凭据由 `safeStorage` 加密，密钥环不可用时不要录入生产凭据。
 
-**配置签名:**
+## 2. Android
 
-在 `packages/desktop/package.json` 中添加：
-
-```json
-{
-  "build": {
-    "win": {
-      "certificateFile": "path/to/cert.pfx",
-      "certificatePassword": "password"
-    }
-  }
-}
-```
-
-#### macOS
-
-**构建要求:**
-- Xcode Command Line Tools
-- Apple Developer账号（用于签名和公证）
-
-**安装构建工具:**
-```bash
-xcode-select --install
-```
-
-**打包格式:**
-- DMG镜像
-- ZIP压缩包
-
-**配置签名:**
-
-```json
-{
-  "build": {
-    "mac": {
-      "identity": "Developer ID Application: Your Name (TEAM_ID)",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
-    }
-  }
-}
-```
-
-**公证:**
+### Debug
 
 ```bash
-# 打包后公证
-xcrun notarytool submit packages/desktop/release/AI-Shell-0.1.0.dmg \
-  --apple-id "your@email.com" \
-  --password "app-specific-password" \
-  --team-id "TEAM_ID" \
-  --wait
+cd packages/mobile/android
+./gradlew testDebugUnitTest assembleDebug
 ```
 
-#### Linux
+产物：
 
-**构建要求:**
-- build-essential
-- libxtst-dev
-- libpng-dev
-
-**安装构建工具:**
-```bash
-sudo apt-get install build-essential libxtst-dev libpng-dev
+```text
+app/build/outputs/apk/debug/app-debug.apk
 ```
 
-**打包格式:**
-- AppImage
-- DEB包
-- RPM包（可选）
-
-## 云端服务部署（可选）
-
-如果需要设备同步功能，可以部署云端服务。
-
-### 使用Docker
-
-#### 1. 创建Dockerfile
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package.json pnpm-lock.yaml ./
-COPY packages/server/package.json ./packages/server/
-
-RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
-
-COPY packages/server ./packages/server
-COPY packages/core ./packages/core
-
-RUN pnpm build
-
-EXPOSE 3000
-
-CMD ["node", "packages/server/dist/index.js"]
-```
-
-#### 2. 构建镜像
+### Release
 
 ```bash
-docker build -t ai-shell-server .
+./gradlew assembleRelease
 ```
 
-#### 3. 运行容器
+产物：
+
+```text
+app/build/outputs/apk/release/app-release.apk
+```
+
+当前 release 配置使用 `app/debug.keystore`，不能用于公开分发。正式发布前：
+
+1. 创建自有 release keystore。
+2. 在 `android/gradle.properties` 或 CI Secret 中配置签名信息。
+3. 不要把 keystore 密码提交到仓库。
+4. 校验 `applicationId`、versionCode 和 versionName。
+
+### ABI 与体积
+
+- APK 仅包含 `arm64-v8a` 与 `x86_64`。
+- 内置 rootfs（约 36 MB 压缩）和 PRoot 使 APK 体积较大。
+- 可只构建模拟器架构：
+
+```powershell
+.\gradlew.bat assembleRelease -PreactNativeArchitectures=x86_64 --console=plain
+```
+
+### 运行时资源
+
+- rootfs、runtime.json 和第三方许可位于 `android/app/src/main/assets/linux/`。
+- proot/loader/talloc/shmem 位于 `jniLibs`。
+- 发布 APK 必须保留 `THIRD_PARTY_NOTICES.md`。
+- PRoot 采用 GPL-2.0，分发时需履行对应源码提供义务。
+
+## 3. 移动 Web
 
 ```bash
-docker run -d \
-  -p 3000:3000 \
-  -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
-  -e JWT_SECRET="your-secret-key" \
-  --name ai-shell-server \
-  ai-shell-server
+pnpm --filter @ai-shell/mobile build:web
 ```
 
-### 使用Docker Compose
+建议使用 Node.js 18。产物位于 `packages/mobile/dist/`，可部署到任意静态站点。
 
-创建 `docker-compose.yml`:
+Web 版本限制：
 
-```yaml
-version: '3.8'
+- 无 Android Keystore，配置保存在 `localStorage`。
+- 无 PRoot、PTY、OpenSSH 和真实系统文件浏览。
+- 不适合作为生产安全环境。
 
-services:
-  server:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/aishell
-      - JWT_SECRET=your-secret-key
-      - NODE_ENV=production
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=aishell
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
-```
-
-启动服务：
-
-```bash
-docker-compose up -d
-```
-
-### 部署到云平台
-
-#### Vercel
-
-```bash
-# 安装Vercel CLI
-npm install -g vercel
-
-# 部署
-cd packages/server
-vercel
-```
-
-#### Heroku
-
-```bash
-# 安装Heroku CLI
-# 登录
-heroku login
-
-# 创建应用
-heroku create ai-shell-server
-
-# 部署
-git push heroku main
-```
-
-#### AWS EC2
-
-1. 启动EC2实例（Ubuntu 22.04）
-2. 安装Node.js和pnpm
-3. 克隆代码并构建
-4. 使用PM2管理进程
-
-```bash
-# 安装PM2
-npm install -g pm2
-
-# 启动服务
-pm2 start packages/server/dist/index.js --name ai-shell-server
-
-# 设置开机自启
-pm2 startup
-pm2 save
-```
-
-## 环境变量
+## 4. 发布清单
 
 ### 桌面端
 
-创建 `.env` 文件：
+- [ ] `pnpm type-check` 与 `pnpm test` 通过
+- [ ] `pnpm build:desktop` 成功
+- [ ] 全新安装后 preload API 可用
+- [ ] 终端、SSH、文件、设置、快捷键验证
+- [ ] Windows 证据；macOS/Linux 在对应系统补充
+- [ ] 安装包签名与版本号
 
-```env
-# 开发模式
-NODE_ENV=development
+### Android
 
-# 云端服务地址（可选）
-SYNC_SERVER_URL=https://your-server.com
-```
+- [ ] `testDebugUnitTest` 与 `assembleDebug/Release` 通过
+- [ ] 真机安装
+- [ ] rootfs 首次解压和 APK 更新
+- [ ] PTY、SSH、文件选择器、Keystore、重启恢复
+- [ ] 使用 release keystore 签名
+- [ ] 第三方许可文件存在
 
-### 服务端
+### Web
 
-```env
-# 数据库
-DATABASE_URL=postgresql://user:pass@host:5432/db
+- [ ] 静态资源路径正确
+- [ ] 不展示“原生安全存储已启用”等误导信息
+- [ ] 明确标注仅供预览
 
-# JWT密钥
-JWT_SECRET=your-secret-key
+## 5. 更新与分发
 
-# 端口
-PORT=3000
+当前项目**没有内置自动更新器**，也没有发布服务器。更新方式：
 
-# 环境
-NODE_ENV=production
+- 用户手动下载新安装包覆盖安装。
+- Android 手动安装新 APK。
+- Web 重新部署静态产物。
 
-# CORS
-CORS_ORIGIN=*
-```
+如需接入自动更新，应单独实现签名校验、发布源、回滚和失败提示，不能只添加快捷更新按钮。
 
-## 自动更新
+## 6. 故障排查
 
-### 配置electron-updater
+### 页面空白
 
-在 `packages/desktop/package.json` 中：
+检查 renderer 资源路径和 preload 产物。
 
-```json
-{
-  "build": {
-    "publish": {
-      "provider": "github",
-      "owner": "your-username",
-      "repo": "ai-shell"
-    }
-  }
-}
-```
+### 原生模块加载失败
 
-### 实现更新检查
+在目标平台重新安装依赖并确认构建工具完整；不要直接复制其他平台的 `node_modules`。
 
-```typescript
-import { autoUpdater } from 'electron-updater';
+### Android 首次启动失败
 
-autoUpdater.checkForUpdatesAndNotify();
+检查设备 ABI、可用存储、rootfs 完整性和 PRoot 链接日志。Release 包必须包含 arm64-v8a 或 x86_64。
 
-autoUpdater.on('update-available', () => {
-  console.log('Update available');
-});
+### SSH 私钥失败
 
-autoUpdater.on('update-downloaded', () => {
-  console.log('Update downloaded');
-  autoUpdater.quitAndInstall();
-});
-```
-
-## 监控和日志
-
-### 应用日志
-
-使用electron-log：
-
-```typescript
-import log from 'electron-log';
-
-log.info('Application started');
-log.error('Error occurred:', error);
-```
-
-日志位置：
-- Windows: `%USERPROFILE%\AppData\Roaming\ai-shell\logs`
-- macOS: `~/Library/Logs/ai-shell`
-- Linux: `~/.config/ai-shell/logs`
-
-### 错误追踪
-
-集成Sentry：
-
-```typescript
-import * as Sentry from '@sentry/electron';
-
-Sentry.init({
-  dsn: 'your-sentry-dsn',
-});
-```
-
-## 性能优化
-
-### 1. 减小包体积
-
-```bash
-# 使用electron-builder的压缩选项
-"build": {
-  "compression": "maximum"
-}
-```
-
-### 2. 代码分割
-
-使用动态导入：
-
-```typescript
-const module = await import('./heavy-module');
-```
-
-### 3. 缓存优化
-
-配置合理的缓存策略。
-
-## 安全建议
-
-1. **API密钥加密**: 使用系统密钥链存储
-2. **代码签名**: 所有发布版本都应签名
-3. **自动更新**: 使用HTTPS和签名验证
-4. **CSP策略**: 配置内容安全策略
-5. **最小权限**: 只请求必要的系统权限
-
-## 故障排查
-
-### 构建失败
-
-```bash
-# 清除缓存
-rm -rf node_modules
-rm -rf packages/*/node_modules
-rm -rf packages/*/dist
-
-# 重新安装
-pnpm install
-pnpm build
-```
-
-### 运行时错误
-
-检查日志文件，查看详细错误信息。
-
-### 性能问题
-
-使用Chrome DevTools的Performance面板分析。
-
-## 持续集成
-
-### GitHub Actions
-
-创建 `.github/workflows/build.yml`:
-
-```yaml
-name: Build
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
-    steps:
-    - uses: actions/checkout@v3
-    - uses: pnpm/action-setup@v2
-      with:
-        version: 8
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 18
-        cache: 'pnpm'
-    
-    - run: pnpm install
-    - run: pnpm build
-    - run: pnpm test
-    
-    - name: Package
-      run: |
-        cd packages/desktop
-        pnpm package
-```
+手机端只接受完整 PEM 私钥；证书、公钥和 `.ppk` 会被拒绝。加密私钥需要终端口令。

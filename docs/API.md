@@ -1,4 +1,8 @@
-# API文档
+# API 文档
+
+> 维护状态：本文保留 core 常用 API 和既有 IPC 参考。接口的权威定义以
+> `packages/desktop/src/preload/index.ts`、`packages/desktop/src/main/index.ts`
+> 和 `packages/mobile/src/native/nativeBridge.ts` 为准。新增接口需同步更新本文。
 
 ## Core API
 
@@ -17,7 +21,7 @@ const aiService = new AIServiceImpl([
     apiKey: 'your-api-key',
     models: ['gpt-3.5-turbo'],
     enabled: true,
-  }
+  },
 ]);
 ```
 
@@ -28,15 +32,20 @@ const aiService = new AIServiceImpl([
 发送聊天请求。
 
 ```typescript
-const response = await aiService.chat([
-  { role: 'system', content: 'You are a helpful assistant.' },
-  { role: 'user', content: 'Hello!' }
-], 'openai', 'gpt-3.5-turbo');
+const response = await aiService.chat(
+  [
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user', content: 'Hello!' },
+  ],
+  'openai',
+  'gpt-3.5-turbo'
+);
 
 console.log(response.content);
 ```
 
 **参数:**
+
 - `messages: AIMessage[]` - 消息数组
 - `provider?: string` - AI提供商名称（可选）
 - `model?: string` - 模型名称（可选）
@@ -318,9 +327,11 @@ await window.electronAPI.ssh.saveConfig({
 发送AI聊天请求。
 
 ```typescript
-const response = await window.electronAPI.ai.chat([
-  { role: 'user', content: 'Hello!' }
-], 'openai', 'gpt-3.5-turbo');
+const response = await window.electronAPI.ai.chat(
+  [{ role: 'user', content: 'Hello!' }],
+  'openai',
+  'gpt-3.5-turbo'
+);
 ```
 
 ##### `ai:list-providers`
@@ -455,18 +466,37 @@ try {
 }
 ```
 
+### 当前补充接口
+
+以下接口在旧版 API 文档中未完整列出：
+
+| 通道                                     | 方向           | 说明                                   |
+| ---------------------------------------- | -------------- | -------------------------------------- |
+| `ai:chat-stream`                         | invoke + event | 流式 AI 请求，`ai:chat-chunk` 推送增量 |
+| `ai:chat-abort`                          | invoke         | 按 streamId 停止生成                   |
+| `ai:list-models-for-config`              | invoke         | 使用未保存配置临时拉取模型             |
+| `files:get-home` / `files:get-workspace` | invoke         | 获取资源管理器根目录                   |
+| `files:list-directory`                   | invoke         | 读取目录，带 root 边界校验             |
+| `system:get-stats`                       | invoke         | 获取一次系统指标                       |
+| `system:stats`                           | event          | 主进程定时推送系统指标                 |
+| `app:navigate`                           | event          | macOS 菜单打开设置等导航               |
+| `app:shortcut-recording`                 | invoke         | 快捷键录制期间挂起/恢复原生菜单加速器  |
+
+手机端原生桥接以 `nativeBridge.ts` 为准，主要模块为 `LinuxRuntime`、`SecureConfig` 和
+`DeviceUtility`。
+
 ## 事件
 
 ### Shell Events
 
 ```typescript
 // 监听Shell输出
-shellManager.onData(sessionId, (data) => {
+shellManager.onData(sessionId, data => {
   console.log(data);
 });
 
 // 监听Shell退出
-shellManager.onExit(sessionId, (exitCode) => {
+shellManager.onExit(sessionId, exitCode => {
   console.log('Shell exited with code:', exitCode);
 });
 ```
@@ -475,7 +505,7 @@ shellManager.onExit(sessionId, (exitCode) => {
 
 ```typescript
 // 监听SSH输出
-sshManager.onData(sessionId, (data) => {
+sshManager.onData(sessionId, data => {
   console.log(data);
 });
 

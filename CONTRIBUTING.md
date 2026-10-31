@@ -13,6 +13,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
 Before creating a bug report, please check existing issues to avoid duplicates.
 
 **When filing a bug report, include:**
+
 - Clear, descriptive title
 - Steps to reproduce the issue
 - Expected vs actual behavior
@@ -23,6 +24,7 @@ Before creating a bug report, please check existing issues to avoid duplicates.
 ### Suggesting Features
 
 Feature suggestions are welcome! Please:
+
 - Check if the feature has already been suggested
 - Provide a clear use case
 - Explain why this feature would be useful
@@ -54,11 +56,13 @@ Feature suggestions are welcome! Please:
 See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for detailed setup instructions.
 
 Quick start:
+
 ```bash
-git clone https://github.com/yourusername/ai-shell.git
-cd ai-shell
+git clone https://github.com/esdkaiyuan/AI-Shell.git
+cd AI-Shell
 pnpm install
-pnpm build
+pnpm type-check
+pnpm test
 pnpm dev
 ```
 
@@ -93,10 +97,11 @@ pnpm dev
 - Keep comments up-to-date
 
 Example:
+
 ```typescript
 /**
  * Connects to an SSH server with the provided configuration.
- * 
+ *
  * @param config - SSH connection configuration
  * @returns Promise resolving to session ID
  * @throws Error if connection fails
@@ -119,6 +124,7 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org/) specific
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -128,6 +134,7 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org/) specific
 - `chore`: Maintenance tasks
 
 **Examples:**
+
 ```
 feat(ai): add support for GPT-4 Turbo
 
@@ -145,32 +152,34 @@ refactor(core): simplify AI adapter factory
 - Aim for good test coverage
 
 Run tests:
+
 ```bash
 pnpm test
 ```
 
 ## Documentation
 
-- Update README.md for user-facing changes
-- Update API.md for API changes
-- Add inline code documentation
-- Include examples where helpful
+- 用户可见变化同步更新 `README.md`、`docs/USAGE.md` 或 `packages/mobile/README.md`
+- 构建/部署变化同步更新 `docs/INSTALLATION.md` 与 `docs/DEPLOYMENT.md`
+- 接口协议变化同步复核 `docs/API.md`
+- 设计令牌或页面骨架变化同步更新 `docs/UI_DESIGN.md`
+- 历史审查/修复文档不要当作当前实现说明
 
 ## Adding AI Providers
 
-See [DEVELOPMENT.md](./docs/DEVELOPMENT.md#adding-new-ai-providers) for detailed instructions.
+See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for detailed instructions.
 
 ## Project Structure
 
-```
+```text
 ai-shell/
 ├── packages/
-│   ├── core/          # Core logic
-│   ├── desktop/       # Desktop app
-│   ├── mobile/        # Mobile app (future)
-│   └── server/        # Sync server (optional)
-├── docs/              # Documentation
-└── scripts/           # Build scripts
+│   ├── core/          # AI 适配器、存储、控制器
+│   ├── desktop/       # Electron 主进程、preload、React
+│   ├── mobile/        # React Native + Kotlin 原生模块
+│   └── shared-assets/ # 品牌资产
+├── docs/              # 当前文档与历史材料
+└── README.md
 ```
 
 ## Review Process
@@ -188,6 +197,7 @@ By contributing, you agree that your contributions will be licensed under the MI
 ## Questions?
 
 Feel free to:
+
 - Open an issue for questions
 - Start a discussion on GitHub Discussions
 - Reach out to maintainers
@@ -195,6 +205,7 @@ Feel free to:
 ## Recognition
 
 Contributors will be recognized in:
+
 - README.md contributors section
 - Release notes
 - Project documentation

@@ -1,100 +1,75 @@
 # AI Shell
 
-AI Shell 是一套面向开发、运维和服务器管理场景的跨平台智能终端客户端。它把传统终端、SSH 连接、文件资源管理器、会话工作区和 AI 助手整合在同一个应用里，并提供桌面端应用与 Android 手机端 APK。
+AI Shell 是面向开发、运维和服务器管理场景的跨平台智能终端工作台，包含 Electron 桌面端和自带 Linux 运行时的 Android 客户端。终端、SSH、文件浏览、会话恢复和 AI 助手在同一套界面中协作，桌面端与手机端共享一致的深色设计语言。
 
 项目署名：`esdkaiyuan`
 
-## 项目亮点
+## 核心能力
 
-- **桌面端 + 手机端**：桌面端基于 Electron；手机端基于 React Native / Expo，APK 内置 Alpine Linux + PRoot，可离线运行真实终端、OpenSSH 与 apk 包管理。
-- **Xshell 风格体验**：深色专业终端界面、工具栏、侧边栏、标签栏、状态栏和系统监控，适合长期使用。
-- **AI 助手融入终端**：AI 可以读取当前终端上下文，解释输出、生成命令、辅助排障，并将建议命令插入终端。
-- **多厂商 AI Provider**：支持 OpenAI、Claude、百度文心一言、阿里通义千问、智谱 GLM、讯飞星火、Moonshot AI、DeepSeek 和 Ollama。
-- **SSH 与会话管理**：支持 SSH 配置、远程终端标签、本地/远程混合工作区、会话保存与恢复。
-- **资源管理器**：提供类似电脑资源管理器的只读文件浏览能力，移动端也保留触屏适配版本。
-- **统一品牌图标**：桌面端和手机端使用统一的黑底深蓝渐变 `AS` 图标，应用内展示 `esdkaiyuan` 署名。
+- **真实终端**：桌面端基于 xterm.js + node-pty；手机端在 APK 内运行 Alpine Linux、PRoot 和真实 PTY，无需桌面中继。
+- **SSH 运维**：密码或私钥认证、多标签远程会话、会话保存恢复；手机端内置 OpenSSH，并支持选择远端操作系统。
+- **多系统命令补全**：根据本机或 SSH 远端系统使用 Alpine、Linux、macOS、Windows PowerShell、Windows CMD 指令集。
+- **AI 助手**：支持 OpenAI、Claude、DeepSeek、智谱 GLM、通义千问、Moonshot、Ollama、文心一言；桌面端提供流式输出与停止生成，移动端为非流式直连。
+- **私钥文件导入**：手机端可从系统文件选择器导入 OpenSSH、RSA、ECDSA、PKCS#8 和加密 PEM，并拒绝证书、公钥和 PuTTY `.ppk`。
+- **可定制快捷键**：桌面端可录制、恢复默认、检测冲突并保存多套快捷键方案；macOS 使用 Command 键位与原生菜单。
+- **只读文件浏览**：桌面端资源管理器和手机端 rootfs 浏览器均保持只读边界。
 
-## 功能总览
+## 功能对照
 
-| 模块 | 桌面端 | 手机端 |
-| --- | --- | --- |
-| 多标签终端 | 支持本地终端和 SSH 终端 | 内置 Alpine Linux 的本地 PTY 终端 + SSH 终端 |
-| 分屏 | 支持终端分屏 | 支持移动端分屏窗格 |
-| SSH 管理 | 支持连接配置、认证方式和连接管理 | 支持 SSH 配置卡片和连接入口 |
-| AI 对话 | 独立 AI Chat 与终端侧边 AI 面板 | AI 对话页，默认从终端入口进入 |
-| AI Provider 导入 | 设置页选择厂商、填写 Key、获取模型 | 仿照桌面端 API 导入流程 |
-| 文件浏览 | 资源管理器 | 只读移动资源管理器 |
-| 历史与快捷命令 | 命令历史、建议命令 | 历史页和快捷命令 |
-| 使用文档 | `docs/USAGE.md` | `packages/mobile/README.md` |
+| 模块     | 桌面端                               | Android 手机端                      |
+| -------- | ------------------------------------ | ----------------------------------- |
+| 本地终端 | xterm.js + node-pty                  | APK 内置 Alpine Linux + PRoot + PTY |
+| SSH      | ssh2，密码/私钥/密钥密码             | 内置 OpenSSH，密码/私钥 PEM 文件    |
+| 分屏     | 支持                                 | 支持                                |
+| 命令补全 | Tab 补全，历史/快捷片段/多系统指令集 | 输入时自动候选，历史/多系统指令集   |
+| AI       | 独立对话页 + 终端停靠面板，流式      | 对话页，非流式，附终端上下文        |
+| 文件     | 只读资源管理器                       | 只读 Alpine rootfs 浏览器           |
+| 会话     | 保存/恢复多终端布局                  | 保存/恢复标签布局                   |
+| 快捷键   | 可自定义、恢复、保存方案、macOS 适配 | 触控键栏，无桌面组合键配置          |
+| 安全存储 | Electron `safeStorage`               | Android Keystore AES-256-GCM        |
 
-## 桌面端
+## 多系统命令补全
 
-桌面端是完整工作台，适合日常开发、远程运维和 AI 辅助排障。
+桌面端 Tab 补全和手机端自动候选均按目标系统选择指令集：
 
-核心能力：
+| 系统               | 典型命令                                          |
+| ------------------ | ------------------------------------------------- |
+| Alpine             | `apk update`、`rc-service`                        |
+| Linux              | `systemctl status`、`journalctl -u`               |
+| macOS              | `brew install`、`diskutil list`、`launchctl list` |
+| Windows PowerShell | `Get-Process`、`Test-NetConnection`               |
+| Windows CMD        | `dir`、`tasklist`、`ipconfig /all`                |
 
-- 基于 xterm.js 的终端体验。
-- 顶部工具栏支持新建终端、SSH、会话、复制、粘贴、搜索、分屏。
-- 左侧侧栏提供终端、资源管理器、AI 助手、设置入口。
-- AI 助手面板可以停靠在右侧或底部，读取终端上下文后给出命令建议。
-- 设置页提供 AI Provider、SSH 配置、界面偏好和关于信息。
-- 顶部与底部状态栏展示 `esdkaiyuan` 署名。
+SSH 配置可指定远端系统；手机端历史命令也会记录系统标签，避免跨系统误用。
 
-桌面端产物：
+## 快捷键
 
-```text
-packages/desktop/release/AI Shell Setup 0.1.0.exe
-packages/desktop/release/AI Shell 0.1.0.exe
-packages/desktop/release/win-unpacked
-```
+桌面端默认快捷键：
 
-## 手机端
+| 操作         | Windows / Linux | macOS  |
+| ------------ | --------------- | ------ |
+| 新建终端     | `Ctrl+T`        | `⌘T`   |
+| 关闭当前标签 | `Ctrl+W`        | `⌘W`   |
+| 查找终端内容 | `Ctrl+F`        | `⌘F`   |
+| 切换分屏     | `Ctrl+N`        | `⌘N`   |
+| 快捷命令     | `Ctrl+B`        | `⌘B`   |
+| AI 停靠面板  | `Ctrl+Shift+A`  | `⌘⇧A`  |
+| 清空终端     | `Ctrl+L`        | `⌘L`   |
+| 切换标签     | `Ctrl+1…9`      | `⌘1…9` |
 
-手机端不是网页壳，而是独立的 React Native 应用，可构建 Android APK。它将桌面端主要功能重新适配到手机屏幕：终端、SSH、会话、文件、AI、历史和设置均有独立入口。
-
-核心能力：
-
-- **APK 内置 Linux**：首次启动释放 Alpine Linux 3.20.3 + PRoot，之后离线运行 bash、git、curl、OpenSSH、apk 等工具。
-- **首次启动向导**：依次完成环境安装、AI Provider 和可选 SSH 配置；无需桌面中继。
-- **真实终端**：PTY 驱动的多标签/分屏终端，支持 Ctrl+C、Tab、方向键、搜索、清屏和会话恢复。
-- **真实 SSH**：调用内置 OpenSSH 客户端，支持密码交互和 Keystore 加密私钥。
-- **AI 直连**：手机端直接请求 Provider API，并自动附带终端最近输出；Key 使用 Android Keystore 加密。
-- **只读 rootfs 文件浏览**：可切换隐藏文件与预览文本。
-- 顶部展示 `署名 esdkaiyuan`。
-
-APK 产物：
-
-```text
-packages/mobile/android/app/build/outputs/apk/release/app-release.apk
-```
-
-## AI Provider
-
-当前支持的厂商：
-
-| 厂商 | 常见模型 | 说明 |
-| --- | --- | --- |
-| OpenAI | GPT 系列 | 支持标准 API Key |
-| Claude | Claude 3 系列 | Anthropic API |
-| 百度文心一言 | ERNIE 系列 | Key 格式通常为 `API_KEY:SECRET_KEY` |
-| 阿里通义千问 | Qwen 系列 | DashScope API |
-| 智谱 GLM | GLM 系列 | 智谱开放平台 |
-| 讯飞星火 | Spark 系列 | Key 格式通常为 `APPID:APISecret:APIKey` |
-| Moonshot AI | moonshot 系列 | Kimi / Moonshot API |
-| DeepSeek | deepseek-chat / deepseek-coder | DeepSeek API |
-| Ollama | llama / qwen / codellama | 本地模型，可连接本机或局域网 Ollama 服务 |
+在 **设置 → 快捷键** 中可重新录制、恢复默认并保存最多 12 套命名方案。macOS 上 Control 组合保留给终端，窗口关闭使用 `⇧⌘W`，`⌘,` 打开设置。
 
 ## 项目结构
 
 ```text
 ai-shell/
 ├── packages/
-│   ├── core/             # 核心逻辑：AI 适配器、存储和控制器
-│   ├── desktop/          # Electron 桌面端
-│   ├── mobile/           # React Native / Expo 手机端
-│   └── shared-assets/    # 共享图标与品牌资产
-├── docs/                 # 使用、安装、开发、API 和部署文档
-├── README.md             # 项目介绍
+│   ├── core/             # AI 适配器、SQLite 存储、命令控制器
+│   ├── desktop/          # Electron 主进程、preload、React 渲染层
+│   ├── mobile/           # React Native / Expo + Android 原生模块
+│   └── shared-assets/    # 品牌图标等共享资产
+├── docs/                 # 使用、安装、开发、架构和 API 文档
+├── README.md
 └── package.json          # pnpm workspace 根配置
 ```
 
@@ -102,98 +77,99 @@ ai-shell/
 
 环境要求：
 
-- Node.js >= 18
+- Node.js >= 18（移动 Web 导出建议使用 Node.js 18）
 - pnpm >= 8
-- 构建 Android APK 需要 JDK 17 和 Android SDK
-
-安装依赖：
+- 构建 Android APK：JDK 17、Android SDK/NDK
 
 ```bash
 pnpm install
+pnpm type-check
+pnpm test
 ```
 
 桌面端开发：
 
 ```bash
-pnpm --filter @ai-shell/desktop dev
+pnpm dev
 ```
 
-桌面端构建与打包：
+桌面端生产构建：
 
 ```bash
-pnpm --filter @ai-shell/desktop build
-pnpm --filter @ai-shell/desktop exec electron-builder --config.npmRebuild=false
+pnpm build:desktop
 ```
 
-手机端检查：
+桌面端打包：
 
 ```bash
-pnpm --filter @ai-shell/mobile type-check
-pnpm --filter @ai-shell/mobile test
+pnpm --filter @ai-shell/desktop package
 ```
 
-Android APK 构建：
+手机端开发与 Web 预览：
 
-```powershell
+```bash
+pnpm --filter @ai-shell/mobile start
+pnpm --filter @ai-shell/mobile build:web
+```
+
+Android Debug APK：
+
+```bash
 cd packages/mobile/android
-.\gradlew.bat --init-script gradle-mirrors.gradle assembleRelease --console=plain
+./gradlew assembleDebug
 ```
 
-## 使用文档
+Windows 使用 `.\gradlew.bat assembleDebug`。产物位于：
 
-- 完整使用说明：[docs/USAGE.md](docs/USAGE.md)
-- 手机端说明：[packages/mobile/README.md](packages/mobile/README.md)
-- 安装说明：[docs/INSTALLATION.md](docs/INSTALLATION.md)
-- AI 配置说明：[docs/AI_SETUP_GUIDE.md](docs/AI_SETUP_GUIDE.md)
-- API 文档：[docs/API.md](docs/API.md)
-- 部署说明：[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+```text
+packages/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-## 安全说明
+Release 构建当前仍使用 `app/debug.keystore`，仅适合内部测试，正式分发前必须替换为自有 release keystore。
 
-- 不要把真实 API Key、SSH 密码或私钥提交到仓库。
-- AI Provider 导入界面应只展示脱敏后的 Key 预览。
-- 资源管理器默认保持只读边界，高风险文件操作应通过终端命令显式确认。
-- 手机端执行命令前建议先阅读 AI 解释，再人工确认。
+## AI Provider
+
+| 厂商                                      | 协议           | 桌面端 | 手机端   |
+| ----------------------------------------- | -------------- | ------ | -------- |
+| OpenAI / DeepSeek / GLM / 通义 / Moonshot | OpenAI 兼容    | 支持   | 支持     |
+| Claude                                    | Anthropic      | 支持   | 支持     |
+| Ollama                                    | Ollama API     | 支持   | 支持     |
+| 文心一言                                  | 百度 API       | 支持   | 支持     |
+| 讯飞星火                                  | WebSocket 鉴权 | 支持   | 暂未接入 |
+
+API Key 在桌面端使用 Electron `safeStorage` 加密，但系统密钥环不可用时当前实现会退化为明文存储；在 Android APK 中由 Keystore AES-256-GCM 加密。Web 预览环境不具备原生安全存储，不应输入真实生产凭据。
+
+## 安全边界
+
+- 不要提交真实 API Key、SSH 密码或私钥。
+- 手机端私钥仅在会话期间写入应用私有 rootfs，并在正常停止、退出、重置或下次启动时清理。
+- 手机端首次 SSH 连接使用 `StrictHostKeyChecking=accept-new`；高安全环境应增加人工指纹校验。
+- 文件浏览保持只读；写入、删除等高风险操作应在终端中显式执行并人工确认。
+- 内置 rootfs 与 PRoot 的许可见 APK 中的 `THIRD_PARTY_NOTICES.md`；PRoot 采用 GPL-2.0。
+
+## 文档
+
+- [文档索引](docs/README.md)
+- [使用说明](docs/USAGE.md)
+- [安装与构建](docs/INSTALLATION.md)
+- [开发指南](docs/DEVELOPMENT.md)
+- [架构说明](ARCHITECTURE.md)
+- [功能清单](FEATURES.md)
+- [UI 设计规范](docs/UI_DESIGN.md)
+- [手机端说明](packages/mobile/README.md)
+- [变更记录](CHANGELOG.md)
 
 ## 技术栈
 
-桌面端：
+- **桌面端**：Electron 28、React 18、TypeScript、Vite、xterm.js、node-pty、ssh2
+- **手机端**：React Native 0.73、Expo 50、Kotlin 原生模块、Alpine Linux 3.20.3、PRoot
+- **核心与存储**：pnpm workspace、SQLite/sql.js、多 Provider 适配器
+- **测试**：Vitest、JUnit、Playwright/CDP 界面回归
 
-- Electron
-- React
-- TypeScript
-- Vite
-- xterm.js
-- node-pty
-- ssh2
-- electron-builder
+## 验证范围
 
-手机端：
-
-- React Native
-- Expo
-- TypeScript
-- Android 原生模块（Kotlin）
-- Alpine Linux 3.20.3 + PRoot
-- Android Keystore
-- Android Gradle
-- Vitest
-
-核心与工程：
-
-- pnpm workspace
-- SQLite / 本地存储
-- 多 AI Provider 适配器
-- Windows 桌面打包与 Android APK 构建
-
-## 署名
-
-本项目应用内与文档统一展示：
-
-```text
-esdkaiyuan
-```
+当前开发环境完成 Windows Electron、桌面生产构建、移动 Web 导出和 Android Debug APK 构建。源码包含 macOS 菜单与快捷键适配，但物理 macOS 界面、真机 Android SSH/PTY 仍需在对应设备上验收。
 
 ## License
 
-MIT License
+MIT License。项目内署名：`esdkaiyuan`。
