@@ -3,7 +3,7 @@ import type { FC } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { MainView } from '../mobileState';
 import { isViewActive, primaryNavItems, type PrimaryView } from '../navigation';
-import { colors, spacing } from '../theme';
+import { colors, spacing, typography } from '../theme';
 
 interface BottomNavProps {
   currentView: MainView;
@@ -21,8 +21,9 @@ export const BottomNav: FC<BottomNavProps> = ({ currentView, onSelect }) => (
           accessibilityLabel={item.label}
           accessibilityState={{ selected: active }}
           onPress={() => onSelect(item.key)}
-          style={({ pressed }: { pressed: boolean }) => [styles.item, active && styles.itemActive, pressed && styles.pressed]}
+          style={({ pressed }: { pressed: boolean }) => [styles.item, pressed && styles.pressed]}
         >
+          {active ? <View style={styles.activeIndicator} /> : null}
           <Ionicons
             name={item.icon}
             size={21}
@@ -53,8 +54,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 3,
   },
-  itemActive: { backgroundColor: colors.selection },
+  activeIndicator: {
+    position: 'absolute',
+    top: 0,
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+  },
   pressed: { opacity: 0.72 },
-  label: { color: colors.textDim, fontSize: 10, fontWeight: '500' },
-  labelActive: { color: colors.accent, fontWeight: '600' },
+  label: { color: colors.textDim, fontSize: typography.caption, fontWeight: '500' },
+  labelActive: { color: colors.accent, fontWeight: '700' },
 });

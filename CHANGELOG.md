@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Agent 安全边界：路径限制在工作区/用户主目录、危险命令拦截、命令 30 秒超时与输出上限、最大步数与重复调用死循环检测
 - 全局快捷键 `Ctrl+Shift+G` 切换 Agent 模式；设置页可配置默认模式、自动执行与最大推理步数
 - 桌面端与手机端统一 Apple HIG 深色视觉体系：页面标题层级、状态语义、对比度、焦点和响应式布局
+- **安卓端模拟器实测与 UI 布局完善**：在 Medium Phone API 36（1080×2400 / 420dpi / x86_64）跑通首启向导、内置 Alpine rootfs 解压、PTY 会话与五个主页面，按截图逐项打磨布局
+- 终端「命令坞」：控制键、补全/常用命令与输入栏合并为底部固定分组，输出区独占剩余高度
+- 自适应密度：软键盘弹出或窗口高度 < 620dp 时收起辅助控件，保留输出区与输入栏；≥720dp 宽屏内容列居中限宽 560dp
+- 布局决策模块 `src/layout.ts` + 8 个单元测试，软键盘状态 hook `useKeyboardVisible`
+- 横向列表统一 Android 渐隐边缘；四周安全区（含横屏左右挖孔）
 - 手机端底部五项导航（终端/AI/文件/SSH/我的），会话、历史、设置调整为二级入口
 - SSH 私钥文件导入：支持 OpenSSH、RSA、ECDSA、PKCS#8、加密 PEM；拒绝证书、公钥、PuTTY `.ppk`
 - 多系统命令补全：Alpine、Linux、macOS、Windows PowerShell、Windows CMD
@@ -30,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 修复终端页横向 ScrollView 在 flex 列中被拉伸造成的中段空白（实测约 165dp）
+- 修复软键盘弹出时控制键/快捷命令挤占终端输出区；改用窗口高度差判断（`isKeyboardCoveringWindow`），避免模拟器硬件键盘跳过 RN 键盘事件导致辅助控件收起后无法恢复
+- 修复标签、控制键、常用命令、厂商/模型 chips 被硬裁切且无滚动提示
+- 修复 SSH、会话、历史等空状态贴顶导致的大片留白；改为可用区域内垂直居中
+- 修复聊天气泡满宽、用户与助手消息不区分左右、输入栏按钮与多行输入框顶部对齐
+- 修复首启向导「下一步」禁用时没有说明原因
+- 修复深色应用启动瞬间白色闪屏：窗口背景、状态栏与 Splash 统一为 `#0a0a0b`，主色对齐品牌蓝 `#0a84ff`
+- 修复 `react-native` 类型 shim 缺少 `useWindowDimensions` / `Keyboard` / `StyleSheet.hairlineWidth`
 - 修复移动会话启动/停止竞态、过期启动回调和临时私钥残留
 - 修复 bind mount 文件路径与终端实际目录不一致
 - 修复删除 SSH/会话/Provider 时嵌套点击触发外层连接或加载

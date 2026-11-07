@@ -36,6 +36,7 @@ import { runtimeStore, useRuntime } from '../services/runtimeStore';
 import { pickPrivateKeyFile } from '../services/sshKeyFiles';
 import { parsePrivateKey } from '../services/sshKeys';
 import { colors, radius, spacing } from '../theme';
+import { HORIZONTAL_FADE_LENGTH } from '../layout';
 
 type StepKey = 'environment' | 'ai' | 'ssh' | 'finish';
 
@@ -261,7 +262,17 @@ export const SetupWizard: FC<SetupWizardProps> = ({
       presentationStyle="fullScreen"
       statusBarTranslucent
     >
-      <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <View
+        style={[
+          styles.safeArea,
+          {
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
+          },
+        ]}
+      >
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -324,6 +335,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
+                  fadingEdgeLength={HORIZONTAL_FADE_LENGTH}
                   contentContainerStyle={styles.chipRow}
                 >
                   {PROVIDER_PRESETS.map(item => {
@@ -695,6 +707,10 @@ export const SetupWizard: FC<SetupWizardProps> = ({
               </View>
             ) : null}
           </ScrollView>
+
+          {step === 'environment' && !canGoNext ? (
+            <Text style={styles.footerHint}>安装内置 Linux 后即可继续下一步</Text>
+          ) : null}
 
           <View style={styles.footer}>
             {stepIndex > 0 ? (
@@ -1123,6 +1139,13 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { color: colors.textMuted, fontSize: 13, flex: 1 },
   summaryValue: { color: colors.text, fontSize: 12, maxWidth: '52%', textAlign: 'right' },
+  footerHint: {
+    color: colors.yellow,
+    fontSize: 12,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
+  },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',

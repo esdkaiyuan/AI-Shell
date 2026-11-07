@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalLine, PaneSessionStatus } from '../mobileState';
-import { colors, radius, spacing } from '../theme';
+import { colors, radius, spacing, surfaces } from '../theme';
 
 interface TerminalPreviewProps {
   title: string;
@@ -81,7 +81,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 140,
     borderRadius: 14,
-    backgroundColor: colors.bg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: surfaces.outline,
+    backgroundColor: surfaces.terminal,
     overflow: 'hidden',
   },
   topbar: {

@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { CommandChip } from './src/components/CommandChip';
@@ -51,6 +52,12 @@ import {
   type LinuxStatus,
 } from './src/native/nativeBridge';
 import { useTerminalRuntime, type TerminalRuntimeApi } from './src/hooks/useTerminalRuntime';
+import { useKeyboardVisible } from './src/hooks/useKeyboardVisible';
+import {
+  HORIZONTAL_FADE_LENGTH,
+  contentMaxWidth,
+  showAuxiliaryTools,
+} from './src/layout';
 import {
   MobileAction,
   MobileState,
@@ -60,7 +67,7 @@ import {
   getActiveTerminal,
   mobileReducer,
 } from './src/mobileState';
-import { colors, radius, spacing } from './src/theme';
+import { colors, radius, spacing, surfaces, typography } from './src/theme';
 import { viewTitle, type PrimaryView } from './src/navigation';
 
 type SetupStep = 'environment' | 'ai' | 'ssh' | 'finish';
@@ -68,6 +75,10 @@ type MobilePressEvent = { stopPropagation: () => void };
 
 const AppContent: FC = () => {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const keyboardVisible = useKeyboardVisible();
+  const showAuxiliary = showAuxiliaryTools({ width, height, keyboardVisible });
+  const maxContentWidth = contentMaxWidth(width);
   const [state, dispatch] = useReducer(mobileReducer, undefined, createInitialMobileState) as [
     MobileState,
     (action: MobileAction) => void,
@@ -193,6 +204,7 @@ const AppContent: FC = () => {
             config={config}
             runtime={runtime.status}
             terminalApi={terminalApi}
+            showAuxiliary={showAuxiliary}
             onOpenSetup={openSetup}
           />
         );
@@ -211,7 +223,13 @@ const AppContent: FC = () => {
         );
       case 'ai':
         return (
-          <AIWorkspace state={state} dispatch={dispatch} config={config} onOpenSetup={openSetup} />
+          <AIWorkspace
+            state={state}
+            dispatch={dispatch}
+            config={config}
+            showAuxiliary={showAuxiliary}
+            onOpenSetup={openSetup}
+          />
         );
       case 'history':
         return <HistoryWorkspace config={config} dispatch={dispatch} />;
@@ -256,7 +274,16 @@ const AppContent: FC = () => {
   }
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.safeArea,
+        {
+          paddingTop: insets.top,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        },
+      ]}
+    >
       <StatusBar style="light" />
       <View style={styles.appBar}>
         {secondaryView ? (
@@ -286,12 +313,25 @@ const AppContent: FC = () => {
         {fullHeightWorkspace ? (
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.fullHeightContent}
+            style={[
+              styles.fullHeightContent,
+              maxContentWidth
+                ? { width: '100%', maxWidth: maxContentWidth, alignSelf: 'center' }
+                : null,
+            ]}
           >
             {renderContent()}
           </KeyboardAvoidingView>
         ) : (
-          <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={[
+              styles.contentInner,
+              maxContentWidth
+                ? { width: '100%', maxWidth: maxContentWidth, alignSelf: 'center' }
+                : null,
+            ]}
+          >
             {renderContent()}
           </ScrollView>
         )}
@@ -323,6 +363,7 @@ interface TerminalWorkspaceProps extends WorkspaceProps {
   config: ReturnType<typeof useAppConfig>;
   runtime: LinuxStatus;
   terminalApi: TerminalRuntimeApi;
+  showAuxiliary: boolean;
   onOpenSetup: (step?: SetupStep) => void;
 }
 
@@ -332,6 +373,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
   config,
   runtime,
   terminalApi,
+  showAuxiliary,
   onOpenSetup,
 }) => {
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -385,6 +427,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        fadingEdgeLength={HORIZONTAL_FADE_LENGTH}
         style={styles.tabScroll}
         contentContainerStyle={styles.tabRow}
       >
@@ -517,104 +560,116 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
         status={activePane.sessionStatus}
       />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.keyRow}
-      >
-        <TerminalKey label="Ctrl+C" onPress={() => terminalApi.sendKey('\x03')} />
-        <TerminalKey label="Tab" onPress={() => terminalApi.sendKey('\t')} />
-        <TerminalKey label="↑" onPress={() => terminalApi.sendKey('\x1b[A')} />
-        <TerminalKey label="↓" onPress={() => terminalApi.sendKey('\x1b[B')} />
-        <TerminalKey label="Esc" onPress={() => terminalApi.sendKey('\x1b')} />
-        <TerminalKey label="Enter" onPress={() => terminalApi.sendKey('\r')} />
-        <TerminalKey
-          label="|"
-          onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}|` })}
-        />
-        <TerminalKey
-          label="/"
-          onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}/` })}
-        />
-      </ScrollView>
-
-      {state.commandInput.trim() ? (
-        suggestions.length ? (
-          <View style={styles.suggestionPanel}>
-            <View style={styles.suggestionHeader}>
-              <Ionicons name="sparkles-outline" size={13} color={colors.accent} />
-              <Text style={styles.suggestionHeaderText}>补全 · {platformLabel}</Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.suggestionRow}
-            >
-              {suggestions.map(item => (
-                <Pressable
-                  key={`${item.source}-${item.command}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`补全为 ${item.command}`}
-                  style={styles.suggestionCard}
-                  onPress={() => dispatch({ type: 'insertCommand', command: item.command })}
-                >
-                  <Text numberOfLines={1} style={styles.suggestionCommand}>
-                    {item.command}
-                  </Text>
-                  <Text numberOfLines={1} style={styles.suggestionDescription}>
-                    {item.description}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        ) : null
-      ) : (
-        <View style={styles.quickPanel}>
-          <Text style={styles.quickLabel}>常用 · {platformLabel}</Text>
+      <View style={styles.commandDock}>
+        {showAuxiliary ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipRow}
+            fadingEdgeLength={HORIZONTAL_FADE_LENGTH}
+            style={styles.horizontalStrip}
+            contentContainerStyle={styles.keyRow}
           >
-            {quickEntries.map(item => (
-              <CommandChip
-                key={item.command}
-                command={item.command}
-                onPress={(value: string) => dispatch({ type: 'insertCommand', command: value })}
-              />
-            ))}
+            <TerminalKey label="Ctrl+C" onPress={() => terminalApi.sendKey('\x03')} />
+            <TerminalKey label="Tab" onPress={() => terminalApi.sendKey('\t')} />
+            <TerminalKey label="↑" onPress={() => terminalApi.sendKey('\x1b[A')} />
+            <TerminalKey label="↓" onPress={() => terminalApi.sendKey('\x1b[B')} />
+            <TerminalKey label="Esc" onPress={() => terminalApi.sendKey('\x1b')} />
+            <TerminalKey label="Enter" onPress={() => terminalApi.sendKey('\r')} />
+            <TerminalKey
+              label="|"
+              onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}|` })}
+            />
+            <TerminalKey
+              label="/"
+              onPress={() => dispatch({ type: 'setCommandInput', value: `${state.commandInput}/` })}
+            />
           </ScrollView>
-        </View>
-      )}
+        ) : null}
 
-      <View style={styles.commandBar}>
-        <TextInput
-          value={state.commandInput}
-          onChangeText={(value: string) => dispatch({ type: 'setCommandInput', value })}
-          placeholder={
-            activePane.sessionStatus === 'ready' ? `输入 ${platformLabel} 命令…` : '等待会话就绪…'
-          }
-          placeholderTextColor={colors.textDim}
-          autoCapitalize="none"
-          autoCorrect={false}
-          onSubmitEditing={() => terminalApi.runCommand()}
-          returnKeyType="send"
-          style={styles.commandInput}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="执行命令"
-          style={[
-            styles.runButton,
-            activePane.sessionStatus !== 'ready' && styles.runButtonDisabled,
-          ]}
-          onPress={() => terminalApi.runCommand()}
-          disabled={activePane.sessionStatus !== 'ready'}
-        >
-          <Ionicons name="play" size={17} color="#fff" />
-        </Pressable>
+        {showAuxiliary ? (
+          state.commandInput.trim() ? (
+            suggestions.length ? (
+              <View style={styles.suggestionPanel}>
+                <View style={styles.suggestionHeader}>
+                  <Ionicons name="sparkles-outline" size={13} color={colors.accent} />
+                  <Text style={styles.suggestionHeaderText}>补全 · {platformLabel}</Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  fadingEdgeLength={HORIZONTAL_FADE_LENGTH}
+                  keyboardShouldPersistTaps="handled"
+                  style={styles.suggestionStrip}
+                  contentContainerStyle={styles.suggestionRow}
+                >
+                  {suggestions.map(item => (
+                    <Pressable
+                      key={`${item.source}-${item.command}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`补全为 ${item.command}`}
+                      style={styles.suggestionCard}
+                      onPress={() => dispatch({ type: 'insertCommand', command: item.command })}
+                    >
+                      <Text numberOfLines={1} style={styles.suggestionCommand}>
+                        {item.command}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.suggestionDescription}>
+                        {item.description}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null
+          ) : (
+            <View style={styles.quickPanel}>
+              <Text style={styles.quickLabel}>常用 · {platformLabel}</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                fadingEdgeLength={HORIZONTAL_FADE_LENGTH}
+                style={styles.horizontalStrip}
+                contentContainerStyle={styles.chipRow}
+              >
+                {quickEntries.map(item => (
+                  <CommandChip
+                    key={item.command}
+                    command={item.command}
+                    onPress={(value: string) => dispatch({ type: 'insertCommand', command: value })}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )
+        ) : null}
+
+        <View style={styles.commandBar}>
+          <TextInput
+            value={state.commandInput}
+            onChangeText={(value: string) => dispatch({ type: 'setCommandInput', value })}
+            placeholder={
+              activePane.sessionStatus === 'ready' ? `输入 ${platformLabel} 命令…` : '等待会话就绪…'
+            }
+            placeholderTextColor={colors.textDim}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onSubmitEditing={() => terminalApi.runCommand()}
+            returnKeyType="send"
+            style={styles.commandInput}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="执行命令"
+            style={[
+              styles.runButton,
+              activePane.sessionStatus !== 'ready' && styles.runButtonDisabled,
+            ]}
+            onPress={() => terminalApi.runCommand()}
+            disabled={activePane.sessionStatus !== 'ready'}
+          >
+            <Ionicons name="play" size={17} color="#fff" />
+          </Pressable>
+        </View>
       </View>
     </>
   );
@@ -1048,10 +1103,17 @@ const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({
 interface AIWorkspaceProps extends WorkspaceProps {
   state: MobileState;
   config: ReturnType<typeof useAppConfig>;
+  showAuxiliary: boolean;
   onOpenSetup: (step?: SetupStep) => void;
 }
 
-const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetup }) => {
+const AIWorkspace: FC<AIWorkspaceProps> = ({
+  state,
+  dispatch,
+  config,
+  showAuxiliary,
+  onOpenSetup,
+}) => {
   const provider = activeProvider(config);
   const chatActive = state.aiWorkspaceMode === 'chat';
   const activeTerminal = getActiveTerminal(state);
@@ -1128,26 +1190,28 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({ state, dispatch, config, onOpenSetu
 
       {chatActive ? (
         <>
-          <View style={styles.aiContextPanel}>
-            <View style={styles.aiContextTop}>
-              <View style={styles.flexText}>
-                <Text style={styles.aiRole}>当前上下文</Text>
-                <Text style={styles.aiText}>
-                  终端：{activeTerminal.title} · 已绑定命令输出与 {platformLabel} 环境信息。
-                </Text>
+          {showAuxiliary ? (
+            <View style={styles.aiContextPanel}>
+              <View style={styles.aiContextTop}>
+                <View style={styles.flexText}>
+                  <Text style={styles.aiRole}>当前上下文</Text>
+                  <Text style={styles.aiText}>
+                    终端：{activeTerminal.title} · 已绑定命令输出与 {platformLabel} 环境信息。
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.secondaryAction}
+                  onPress={() => dispatch({ type: 'openAiProviders' })}
+                >
+                  <Ionicons name="options-outline" size={15} color={colors.textMuted} />
+                  <Text style={styles.secondaryActionText}>模型</Text>
+                </Pressable>
               </View>
-              <Pressable
-                style={styles.secondaryAction}
-                onPress={() => dispatch({ type: 'openAiProviders' })}
-              >
-                <Ionicons name="options-outline" size={15} color={colors.textMuted} />
-                <Text style={styles.secondaryActionText}>模型</Text>
-              </Pressable>
+              <Text numberOfLines={1} style={styles.providerModel}>
+                {provider ? `${provider.model} / ${provider.baseURL}` : '尚未配置 AI 提供商'}
+              </Text>
             </View>
-            <Text style={styles.providerModel}>
-              {provider ? `${provider.model} / ${provider.baseURL}` : '尚未配置 AI 提供商'}
-            </Text>
-          </View>
+          ) : null}
 
           <ScrollView
             style={styles.chatPanel}
@@ -1636,7 +1700,7 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   fullHeightContent: { flex: 1, padding: spacing.lg },
   bottomNavInset: { backgroundColor: colors.toolbar },
-  contentInner: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  contentInner: { flexGrow: 1, padding: spacing.lg, paddingBottom: spacing.xxl },
   flexText: { flex: 1, minWidth: 0 },
   headerLine: {
     flexDirection: 'row',
@@ -1792,7 +1856,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   runButtonDisabled: { opacity: 0.4 },
-  keyRow: { gap: 6, paddingTop: spacing.sm, paddingRight: spacing.md },
+  commandDock: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSoft,
+    backgroundColor: surfaces.dock,
+    marginHorizontal: -spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  // A horizontal ScrollView without an explicit height grows into whatever
+  // space the flex column has left, which pushes the command dock away from
+  // the terminal output. Pin the strips so the output area owns the slack.
+  horizontalStrip: { flexGrow: 0, flexShrink: 0, maxHeight: 52 },
+  suggestionStrip: { flexGrow: 0, flexShrink: 0, maxHeight: 66 },
+  keyRow: { gap: 6, paddingTop: spacing.xs, paddingRight: spacing.md },
   keyButton: {
     minWidth: 44,
     height: 44,
@@ -1803,12 +1881,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   keyText: { color: colors.textMuted, fontSize: 11, fontWeight: '600', fontFamily: 'Courier' },
-  quickPanel: { gap: 6, paddingTop: spacing.sm },
-  quickLabel: { color: colors.textDim, fontSize: 10.5, fontWeight: '600', paddingHorizontal: 2 },
+  quickPanel: { gap: 5, paddingTop: 0 },
+  quickLabel: {
+    color: colors.textDim,
+    fontSize: typography.caption,
+    fontWeight: '600',
+    paddingHorizontal: 2,
+  },
   chipRow: { gap: spacing.sm, paddingRight: spacing.lg },
-  suggestionPanel: { gap: 7, paddingTop: spacing.sm },
+  suggestionPanel: { gap: 5, paddingTop: 0 },
   suggestionHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 2 },
-  suggestionHeaderText: { color: colors.accent, fontSize: 10.5, fontWeight: '600' },
+  suggestionHeaderText: { color: colors.accent, fontSize: typography.caption, fontWeight: '600' },
   suggestionRow: { gap: 7, paddingRight: spacing.lg },
   suggestionCard: {
     width: 214,
@@ -1821,7 +1904,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   suggestionCommand: { color: colors.text, fontFamily: 'Courier', fontSize: 12 },
-  suggestionDescription: { color: colors.textDim, fontSize: 10.5 },
+  suggestionDescription: { color: colors.textDim, fontSize: typography.caption },
   card: {
     minHeight: 78,
     padding: 14,
@@ -1926,7 +2009,9 @@ const styles = StyleSheet.create({
   },
   smallActionText: { color: colors.text, fontSize: 12, fontWeight: '600' },
   emptyState: {
-    paddingVertical: spacing.xxl,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     gap: spacing.sm,
@@ -1992,12 +2077,26 @@ const styles = StyleSheet.create({
   aiText: { color: colors.textMuted, fontSize: 13, lineHeight: 20 },
   providerModel: { color: colors.textDim, fontSize: 11, fontFamily: 'Courier' },
   chatPanel: { flex: 1, minHeight: 120, marginBottom: spacing.sm },
-  chatContent: { flexGrow: 1, gap: 10, paddingBottom: spacing.sm },
+  // Messages sit just above the composer rather than leaving a tall void below them.
+  chatContent: {
+    flexGrow: 1,
+    gap: 10,
+    paddingBottom: spacing.sm,
+    justifyContent: 'flex-end',
+  },
   providerScroll: { flex: 1 },
   providerScrollContent: { flexGrow: 1, paddingBottom: spacing.xl },
-  chatBubble: { padding: 14, borderRadius: 16 },
-  chatBubbleAssistant: { backgroundColor: colors.panel, borderBottomLeftRadius: 5 },
-  chatBubbleUser: { backgroundColor: colors.accent, borderBottomRightRadius: 5 },
+  chatBubble: { padding: 14, borderRadius: 16, maxWidth: '86%' },
+  chatBubbleAssistant: {
+    backgroundColor: colors.panel,
+    borderBottomLeftRadius: 5,
+    alignSelf: 'flex-start',
+  },
+  chatBubbleUser: {
+    backgroundColor: colors.accent,
+    borderBottomRightRadius: 5,
+    alignSelf: 'flex-end',
+  },
   chatRole: { color: colors.textDim, fontSize: 11, fontWeight: '600', marginBottom: 4 },
   chatRoleUser: { color: 'rgba(255,255,255,0.72)' },
   chatText: { color: colors.text, fontSize: 13.5, lineHeight: 20 },
@@ -2005,7 +2104,12 @@ const styles = StyleSheet.create({
   typing: { flexDirection: 'row', gap: 5, paddingVertical: 4 },
   typingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.textDim },
   aiError: { color: colors.red, fontSize: 12, lineHeight: 18, marginBottom: spacing.sm },
-  inputRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
   aiPromptInput: {
     flex: 1,
     minHeight: 58,
@@ -2090,7 +2194,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modelChipActive: { backgroundColor: colors.accentSoft },
-  modelText: { color: colors.textMuted, fontSize: 10.5, fontFamily: 'Courier' },
+  modelText: { color: colors.textMuted, fontSize: typography.caption, fontFamily: 'Courier' },
   modelTextActive: { color: colors.accent },
   providerActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   coverageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

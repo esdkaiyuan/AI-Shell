@@ -42,12 +42,25 @@ declare module 'react-native' {
     ) => void;
   };
   export const Platform: { OS: string };
+  export const Keyboard: {
+    addListener: (
+      event: string,
+      listener: (...args: unknown[]) => void
+    ) => { remove: () => void };
+  };
+  export function useWindowDimensions(): {
+    width: number;
+    height: number;
+    scale: number;
+    fontScale: number;
+  };
   export const DeviceEventEmitter: {
     addListener: (event: string, listener: (...args: any[]) => void) => { remove: () => void };
   };
   export const NativeModules: Record<string, any>;
   export const StyleSheet: {
     create<T extends Record<string, unknown>>(styles: T): T;
+    hairlineWidth: number;
   };
   export const Text: Component;
   export const TextInput: Component;

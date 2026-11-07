@@ -36,3 +36,22 @@ export const radius = {
   xl: 22,
   pill: 999,
 };
+
+/** Minimum tappable area (Apple HIG / Material). */
+export const touchTarget = 44;
+
+/** Shared type scale — keep secondary text at 12dp or larger. */
+export const typography = {
+  caption: 12,
+  body: 14,
+  callout: 15,
+  title: 18,
+  hero: 26,
+};
+
+/** Surfaces that separate scrollable content from the window background. */
+export const surfaces = {
+  terminal: '#050506',
+  outline: 'rgba(255, 255, 255, 0.10)',
+  dock: 'rgba(20, 20, 22, 0.92)',
+};
