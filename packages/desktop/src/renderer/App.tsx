@@ -363,6 +363,12 @@ const App: React.FC = () => {
           case 'toggleAIPanel':
             if (currentView === 'terminal') setShowAIPanel(prev => !prev);
             break;
+          case 'toggleAgentMode': {
+            const next = !appSettings.get().agentMode;
+            appSettings.update({ agentMode: next });
+            if (currentView === 'terminal') setShowAIPanel(true);
+            break;
+          }
           case 'clearTerminal':
             terminalBus.runOnActive('clear');
             break;

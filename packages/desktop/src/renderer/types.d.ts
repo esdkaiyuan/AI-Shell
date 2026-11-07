@@ -62,6 +62,53 @@ interface SystemStats {
   processMemoryMB: number;
 }
 
+// Agent 自主任务相关载荷
+interface AgentToolCall {
+  tool: string;
+  args: Record<string, unknown>;
+}
+
+interface AgentToolResult {
+  ok: boolean;
+  output: string;
+  durationMs?: number;
+}
+
+interface AgentEventPayload {
+  type: 'step-start' | 'thinking' | 'tool-call' | 'tool-result' | 'final' | 'error' | 'limit';
+  step: number;
+  text?: string;
+  content?: string;
+  message?: string;
+  reason?: string;
+  call?: AgentToolCall;
+  result?: AgentToolResult;
+}
+
+interface AgentRunOptions {
+  terminalContext?: string;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  maxSteps?: number;
+  autoApprove?: boolean;
+  provider?: string;
+  model?: string;
+}
+
+interface AgentRunResult {
+  content: string;
+  steps: number;
+  calls: AgentToolCall[];
+  status: 'completed' | 'aborted' | 'limit' | 'error';
+  error?: string;
+}
+
+interface AgentConfirmRequest {
+  confirmId: string;
+  tool: string;
+  args: Record<string, unknown>;
+  risk: 'read' | 'write';
+}
+
 interface ElectronAPI {
   shell: {
     create: (shell: string, cwd: string) => Promise<string>;
@@ -123,6 +170,13 @@ interface ElectronAPI {
   clipboard: {
     write: (text: string) => Promise<void>;
     read: () => Promise<string>;
+  };
+  agent: {
+    run: (runId: string, task: string, options?: AgentRunOptions) => Promise<AgentRunResult>;
+    onEvent: (callback: (runId: string, event: AgentEventPayload) => void) => () => void;
+    onConfirm: (callback: (runId: string, request: AgentConfirmRequest) => void) => () => void;
+    respondConfirm: (confirmId: string, approved: boolean) => Promise<boolean>;
+    abort: (runId: string) => Promise<boolean>;
   };
 }
 

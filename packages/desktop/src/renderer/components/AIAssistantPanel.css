@@ -91,6 +91,20 @@
   color: var(--color-success);
 }
 
+.agent-mode-indicator {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.agent-mode-indicator.active {
+  color: #64b5ff;
+  background: rgba(10, 132, 255, 0.16);
+}
+
 /* Messages */
 .panel-messages {
   flex: 1;

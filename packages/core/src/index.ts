@@ -13,3 +13,4 @@ export * from './ai/adapters/ollama';
 export * from './storage/local';
 export * from './controllers/registry';
 export * from './controllers/ai-controllers';
+export * from './agent';

@@ -5,6 +5,7 @@ export type ShortcutAction =
   | 'toggleSplit'
   | 'toggleSnippets'
   | 'toggleAIPanel'
+  | 'toggleAgentMode'
   | 'clearTerminal';
 
 export type ShortcutMap = Record<ShortcutAction, string>;
@@ -41,6 +42,7 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { action: 'toggleSplit', label: '切换分屏', description: '在当前标签中开启或取消分屏' },
   { action: 'toggleSnippets', label: '快捷命令', description: '打开或关闭快捷命令面板' },
   { action: 'toggleAIPanel', label: 'AI 停靠面板', description: '显示或隐藏右侧 AI 面板' },
+  { action: 'toggleAgentMode', label: 'Agent 模式', description: '切换 AI 助手的自主执行模式' },
   { action: 'clearTerminal', label: '清空终端', description: '向当前终端发送清屏指令' },
 ];
 
@@ -51,6 +53,7 @@ export const DEFAULT_SHORTCUTS: ShortcutMap = {
   toggleSplit: 'Ctrl+N',
   toggleSnippets: 'Ctrl+B',
   toggleAIPanel: 'Ctrl+Shift+A',
+  toggleAgentMode: 'Ctrl+Shift+G',
   clearTerminal: 'Ctrl+L',
 };
 

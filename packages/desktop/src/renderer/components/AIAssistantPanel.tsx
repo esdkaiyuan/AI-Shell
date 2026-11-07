@@ -4,10 +4,12 @@ import CommandActions from './CommandActions';
 import ModelSelector from './ModelSelector';
 import ChatConversationBar from './ChatConversationBar';
 import MessageContent from './MessageContent';
+import AgentTrace from './AgentTrace';
 import { terminalBus } from '../terminalBus';
 import { commandHistory, CommandHistoryEntry } from '../commandHistory';
 import { appSettings } from '../appSettings';
 import { chatStore, ChatMessage } from '../chatStore';
+import { useAgentSession } from '../useAgentSession';
 import './AIAssistantPanel.css';
 
 type Message = ChatMessage;
@@ -57,7 +59,10 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
   const [errorAlert, setErrorAlert] = useState<{ snippet: string } | null>(null); // 报错提示
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [confirmClearHistory, setConfirmClearHistory] = useState(false);
+  const [agentMode, setAgentMode] = useState(() => appSettings.get().agentMode);
+  const [agentAutoApprove, setAgentAutoApprove] = useState(() => appSettings.get().agentAutoApprove);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const agentSession = useAgentSession();
   // 流式输出守卫：期间不接受 store 推送覆盖
   const streamingRef = useRef(false);
   // 当前流式请求的 streamId，供「停止生成」中断
@@ -66,6 +71,10 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
   const messagesRef = useRef<Message[]>([]);
 
   const handleStop = () => {
+    if (agentMode) {
+      agentSession.abort();
+      return;
+    }
     const id = streamIdRef.current;
     if (!id) return;
     window.electronAPI.ai.abortChatStream(id).catch(console.error);
@@ -74,6 +83,14 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  // 设置页修改 Agent 配置时同步到面板
+  useEffect(() => {
+    return appSettings.subscribe(settings => {
+      setAgentMode(settings.agentMode);
+      setAgentAutoApprove(settings.agentAutoApprove);
+    });
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,8 +127,71 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
     return unsubscribe;
   }, []);
 
+  // Agent 模式：派发自主任务，最终结论写回当前会话
+  const runAgentTask = async (task: string, displayContent: string) => {
+    if (loading) return;
+    setInput('');
+    setLoading(true);
+    streamingRef.current = true;
+
+    const priorMessages = messagesRef.current;
+    const withUser: Message[] = [...priorMessages, { role: 'user', content: displayContent }];
+    messagesRef.current = withUser;
+    setMessages(withUser);
+
+    const appendAssistant = (content: string) => {
+      const commands = extractCommands(content);
+      const assistant: Message = {
+        role: 'assistant',
+        content,
+        commands: commands.length > 0 ? commands : undefined,
+      };
+      const finalMessages = [...messagesRef.current, assistant];
+      messagesRef.current = finalMessages;
+      setMessages(finalMessages);
+      chatStore.replaceMessages(finalMessages);
+    };
+
+    try {
+      const {
+        aiProvider,
+        aiModel,
+        agentAutoApprove: autoApprove,
+        agentMaxSteps,
+      } = appSettings.get();
+      const result = await agentSession.run(task, {
+        terminalContext: autoContext ? terminalBus.getActiveContext(4000) : '',
+        history: priorMessages.map(m => ({ role: m.role, content: m.content })),
+        maxSteps: agentMaxSteps,
+        autoApprove,
+        provider: aiProvider || undefined,
+        model: aiModel || undefined,
+      });
+
+      let content = result.content;
+      if (!content) {
+        if (result.status === 'aborted') content = '任务已中断。';
+        else if (result.status === 'limit') content = `任务已终止：${result.error ?? '达到执行上限'}`;
+        else if (result.status === 'error') content = `执行出错：${result.error ?? '未知错误'}`;
+        else content = '任务结束，但没有返回结论。';
+      } else if (result.status !== 'completed' && result.error) {
+        content += `\n\n> ${result.error}`;
+      }
+      appendAssistant(content);
+    } catch (error: unknown) {
+      appendAssistant(`错误: ${getErrorMessage(error)}`);
+    } finally {
+      streamingRef.current = false;
+      setLoading(false);
+    }
+  };
+
   const handleSend = async (includeContext = autoContext) => {
     if (!input.trim() || loading) return;
+    if (agentMode) {
+      await runAgentTask(input.trim(), input.trim());
+      return;
+    }
 
     let userMessage = input.trim();
 
@@ -241,6 +321,14 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
     const displayMsg = '终端检测到报错，请帮我分析原因并给出修复命令。';
     const userMessage = `终端报错输出：\n\`\`\`\n${snippet}\n\`\`\`\n\n${displayMsg}`;
 
+    if (agentMode) {
+      await runAgentTask(
+        `${userMessage}\n请主动使用工具定位原因并修复，不要只给建议。`,
+        displayMsg
+      );
+      return;
+    }
+
     setMessages(prev => [...prev, { role: 'user', content: displayMsg }]);
     setLoading(true);
     streamingRef.current = true;
@@ -308,6 +396,17 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           <ChatConversationBar compact />
         </div>
         <div className="panel-controls">
+          <button
+            className={`panel-control-btn ${agentMode ? 'active-toggle' : ''}`}
+            onClick={() => {
+              const next = !agentMode;
+              setAgentMode(next);
+              appSettings.update({ agentMode: next });
+            }}
+            title={agentMode ? 'Agent 模式已开启：AI 可自主调用工具' : '切换到 Agent 模式'}
+          >
+            <span className={`agent-mode-indicator ${agentMode ? 'active' : ''}`}>AGENT</span>
+          </button>
           <button
             className="panel-control-btn"
             onClick={handleRefreshContext}
@@ -435,9 +534,19 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
             <div className="empty-icon">
               <BotIcon size={48} />
             </div>
-            <p>我可以帮你分析终端输出、解释报错、生成命令</p>
+            <p>
+              {agentMode
+                ? 'Agent 模式：我会自主调用工具查文件、跑命令，并根据结果继续推进任务'
+                : '我可以帮你分析终端输出、解释报错、生成命令'}
+            </p>
             <p className="empty-hint">
-              {autoContext ? '✓ 自动获取终端上下文' : '✗ 手动模式'}
+              {agentMode
+                ? agentAutoApprove
+                  ? '⚠ 写操作将自动执行'
+                  : '✓ 写操作需逐次确认'
+                : autoContext
+                  ? '✓ 自动获取终端上下文'
+                  : '✗ 手动模式'}
             </p>
           </div>
         )}
@@ -485,12 +594,31 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
         <div ref={messagesEndRef} />
       </div>
 
+      {agentMode && (
+        <AgentTrace
+          state={agentSession.state}
+          autoApprove={agentAutoApprove}
+          onToggleAutoApprove={() => {
+            const next = !agentAutoApprove;
+            setAgentAutoApprove(next);
+            appSettings.update({ agentAutoApprove: next });
+          }}
+          onStop={agentSession.abort}
+          onConfirm={agentSession.respondConfirm}
+          onClear={agentSession.clear}
+        />
+      )}
+
       <div className="panel-input">
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="询问 AI 或描述你的需求... (Enter 发送)"
+          placeholder={
+            agentMode
+              ? '给 Agent 派个任务，例如：排查构建失败原因并修复… (Enter 发送)'
+              : '询问 AI 或描述你的需求... (Enter 发送)'
+          }
           disabled={loading}
           rows={2}
         />

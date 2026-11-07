@@ -5,6 +5,8 @@ import * as fs from 'fs/promises';
 import { LocalStorage, AIServiceImpl, AIProvider, SSHConfig } from '@ai-shell/core';
 import { ShellManager } from './shell/manager';
 import { SSHManager } from './ssh/manager';
+import { isPathInsideRoot, resolveExplorerRoot } from './pathSecurity';
+import { registerAgentIPC } from './agentRuntime';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -192,19 +194,6 @@ async function hydrateSSHPrivateKey(config: SSHConfig): Promise<SSHConfig> {
   const keyPath = path.resolve(expandHomePath(config.privateKey));
   const privateKey = await fs.readFile(keyPath, 'utf8');
   return { ...config, privateKey };
-}
-
-function resolveExplorerRoot(root: 'workspace' | 'home'): string {
-  return root === 'home' ? app.getPath('home') : process.cwd();
-}
-
-function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
-  const resolvedTarget = path.resolve(targetPath);
-  const resolvedRoot = path.resolve(rootPath);
-  const relative = path.relative(resolvedRoot, resolvedTarget);
-  return (
-    relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative))
-  );
 }
 
 function normalizeTerminalSize(cols: number, rows: number): { cols: number; rows: number } {
@@ -792,4 +781,10 @@ function setupIPC() {
   });
 
   ipcMain.handle('clipboard:read', async () => clipboard.readText());
+
+  // Agent 自主任务：循环推理 + 工具执行 + 人工确认
+  registerAgentIPC({
+    getAIService: () => aiService,
+    getStorage: () => storage ?? null,
+  });
 }

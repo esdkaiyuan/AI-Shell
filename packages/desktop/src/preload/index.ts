@@ -36,6 +36,36 @@ interface SystemStats {
   processMemoryMB: number;
 }
 
+interface AgentRunOptions {
+  terminalContext?: string;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  maxSteps?: number;
+  autoApprove?: boolean;
+  provider?: string;
+  model?: string;
+}
+
+interface AgentEventPayload {
+  type: string;
+  step: number;
+  [key: string]: unknown;
+}
+
+interface AgentRunResult {
+  content: string;
+  steps: number;
+  calls: Array<{ tool: string; args: Record<string, unknown> }>;
+  status: 'completed' | 'aborted' | 'limit' | 'error';
+  error?: string;
+}
+
+interface AgentConfirmRequest {
+  confirmId: string;
+  tool: string;
+  args: Record<string, unknown>;
+  risk: 'read' | 'write';
+}
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -164,6 +194,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     setShortcutRecording: (active: boolean) =>
       ipcRenderer.invoke('app:shortcut-recording', active) as Promise<void>,
+  },
+
+  // Agent 自主任务：事件推送 + 人工确认
+  agent: {
+    run: (runId: string, task: string, options: AgentRunOptions = {}): Promise<AgentRunResult> =>
+      ipcRenderer.invoke('agent:run', { runId, task, ...options }),
+    onEvent: (callback: (runId: string, event: AgentEventPayload) => void) => {
+      const listener = (_: Electron.IpcRendererEvent, id: string, payload: AgentEventPayload) =>
+        callback(id, payload);
+      ipcRenderer.on('agent:event', listener);
+      return () => ipcRenderer.removeListener('agent:event', listener);
+    },
+    onConfirm: (callback: (runId: string, request: AgentConfirmRequest) => void) => {
+      const listener = (_: Electron.IpcRendererEvent, id: string, request: AgentConfirmRequest) =>
+        callback(id, request);
+      ipcRenderer.on('agent:confirm', listener);
+      return () => ipcRenderer.removeListener('agent:confirm', listener);
+    },
+    respondConfirm: (confirmId: string, approved: boolean): Promise<boolean> =>
+      ipcRenderer.invoke('agent:confirm-response', confirmId, approved),
+    abort: (runId: string): Promise<boolean> => ipcRenderer.invoke('agent:abort', runId),
   },
 
   // 剪贴板操作（工具栏复制/粘贴）

@@ -1014,6 +1014,42 @@ const Settings: React.FC = () => {
                   />
                 </div>
 
+                {/* Agent 自主执行 */}
+                <div className="form-group agent-settings-group">
+                  <label className="form-label">Agent 自主执行</label>
+                  <label className="switch-row">
+                    <input
+                      type="checkbox"
+                      checked={generalSettings.agentMode}
+                      onChange={e => updateGeneralSetting({ agentMode: e.target.checked })}
+                    />
+                    <span>AI 助手默认使用 Agent 模式</span>
+                  </label>
+                  <label className="switch-row">
+                    <input
+                      type="checkbox"
+                      checked={generalSettings.agentAutoApprove}
+                      onChange={e => updateGeneralSetting({ agentAutoApprove: e.target.checked })}
+                    />
+                    <span>写操作免确认自动执行（不推荐）</span>
+                  </label>
+                  <label>单任务最大推理步数：{generalSettings.agentMaxSteps}</label>
+                  <input
+                    type="range"
+                    min={3}
+                    max={30}
+                    step={1}
+                    value={generalSettings.agentMaxSteps}
+                    onChange={e =>
+                      updateGeneralSetting({ agentMaxSteps: parseInt(e.target.value, 10) })
+                    }
+                    className="form-range"
+                  />
+                  <p className="description">
+                    Agent 可调用工具执行命令与读写文件；所有操作限制在工作区与用户主目录内，破坏性命令会被拦截。
+                  </p>
+                </div>
+
                 <button
                   className="btn-secondary"
                   onClick={() =>

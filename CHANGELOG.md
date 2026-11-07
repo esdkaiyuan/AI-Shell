@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Agent 自主执行模式**：AI 助手可多步调用工具完成任务（列目录 / 读写文件 / 执行命令 / 查历史 / 取终端上下文），根据结果继续推理，不再只给命令建议
+- 协议化 tool calling（```tool JSON 围栏）：不依赖各厂商原生 function calling，9 个 AI 提供商均可作为 Agent 使用
+- Agent 执行轨迹时间线：逐轮展示思考、工具调用、执行结果与最终结论，详情可展开
+- 人工确认回路：写操作默认需逐次批准（可查看完整参数后允许/拒绝），支持自动执行开关、中途停止与 60 秒确认超时
+- Agent 安全边界：路径限制在工作区/用户主目录、危险命令拦截、命令 30 秒超时与输出上限、最大步数与重复调用死循环检测
+- 全局快捷键 `Ctrl+Shift+G` 切换 Agent 模式；设置页可配置默认模式、自动执行与最大推理步数
 - 桌面端与手机端统一 Apple HIG 深色视觉体系：页面标题层级、状态语义、对比度、焦点和响应式布局
 - 手机端底部五项导航（终端/AI/文件/SSH/我的），会话、历史、设置调整为二级入口
 - SSH 私钥文件导入：支持 OpenSSH、RSA、ECDSA、PKCS#8、加密 PEM；拒绝证书、公钥、PuTTY `.ppk`
@@ -34,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- 主进程路径安全校验提取为共享模块，资源管理器与 Agent 工具执行共用同一套边界
 - 辅助文字对比度提升到约 5:1 以上；统一中文状态和危险操作确认
 - 桌面页头移除重复标题，AI 页面与手机页面完善上下文副标题
 - 快捷键平台化：Windows/Linux 使用 Ctrl，macOS 使用 Command，Control 组合保留给终端

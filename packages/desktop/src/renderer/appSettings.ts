@@ -35,6 +35,12 @@ export interface AppSettings {
   shortcuts: ShortcutMap;
   /** 用户保存的快捷键方案 */
   shortcutSchemes: ShortcutScheme[];
+  /** AI 助手是否以 Agent 模式工作（可自主调用工具） */
+  agentMode: boolean;
+  /** Agent 写操作是否免人工确认（默认关闭） */
+  agentAutoApprove: boolean;
+  /** Agent 单次任务的最大推理步数 */
+  agentMaxSteps: number;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -51,6 +57,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   aiModel: '',
   shortcuts: { ...DEFAULT_SHORTCUTS },
   shortcutSchemes: [],
+  agentMode: false,
+  agentAutoApprove: false,
+  agentMaxSteps: 12,
 };
 
 /** 面板尺寸边界，防止拖到看不见 */
