@@ -28,12 +28,17 @@ import {
   typeScale,
   usesFullHeightSheet,
 } from '../hig';
+import { KEYBOARD_WINDOW_SHRINK } from '../layout';
 import { isPanelRoot, panelContentMode, panelTitle, type PanelSection } from '../navigation';
 
 interface SidePanelProps {
   /** `false` keeps the sheet mounted but slides it out of the way. */
   open: boolean;
   section: PanelSection;
+  /** A shorter bottom-anchored card, used for the compact AI conversation. */
+  compact?: boolean;
+  /** Fraction of the window the compact card occupies; grows with the chat. */
+  compactHeightRatio?: number;
   onClose: () => void;
   onBack: () => void;
   children: JSX.Element | null;
@@ -45,12 +50,33 @@ interface SidePanelProps {
  * and is dismissible via the Done button, the dimming view or the hardware
  * back button. Reduce Motion collapses the transition to zero duration.
  */
-export const SidePanel: FC<SidePanelProps> = ({ open, section, onClose, onBack, children }) => {
+export const SidePanel: FC<SidePanelProps> = ({
+  open,
+  section,
+  compact = false,
+  compactHeightRatio = 0.58,
+  onClose,
+  onBack,
+  children,
+}) => {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const metrics = useMemo(() => ({ width, height }), [width, height]);
   const panelWidth = sidePanelWidth(metrics);
-  const topInset = sidePanelTopInset(metrics) + (usesFullHeightSheet(metrics) ? insets.top : 0);
+  /**
+   * A compact card leaves the terminal output visible above it. Android's
+   * `adjustResize` shrinks the root view without updating `useWindowDimensions`,
+   * so the overlay's measured height is the only reliable size for the area
+   * above the IME. Raise the card's share of that smaller area to keep roughly
+   * the same absolute height while typing, with its bottom edge on the IME.
+   */
+  const [availableHeight, setAvailableHeight] = useState(height);
+  const keyboardCovers = availableHeight < height - KEYBOARD_WINDOW_SHRINK;
+  const cardRatio = keyboardCovers ? 0.62 : compactHeightRatio;
+  const sheetHeight = Math.round(availableHeight * (compact ? cardRatio : 1));
+  const topInset = compact
+    ? 0
+    : sidePanelTopInset(metrics) + (usesFullHeightSheet(metrics) ? insets.top : 0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [showContent, setShowContent] = useState(open);
   const progress = useRef(new Animated.Value(open ? 1 : 0)).current;
@@ -111,12 +137,20 @@ export const SidePanel: FC<SidePanelProps> = ({ open, section, onClose, onBack, 
     inputRange: [0, 1],
     outputRange: [panelWidth, 0],
   });
-  const scrimOpacity = progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const translateY = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [sheetHeight, 0],
+  });
+  // Keep the presenting terminal readable behind a compact conversation card.
+  const scrimOpacity = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: compact ? [0, 0.34] : [0, 1],
+  });
 
   const content = showContent ? children : null;
   const body =
     mode === 'flex' ? (
-      <View style={styles.flexBody}>{content}</View>
+      <View style={[styles.flexBody, compact && styles.flexBodyCompact]}>{content}</View>
     ) : (
       <ScrollView
         style={styles.scrollBody}
@@ -133,6 +167,10 @@ export const SidePanel: FC<SidePanelProps> = ({ open, section, onClose, onBack, 
       pointerEvents={open ? 'auto' : 'none'}
       accessibilityViewIsModal={open}
       style={styles.overlay}
+      onLayout={(event: { nativeEvent: { layout: { height: number } } }) => {
+        const next = event.nativeEvent.layout.height;
+        if (next > 0 && Math.abs(next - availableHeight) > 1) setAvailableHeight(next);
+      }}
     >
       <Animated.View style={[styles.scrim, { opacity: scrimOpacity }]}>
         <Pressable
@@ -147,24 +185,28 @@ export const SidePanel: FC<SidePanelProps> = ({ open, section, onClose, onBack, 
         accessibilityViewIsModal={open}
         style={[
           styles.sheet,
+          compact ? styles.sheetCompact : styles.sheetFull,
           {
-            width: panelWidth,
+            width: compact ? undefined : panelWidth,
+            height: compact ? sheetHeight : undefined,
             paddingTop: topInset,
             paddingBottom: insets.bottom,
-            transform: [{ translateX }],
+            transform: compact ? [{ translateY }] : [{ translateX }],
           },
         ]}
       >
         <View style={styles.grabber} />
 
-        <View style={styles.navBar}>
+        <View style={[styles.navBar, compact && styles.navBarCompact]}>
           <View style={styles.navSide}>
             {root ? null : (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="返回功能列表"
+                hitSlop={compact ? { top: 5, bottom: 5, left: 4, right: 4 } : undefined}
                 style={({ pressed }: { pressed: boolean }) => [
                   styles.backButton,
+                  compact && styles.navButtonCompact,
                   pressed && styles.pressed,
                 ]}
                 onPress={onBack}
@@ -182,8 +224,10 @@ export const SidePanel: FC<SidePanelProps> = ({ open, section, onClose, onBack, 
               accessibilityRole="button"
               accessibilityLabel="完成，关闭面板"
               accessibilityHint="返回终端主页面"
+              hitSlop={compact ? { top: 5, bottom: 5, left: 6, right: 6 } : undefined}
               style={({ pressed }: { pressed: boolean }) => [
                 styles.doneButton,
+                compact && styles.navButtonCompact,
                 pressed && styles.pressed,
               ]}
               onPress={onClose}
@@ -194,7 +238,9 @@ export const SidePanel: FC<SidePanelProps> = ({ open, section, onClose, onBack, 
         </View>
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          // The compact overlay already tracks the resized window; avoiding the
+          // IME a second time would squeeze the composer behind the keyboard.
+          behavior={compact ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
         >
           {body}
@@ -224,20 +270,31 @@ const styles = StyleSheet.create({
   scrimHit: { flex: 1 },
   sheet: {
     position: 'absolute',
-    top: 0,
     right: 0,
     bottom: 0,
-    borderTopLeftRadius: corner.sheet,
-    borderBottomLeftRadius: corner.sheet,
     backgroundColor: systemColors.systemGroupedBackground,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: systemColors.separator,
     shadowColor: '#000000',
     shadowOpacity: 0.5,
     shadowRadius: 24,
-    shadowOffset: { width: -8, height: 0 },
     elevation: 16,
     overflow: 'hidden',
+  },
+  sheetFull: {
+    top: 0,
+    borderTopLeftRadius: corner.sheet,
+    borderBottomLeftRadius: corner.sheet,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: systemColors.separator,
+    shadowOffset: { width: -8, height: 0 },
+  },
+  /** Compact AI card: full width, anchored to the bottom, slides upward. */
+  sheetCompact: {
+    left: 0,
+    borderTopLeftRadius: corner.sheet,
+    borderTopRightRadius: corner.sheet,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: systemColors.separator,
+    shadowOffset: { width: 0, height: -8 },
   },
   grabber: {
     width: grabber.width,
@@ -259,6 +316,9 @@ const styles = StyleSheet.create({
   },
   navSide: { minWidth: 68, alignItems: 'flex-start' },
   navSideRight: { alignItems: 'flex-end' },
+  navBarCompact: { minHeight: 36 },
+  navButtonCompact: { minHeight: 34 },
+  flexBodyCompact: { paddingTop: grid.unit },
   navTitle: {
     flex: 1,
     textAlign: 'center',

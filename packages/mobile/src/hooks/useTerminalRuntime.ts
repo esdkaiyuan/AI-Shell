@@ -91,6 +91,8 @@ export interface TerminalRuntimeApi {
   writeActive: (data: string) => Promise<boolean>;
   sendKey: (data: string) => Promise<boolean>;
   runCommand: () => Promise<boolean>;
+  /** Writes a command straight to the PTY, independent of the input box. */
+  executeCommand: (command: string) => Promise<boolean>;
   copyOutput: () => Promise<boolean>;
   clearActive: () => Promise<void>;
   restartActive: () => Promise<void>;
@@ -315,6 +317,30 @@ export const useTerminalRuntime = (
     return ok;
   }, [state, sshProfiles, writeActive, dispatch]);
 
+  /**
+   * AI-sourced commands bypass `state.commandInput` entirely: dispatching an
+   * insert and immediately calling `runCommand()` would read the stale render
+   * state. This also keeps whatever the user typed in the box untouched.
+   */
+  const executeCommand = useCallback(
+    async (raw: string): Promise<boolean> => {
+      const command = raw.trim();
+      if (!command) return false;
+      const ok = await writeActive(`${command}\n`);
+      if (ok) {
+        const terminal = getActiveTerminal(state);
+        const platform = commandPlatformForTerminal(
+          terminal.type,
+          terminal.sshProfileId,
+          sshProfiles
+        );
+        configStore.addHistory(command, 0, platform).catch(() => undefined);
+      }
+      return ok;
+    },
+    [state, sshProfiles, writeActive]
+  );
+
   const copyOutput = useCallback(async (): Promise<boolean> => {
     const pane = getActivePane(state);
     const text = pane.lines.map(line => line.text).join('\n');
@@ -351,6 +377,7 @@ export const useTerminalRuntime = (
     writeActive,
     sendKey: writeActive,
     runCommand,
+    executeCommand,
     copyOutput,
     clearActive,
     restartActive,

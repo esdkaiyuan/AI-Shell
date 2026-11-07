@@ -3,6 +3,12 @@
  * Every other value is a section displayed inside the trailing sheet, with
  * `menu` being its inset-grouped root. See `navigation.ts`.
  */
+import {
+  DEFAULT_AI_CAPABILITIES,
+  toggleCapability,
+  type AICapability,
+} from './aiTerminal';
+
 export type MainView =
   | 'terminal'
   | 'menu'
@@ -71,6 +77,8 @@ export interface MobileState {
   aiMessages: AIMessage[];
   aiLoading: boolean;
   aiError?: string;
+  /** Permission switches for AI actions on the terminal window. */
+  aiCapabilities: AICapability[];
   hiddenFilesVisible: boolean;
   systemStats: {
     cpu: number;
@@ -117,6 +125,7 @@ export type MobileAction =
   | { type: 'aiResponse'; content: string }
   | { type: 'aiError'; message: string }
   | { type: 'clearAi' }
+  | { type: 'toggleAiCapability'; capability: AICapability }
   | { type: 'openAiChat' }
   | { type: 'openAiProviders' }
   | { type: 'attachSession'; terminalId: string; paneId: string; sessionId: string }
@@ -181,6 +190,7 @@ export const createInitialMobileState = (): MobileState => ({
   ],
   aiLoading: false,
   aiError: undefined,
+  aiCapabilities: [...DEFAULT_AI_CAPABILITIES],
   hiddenFilesVisible: false,
   systemStats: { cpu: 0, memory: 0, network: 0, disk: 0 },
 });
@@ -384,6 +394,11 @@ export const mobileReducer = (state: MobileState, action: MobileAction): MobileS
       return { ...state, aiLoading: false, aiError: action.message };
     case 'clearAi':
       return { ...state, aiMessages: [], aiError: undefined };
+    case 'toggleAiCapability':
+      return {
+        ...state,
+        aiCapabilities: toggleCapability(state.aiCapabilities, action.capability),
+      };
     case 'openAiChat':
       return { ...state, currentView: 'ai', aiWorkspaceMode: 'chat' };
     case 'openAiProviders':

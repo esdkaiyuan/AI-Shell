@@ -17,6 +17,14 @@ import {
   View,
 } from 'react-native';
 import { AIAssistButton } from './src/components/AIAssistButton';
+import {
+  AI_CAPABILITIES,
+  hasCapability,
+  planAIActions,
+  extractCommands,
+  describeAIAction,
+  type AIActionPlan,
+} from './src/aiTerminal';
 import { CommandChip } from './src/components/CommandChip';
 import { FileRow } from './src/components/FileRow';
 import { FunctionMenu } from './src/components/FunctionMenu';
@@ -161,6 +169,14 @@ const AppContent: FC = () => {
   const pageSubtitle = `${activeTerminal.title} · ${
     runtime.status.installed ? 'Linux 就绪' : '需要配置'
   }`;
+  /**
+   * A one-message conversation stays short; the card grows up to 62% as chat
+   * builds. SidePanel compensates for the IME from its own measured height.
+   */
+  const aiCardRatio = Math.min(
+    0.62,
+    0.34 + Math.max(1, state.aiMessages.length + (state.aiLoading ? 1 : 0)) * 0.05
+  );
 
   const openAiAssistant = () => dispatch({ type: 'openAiChat' });
   const closePanel = () => dispatch({ type: 'setView', view: 'terminal' });
@@ -234,6 +250,8 @@ const AppContent: FC = () => {
             dispatch={dispatch}
             config={config}
             showAuxiliary={showAuxiliary}
+            terminalApi={terminalApi}
+            onClosePanel={closePanel}
             onOpenSetup={openSetup}
           />
         );
@@ -342,6 +360,8 @@ const AppContent: FC = () => {
       <SidePanel
         open={panelOpen}
         section={panelSection}
+        compact={panelSection === 'ai'}
+        compactHeightRatio={aiCardRatio}
         onClose={closePanel}
         onBack={openMenu}
       >
@@ -511,6 +531,59 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
       />
 
       <View style={styles.commandDock}>
+        {/* Micro permission switches: they decide what AI may do to this terminal. */}
+        <View style={styles.aiCapabilityBar}>
+          <View style={styles.aiCapabilityBrand}>
+            <Ionicons name="sparkles-outline" size={11} color={systemColors.systemBlue} />
+            <Text style={styles.aiCapabilityBrandText}>AI</Text>
+          </View>
+          <View style={styles.aiCapabilityItems}>
+            {AI_CAPABILITIES.map(option => {
+              const checked = hasCapability(state.aiCapabilities, option.id);
+              return (
+                <Pressable
+                  key={option.id}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked }}
+                  accessibilityLabel={`${option.label}：${option.hint}`}
+                  hitSlop={{ top: 8, bottom: 8, left: 5, right: 5 }}
+                  onPress={() =>
+                    dispatch({ type: 'toggleAiCapability', capability: option.id })
+                  }
+                  style={styles.aiCapabilityItem}
+                >
+                  <View
+                    style={[
+                      styles.aiCheckbox,
+                      checked && styles.aiCheckboxChecked,
+                      option.sensitive && checked && styles.aiCheckboxSensitive,
+                    ]}
+                  >
+                    {checked ? <Ionicons name="checkmark" size={9} color="#FFFFFF" /> : null}
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.aiCapabilityLabel,
+                      checked && styles.aiCapabilityLabelChecked,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {hasCapability(state.aiCapabilities, 'run') ? (
+            <View style={styles.aiRunNotice}>
+              <View style={styles.aiRunDot} />
+              <Text numberOfLines={1} style={styles.aiRunNoticeText}>
+                自动执行已开启
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
         {showAuxiliary ? (
           <ScrollView
             horizontal
@@ -1054,6 +1127,8 @@ interface AIWorkspaceProps extends WorkspaceProps {
   state: MobileState;
   config: ReturnType<typeof useAppConfig>;
   showAuxiliary: boolean;
+  terminalApi: TerminalRuntimeApi;
+  onClosePanel: () => void;
   onOpenSetup: (step?: SetupStep) => void;
 }
 
@@ -1062,11 +1137,15 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
   dispatch,
   config,
   showAuxiliary,
+  terminalApi,
+  onClosePanel,
   onOpenSetup,
 }) => {
+  const [actionNote, setActionNote] = useState('');
   const provider = activeProvider(config);
   const chatActive = state.aiWorkspaceMode === 'chat';
   const activeTerminal = getActiveTerminal(state);
+  const includeContext = hasCapability(state.aiCapabilities, 'context');
   const platformLabel =
     COMMAND_PLATFORM_LABELS[
       commandPlatformForTerminal(
@@ -1075,6 +1154,38 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
         config.sshProfiles
       )
     ];
+
+  /** Apply an answer to the live terminal, then reveal the terminal window. */
+  const applyToTerminal = async (command: string, mode: 'fill' | 'run'): Promise<void> => {
+    if (mode === 'fill') {
+      dispatch({ type: 'insertCommand', command });
+      setActionNote('已填入终端输入框');
+    } else {
+      const ok = await terminalApi.executeCommand(command);
+      setActionNote(ok ? '已在终端执行，输出见终端窗口' : '终端未就绪，命令未执行');
+    }
+    onClosePanel();
+  };
+
+  const applyPlan = async (plan: AIActionPlan): Promise<void> => {
+    if (plan.fill) dispatch({ type: 'insertCommand', command: plan.fill });
+    if (plan.run.length) {
+      let executed = 0;
+      // Sequential writes keep dependent commands in order.
+      await plan.run.reduce(
+        (chain, command) =>
+          chain.then(async () => {
+            if (await terminalApi.executeCommand(command)) executed += 1;
+          }),
+        Promise.resolve()
+      );
+      setActionNote(
+        executed ? `已在终端执行 ${executed} 条命令` : '终端未就绪，命令未执行'
+      );
+    } else {
+      setActionNote(describeAIAction(plan));
+    }
+  };
 
   const send = async () => {
     const content = state.aiPrompt.trim();
@@ -1086,12 +1197,14 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
     const history: AIChatMessage[] = state.aiMessages
       .filter(message => !message.content.startsWith('可以让我解释'))
       .map(message => ({ role: message.role, content: message.content }));
-    const terminalContext = getActivePane(state)
-      .lines.slice(-60)
-      .map(line => line.text)
-      .join('\n')
-      .slice(-3000);
-    const basePrompt = `你是 AI Shell 手机端的运维助手。当前终端目标系统是 ${platformLabel}。回答要简洁、可执行，给出的命令必须适用于该系统；不要编造未执行过的输出。`;
+    const terminalContext = includeContext
+      ? getActivePane(state)
+          .lines.slice(-60)
+          .map(line => line.text)
+          .join('\n')
+          .slice(-3000)
+      : '';
+    const basePrompt = `你是 AI Shell 手机端的运维助手。当前终端目标系统是 ${platformLabel}。回答要简洁、可执行，给出的命令请放进 \`\`\`bash 代码块，必须适用于该系统；不要编造未执行过的输出。`;
     const systemPrompt = terminalContext.trim()
       ? `${basePrompt}\n\n当前终端最近输出：\n\`\`\`\n${terminalContext}\n\`\`\``
       : basePrompt;
@@ -1103,6 +1216,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
         systemPrompt
       );
       dispatch({ type: 'aiResponse', content: answer });
+      await applyPlan(planAIActions(answer, state.aiCapabilities));
     } catch (error) {
       dispatch({
         type: 'aiError',
@@ -1120,7 +1234,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
         >
           <Ionicons
             name="chatbubble-ellipses-outline"
-            size={15}
+            size={13}
             color={chatActive ? colors.text : colors.textDim}
           />
           <Text style={[styles.segmentText, chatActive && styles.segmentTextActive]}>对话</Text>
@@ -1131,7 +1245,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
         >
           <Ionicons
             name="key-outline"
-            size={15}
+            size={13}
             color={!chatActive ? colors.text : colors.textDim}
           />
           <Text style={[styles.segmentText, !chatActive && styles.segmentTextActive]}>模型</Text>
@@ -1142,24 +1256,18 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
         <>
           {showAuxiliary ? (
             <View style={styles.aiContextPanel}>
-              <View style={styles.aiContextTop}>
-                <View style={styles.flexText}>
-                  <Text style={styles.aiRole}>当前上下文</Text>
-                  <Text style={styles.aiText}>
-                    终端：{activeTerminal.title} · 已绑定命令输出与 {platformLabel} 环境信息。
-                  </Text>
-                </View>
-                <Pressable
-                  style={styles.secondaryAction}
-                  onPress={() => dispatch({ type: 'openAiProviders' })}
-                >
-                  <Ionicons name="options-outline" size={15} color={colors.textMuted} />
-                  <Text style={styles.secondaryActionText}>模型</Text>
-                </Pressable>
-              </View>
-              <Text numberOfLines={1} style={styles.providerModel}>
-                {provider ? `${provider.model} / ${provider.baseURL}` : '尚未配置 AI 提供商'}
+              <Ionicons name="terminal-outline" size={12} color={systemColors.systemBlue} />
+              <Text numberOfLines={1} style={styles.aiContextLine}>
+                {includeContext ? `${activeTerminal.title} · 已读取终端输出` : '未读取终端输出'} ·{' '}
+                {provider ? provider.model : '未配置模型'}
               </Text>
+              <Pressable
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                style={styles.aiContextAction}
+                onPress={() => dispatch({ type: 'openAiProviders' })}
+              >
+                <Text style={styles.aiContextActionText}>模型</Text>
+              </Pressable>
             </View>
           ) : null}
 
@@ -1170,6 +1278,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
           >
             {state.aiMessages.map((message, index) => {
               const user = message.role === 'user';
+              const commands = user ? [] : extractCommands(message.content);
               return (
                 <View
                   key={`${message.role}-${index}`}
@@ -1184,6 +1293,48 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                   <Text style={[styles.chatText, user && styles.chatTextUser]}>
                     {message.content}
                   </Text>
+                  {commands.length ? (
+                    <View style={styles.messageActionRow}>
+                      {commands.map((command, commandIndex) => (
+                        <View
+                          key={`${command}-${commandIndex}`}
+                          style={styles.messageActionLine}
+                        >
+                          <Text numberOfLines={1} style={styles.messageActionCommand}>
+                            {command}
+                          </Text>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`把 ${command} 填入终端输入框`}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            style={styles.messageActionButton}
+                            onPress={() => applyToTerminal(command, 'fill')}
+                          >
+                            <Text style={styles.messageActionText}>填入</Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`在终端执行 ${command}`}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            style={[
+                              styles.messageActionButton,
+                              styles.messageActionButtonRun,
+                            ]}
+                            onPress={() => applyToTerminal(command, 'run')}
+                          >
+                            <Text
+                              style={[
+                                styles.messageActionText,
+                                styles.messageActionRunText,
+                              ]}
+                            >
+                              执行
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
               );
             })}
@@ -1199,6 +1350,27 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
           </ScrollView>
 
           {state.aiError ? <Text style={styles.aiError}>{state.aiError}</Text> : null}
+
+          {actionNote ? (
+            <View style={styles.aiActionNote}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={12}
+                color={systemColors.systemGreen}
+              />
+              <Text numberOfLines={1} style={styles.aiActionNoteText}>
+                {actionNote}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="清除 AI 操作提示"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                onPress={() => setActionNote('')}
+              >
+                <Ionicons name="close" size={11} color={colors.textDim} />
+              </Pressable>
+            </View>
+          ) : null}
 
           <View style={styles.inputRow}>
             <TextInput
@@ -1710,6 +1882,53 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
   },
+  // Deliberately tiny: a 13px check square and 10px label keep the whole
+  // permission row under 26px so the terminal output keeps its height.
+  // hitSlop gives each switch a comfortable touch area without visual bulk.
+  aiCapabilityBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 24,
+    paddingTop: 1,
+    paddingBottom: 3,
+  },
+  aiCapabilityBrand: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  aiCapabilityBrandText: {
+    color: systemColors.systemBlue,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  aiCapabilityItems: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  aiCapabilityItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  aiCheckbox: {
+    width: 13,
+    height: 13,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.textDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiCheckboxChecked: {
+    backgroundColor: systemColors.systemBlue,
+    borderColor: systemColors.systemBlue,
+  },
+  aiCheckboxSensitive: {
+    backgroundColor: systemColors.systemOrange,
+    borderColor: systemColors.systemOrange,
+  },
+  aiCapabilityLabel: { color: colors.textDim, fontSize: 10.5 },
+  aiCapabilityLabelChecked: { color: systemColors.label },
+  aiRunNotice: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  aiRunDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: systemColors.systemOrange,
+  },
+  aiRunNoticeText: { color: systemColors.systemOrange, fontSize: 9.5 },
   // A horizontal ScrollView without an explicit height grows into whatever
   // space the flex column has left, which pushes the command dock away from
   // the terminal output. Pin the strips so the output area owns the slack.
@@ -1885,91 +2104,128 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   segmentedControl: {
-    minHeight: 50,
-    padding: 3,
-    borderRadius: 12,
+    minHeight: 34,
+    padding: 2,
+    borderRadius: 9,
     backgroundColor: colors.panel,
     flexDirection: 'row',
-    gap: 3,
-    marginBottom: 14,
+    gap: 2,
+    marginBottom: 8,
   },
   segmentButton: {
     flex: 1,
-    minHeight: 44,
-    borderRadius: radius.sm,
+    minHeight: 30,
+    borderRadius: 7,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
+    gap: 4,
   },
   segmentButtonActive: { backgroundColor: colors.panelRaised },
-  segmentText: { color: colors.textDim, fontSize: 12, fontWeight: '600' },
+  segmentText: { color: colors.textDim, fontSize: 11, fontWeight: '600' },
   segmentTextActive: { color: colors.text },
+  // One 28px meta line replaces the old two-line context card.
   aiContextPanel: {
-    padding: spacing.lg,
-    borderRadius: 14,
+    minHeight: 28,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
     backgroundColor: colors.panel,
-    marginBottom: spacing.sm,
-  },
-  aiContextTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    marginBottom: spacing.sm,
+    gap: 6,
+    marginBottom: 6,
   },
-  aiRole: { color: colors.accent, fontSize: 12, fontWeight: '600', marginBottom: 4 },
-  aiText: { color: colors.textMuted, fontSize: 13, lineHeight: 20 },
-  providerModel: { color: colors.textDim, fontSize: 11, fontFamily: 'Courier' },
-  chatPanel: { flex: 1, minHeight: 120, marginBottom: spacing.sm },
+  aiContextLine: { flex: 1, color: colors.textMuted, fontSize: 10.5 },
+  aiContextAction: { paddingHorizontal: 2 },
+  aiContextActionText: { color: systemColors.systemBlue, fontSize: 10.5, fontWeight: '600' },
+  chatPanel: { flex: 1, minHeight: 64, marginBottom: 5 },
   // Messages sit just above the composer rather than leaving a tall void below them.
   chatContent: {
     flexGrow: 1,
-    gap: 10,
-    paddingBottom: spacing.sm,
+    gap: 6,
+    paddingBottom: 2,
     justifyContent: 'flex-end',
   },
   providerScroll: { flex: 1 },
   providerScrollContent: { flexGrow: 1, paddingBottom: spacing.xl },
-  chatBubble: { padding: 14, borderRadius: 16, maxWidth: '86%' },
+  chatBubble: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: 11, maxWidth: '92%' },
   chatBubbleAssistant: {
     backgroundColor: colors.panel,
-    borderBottomLeftRadius: 5,
+    borderBottomLeftRadius: 4,
     alignSelf: 'flex-start',
   },
   chatBubbleUser: {
     backgroundColor: colors.accent,
-    borderBottomRightRadius: 5,
+    borderBottomRightRadius: 4,
     alignSelf: 'flex-end',
   },
-  chatRole: { color: colors.textDim, fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  chatRole: { color: colors.textDim, fontSize: 9.5, fontWeight: '600', marginBottom: 1 },
   chatRoleUser: { color: 'rgba(255,255,255,0.72)' },
-  chatText: { color: colors.text, fontSize: 13.5, lineHeight: 20 },
+  chatText: { color: colors.text, fontSize: 12, lineHeight: 17 },
   chatTextUser: { color: '#fff' },
-  typing: { flexDirection: 'row', gap: 5, paddingVertical: 4 },
-  typingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.textDim },
-  aiError: { color: colors.red, fontSize: 12, lineHeight: 18, marginBottom: spacing.sm },
+  // Inline terminal actions: a command plus two 20px text buttons per row.
+  messageActionRow: { gap: 3, marginTop: 6 },
+  messageActionLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 20,
+    paddingTop: 3,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderSoft,
+  },
+  messageActionCommand: {
+    flex: 1,
+    minWidth: 0,
+    color: colors.textMuted,
+    fontSize: 10,
+    fontFamily: 'Courier',
+  },
+  messageActionButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    backgroundColor: colors.panelRaised,
+  },
+  messageActionButtonRun: { backgroundColor: 'rgba(10, 132, 255, 0.16)' },
+  messageActionText: { color: colors.textMuted, fontSize: 10, fontWeight: '600' },
+  messageActionRunText: { color: systemColors.systemBlue },
+  aiActionNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 22,
+    paddingHorizontal: 8,
+    borderRadius: 7,
+    backgroundColor: 'rgba(48, 209, 88, 0.12)',
+    marginBottom: 4,
+  },
+  aiActionNoteText: { flex: 1, color: systemColors.systemGreen, fontSize: 10.5 },
+  typing: { flexDirection: 'row', gap: 4, paddingVertical: 2 },
+  typingDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.textDim },
+  aiError: { color: colors.red, fontSize: 11, lineHeight: 16, marginBottom: 4 },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
+    gap: 6,
+    marginTop: 4,
   },
   aiPromptInput: {
     flex: 1,
-    minHeight: 58,
-    maxHeight: 120,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 12,
+    minHeight: 38,
+    maxHeight: 76,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 9,
     backgroundColor: colors.panel,
     color: colors.text,
-    fontSize: 13.5,
+    fontSize: 12.5,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 9,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',

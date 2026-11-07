@@ -171,6 +171,17 @@ describe('mobile runtime state', () => {
     expect(state.aiMessages).toEqual([]);
   });
 
+  it('keeps AI terminal permissions off by default and toggles them explicitly', () => {
+    let state = initial();
+    expect(state.aiCapabilities).toEqual(['context', 'fill']);
+    state = mobileReducer(state, { type: 'toggleAiCapability', capability: 'run' });
+    expect(state.aiCapabilities).toEqual(['context', 'fill', 'run']);
+    state = mobileReducer(state, { type: 'toggleAiCapability', capability: 'fill' });
+    expect(state.aiCapabilities).toEqual(['context', 'run']);
+    state = mobileReducer(state, { type: 'loadWorkspace', terminals: [{ title: 'Linux', type: 'local' }] });
+    expect(state.aiCapabilities).toEqual(['context', 'run']);
+  });
+
   it('restores a saved workspace layout', () => {
     const state = mobileReducer(initial(), {
       type: 'loadWorkspace',
