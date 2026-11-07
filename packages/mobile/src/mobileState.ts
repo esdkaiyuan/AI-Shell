@@ -1,5 +1,11 @@
+/**
+ * `terminal` means "trailing sheet dismissed, main page shows the terminal".
+ * Every other value is a section displayed inside the trailing sheet, with
+ * `menu` being its inset-grouped root. See `navigation.ts`.
+ */
 export type MainView =
   | 'terminal'
+  | 'menu'
   | 'ssh'
   | 'sessions'
   | 'explorer'

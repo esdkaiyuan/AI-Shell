@@ -42,11 +42,38 @@ declare module 'react-native' {
     ) => void;
   };
   export const Platform: { OS: string };
+  export interface AnimatedValue {
+    setValue(value: number): void;
+    interpolate(config: Record<string, unknown>): unknown;
+  }
+  export interface AnimatedAnimation {
+    start(done?: () => void): void;
+    stop(): void;
+  }
+  export const Animated: {
+    Value: new (initial: number) => AnimatedValue;
+    View: Component;
+    timing(value: AnimatedValue, config: Record<string, unknown>): AnimatedAnimation;
+    spring(value: AnimatedValue, config: Record<string, unknown>): AnimatedAnimation;
+  };
+  export const AccessibilityInfo: {
+    isReduceMotionEnabled(): Promise<boolean>;
+    addEventListener(
+      event: string,
+      listener: (...args: unknown[]) => void
+    ): { remove: () => void };
+  };
   export const Keyboard: {
     addListener: (
       event: string,
       listener: (...args: unknown[]) => void
     ) => { remove: () => void };
+  };
+  export const BackHandler: {
+    addEventListener(
+      event: 'hardwareBackPress',
+      handler: () => boolean
+    ): { remove: () => void };
   };
   export function useWindowDimensions(): {
     width: number;

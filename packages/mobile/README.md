@@ -17,15 +17,14 @@ APK 打包以下资源，不包含任何真实凭据：
 
 ## 页面
 
-底部五项导航：
+按 Apple HIG 收敛的信息架构：
 
-- 终端
-- AI
-- 文件
-- SSH
-- 我的
+- **主页面**：大标题导航条（终端 + 当前会话/环境）+ 全屏终端窗口 + 唯一主操作「AI 辅助」按钮。无底部导航、无工具栏。
+- **右侧模态侧窗**：点 AI 辅助按钮展开，功能清单可切换到 AI 对话、文件、SSH、工作区会话、命令历史、设置、我的；「终端操作」分组执行新建终端、分屏、查找、清屏、复制输出与粘贴。
+- 侧窗遵循 HIG Modality：遮罩变暗、右侧滑入、grabber、固定导航条（「功能」返回 / 标题 / 「完成」关闭）；Reduce Motion 降级为零时长动画。
+- 关闭方式：完成、点遮罩、Android 硬件返回键（非根分区先回功能清单）。
 
-“我的”包含工作区会话、命令历史和运行环境与设置。
+设计令牌集中在 `src/hig.ts`（系统色、动态字阶、间距网格、圆角、动效、侧窗尺寸），`theme.ts` 对齐系统色并保留既有 key。
 
 ## 终端
 
@@ -87,12 +86,12 @@ SSH 配置可选择远端系统。历史命令会记录系统标签，避免在 
 - 终端命令坞：控制键、补全/常用命令与输入栏合并为底部固定分组，输出区 `flex: 1` 独占剩余高度，消除横向滚动条在 flex 列中被拉伸造成的中段空洞。
 - 横向列表（标签、控制键、常用命令、模型与厂商 chips）统一使用 Android 渐隐边缘，明确提示还能继续滚动。
 - 聊天气泡限宽 86%，用户右对齐、助手左对齐，消息贴近输入栏；空状态在可用区域内垂直居中。
-- 底部导航使用顶部指示条 + 图标/文字变色表示选中，避免大面积色块跳动。
+- 主页面与侧窗的按钮、标签、清单项均保持至少 44dp 触控目标；侧窗返回/完成按钮带明确无障碍标签。
 - 密钥字段、错误信息和危险操作使用明确文案；首启向导禁用「下一步」时说明原因。
 
 ### 模拟器验证
 
-在 `Medium Phone API 36`（1080×2400 / 420dpi / x86_64）上完成首启向导、五个主页面切换、内置 Alpine rootfs 解压与 PTY 会话验证；对照截图修正了终端中段空白、横向列表裁切、空状态贴顶、气泡满宽与导航高亮过重等问题。
+在 `Medium Phone API 36` 与 `Medium Phone`（1080×2400 / 420dpi / x86_64）上完成首启向导、内置 Alpine rootfs 解压与 PTY 会话验证；对照截图修正了终端中段空白、横向列表裁切、空状态贴顶、气泡满宽等问题。侧窗版另完成实测：主页面仅终端 + AI 辅助按钮、AI 辅助展开侧窗、功能清单分组渲染、侧窗内切换功能，以及「完成」/点遮罩/硬件返回键两级回退四条关闭路径，均无残留遮罩。
 
 > 注意：`debug` APK 默认不打包 JS bundle，脱离 Metro 会白屏。离线安装到模拟器请直接使用 `release` APK（内含 `assets/index.android.bundle`），或先启动 `expo start` 并配置 `adb reverse tcp:8081 tcp:8081`。
 
@@ -152,7 +151,11 @@ pnpm --filter @ai-shell/mobile build:web
 App.tsx                                  页面、导航、终端/AI/SSH 工作区
 src/components/SetupWizard.tsx           首启向导、AI/SSH 配置、PEM 导入
 src/components/ProfileHome.tsx           我的页面
-src/components/BottomNav.tsx             底部五项导航
+src/components/SidePanel.tsx             Apple HIG 右侧模态侧窗（动画/遮罩/导航条/Reduce Motion）
+src/components/FunctionMenu.tsx          侧窗功能清单与终端操作分组
+src/components/AIAssistButton.tsx        主页面唯一主操作按钮
+src/hig.ts / src/hig.test.ts             Apple HIG 设计令牌与尺寸/字阶单测
+src/navigation.ts                        侧窗分区、标题、分组与内容模式
 src/components/TerminalPreview.tsx       终端输出区
 src/layout.ts                            紧凑模式、宽屏限宽、渐隐长度等布局决策
 src/layout.test.ts                       布局决策单元测试

@@ -21,7 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 自适应密度：软键盘弹出或窗口高度 < 620dp 时收起辅助控件，保留输出区与输入栏；≥720dp 宽屏内容列居中限宽 560dp
 - 布局决策模块 `src/layout.ts` + 8 个单元测试，软键盘状态 hook `useKeyboardVisible`
 - 横向列表统一 Android 渐隐边缘；四周安全区（含横屏左右挖孔）
-- 手机端底部五项导航（终端/AI/文件/SSH/我的），会话、历史、设置调整为二级入口
+- **手机端按 Apple HIG 重排信息架构**：主页面只保留「大标题导航条 + 全屏终端 + 一个 AI 辅助按钮」，移除底部五项导航与页头状态堆叠
+- 所有功能切换改为右侧模态侧窗（trailing sheet）：功能清单 → AI 对话、文件、SSH、会话、历史、设置、我的；侧窗支持「功能」返回、完成关闭、点遮罩关闭、Android 硬件返回键逐级回退
+- 终端操作（新建终端 / 分屏 / 查找 / 清屏 / 复制输出 / 粘贴）收进侧窗「终端操作」分组，主页面不再有工具栏
+- Apple HIG 设计令牌层 `src/hig.ts`：系统色、动态字阶、间距网格、连续圆角、动效时长、侧窗宽度与安全区计算；`theme.ts` 对齐系统色且保留既有 key
+- 侧窗遵循 HIG Modality：遮罩变暗、右侧滑入、grabber、固定导航条、Reduce Motion 自动降级为零时长动画、44pt 触控目标
+- 清理 `BottomNav.tsx` 及 28 个不再使用的旧样式定义；导航模型与单测同步为「侧窗分区」语义
 - SSH 私钥文件导入：支持 OpenSSH、RSA、ECDSA、PKCS#8、加密 PEM；拒绝证书、公钥、PuTTY `.ppk`
 - 多系统命令补全：Alpine、Linux、macOS、Windows PowerShell、Windows CMD
 - SSH 远端系统选择，历史命令按系统标记，补全和 AI 提示随系统变化

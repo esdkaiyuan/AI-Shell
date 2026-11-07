@@ -170,7 +170,7 @@ cd packages/mobile/android && ./gradlew testDebugUnitTest
 UI 验收建议使用真实 Electron 和移动 Web：
 
 - 桌面：800×600、1280×800、1440×900；检查弹层、焦点、Escape 和长文本。
-- 移动：360、390、430px；检查底部导航、44px 触控目标、键盘和安全区。
+- 移动：360、390、430px；检查主页面终端全高、侧窗滑入/关闭/返回层级、44px 触控目标、键盘和安全区。
 - 真实 macOS 菜单、真机 PRoot/PTY/SSH 需要在对应设备补充验收。
 
 ## 8. 代码规范

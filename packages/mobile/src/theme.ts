@@ -1,57 +1,70 @@
+/**
+ * App-wide theme tokens.
+ *
+ * Values are aligned with the Apple HIG dark system palette in `hig.ts` so
+ * existing components and the new trailing-sheet surfaces stay consistent.
+ * `colors` / `spacing` / `radius` / `typography` keep their historical keys to
+ * avoid churn across the existing workspaces; new UI should prefer `hig.ts`.
+ */
+import { corner, grid, systemColors, typeScale } from './hig';
+
 export const colors = {
-  bg: '#0a0a0b',
-  appBg: '#0a0a0b',
-  panel: '#1c1c1e',
-  panelRaised: '#2c2c2e',
-  panelHover: '#3a3a3c',
-  border: 'rgba(255, 255, 255, 0.14)',
-  borderSoft: 'rgba(255, 255, 255, 0.08)',
-  text: '#f5f5f7',
-  textMuted: '#a1a1a6',
-  textDim: '#98989d',
-  accent: '#0a84ff',
+  bg: systemColors.systemBackground,
+  appBg: systemColors.systemGroupedBackground,
+  panel: systemColors.secondarySystemGroupedBackground,
+  panelRaised: systemColors.tertiarySystemGroupedBackground,
+  panelHover: systemColors.systemFill,
+  border: systemColors.separator,
+  borderSoft: 'rgba(84, 84, 88, 0.36)',
+  text: systemColors.label,
+  textMuted: systemColors.secondaryLabel,
+  textDim: systemColors.tertiaryLabel,
+  accent: systemColors.systemBlue,
   accentSoft: 'rgba(10, 132, 255, 0.16)',
-  green: '#30d158',
-  yellow: '#ff9f0a',
-  red: '#ff453a',
-  cyan: '#64d2ff',
-  toolbar: '#141416',
+  green: systemColors.systemGreen,
+  yellow: systemColors.systemOrange,
+  red: systemColors.systemRed,
+  cyan: '#64D2FF',
+  toolbar: systemColors.secondarySystemBackground,
   selection: 'rgba(10, 132, 255, 0.18)',
 };
 
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
+  xs: grid.half,
+  sm: grid.unit,
+  md: grid.tight,
+  lg: grid.base,
+  xl: grid.loose,
+  xxl: grid.section,
 };
 
 export const radius = {
   xs: 6,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 22,
-  pill: 999,
+  sm: grid.unit,
+  md: corner.card,
+  lg: corner.grouped,
+  xl: corner.sheet,
+  pill: corner.pill,
 };
 
-/** Minimum tappable area (Apple HIG / Material). */
+/** Minimum tappable area (Apple HIG). */
 export const touchTarget = 44;
 
-/** Shared type scale — keep secondary text at 12dp or larger. */
+/** Legacy compatibility scale; prefer `hig.typeScale` for new UI. */
 export const typography = {
-  caption: 12,
-  body: 14,
-  callout: 15,
-  title: 18,
-  hero: 26,
+  caption: typeScale.caption1.fontSize,
+  body: typeScale.subheadline.fontSize - 1,
+  callout: typeScale.callout.fontSize - 1,
+  title: typeScale.title3.fontSize - 2,
+  hero: typeScale.title1.fontSize - 2,
 };
 
 /** Surfaces that separate scrollable content from the window background. */
 export const surfaces = {
   terminal: '#050506',
-  outline: 'rgba(255, 255, 255, 0.10)',
+  outline: 'rgba(84, 84, 88, 0.48)',
   dock: 'rgba(20, 20, 22, 0.92)',
+  sheet: systemColors.secondarySystemGroupedBackground,
+  sheetRaised: systemColors.tertiarySystemGroupedBackground,
+  scrim: systemColors.scrim,
 };

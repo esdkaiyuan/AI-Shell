@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FC } from 'react';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,12 +16,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { AIAssistButton } from './src/components/AIAssistButton';
 import { CommandChip } from './src/components/CommandChip';
-import { BottomNav } from './src/components/BottomNav';
 import { FileRow } from './src/components/FileRow';
+import { FunctionMenu } from './src/components/FunctionMenu';
 import { ProfileHome } from './src/components/ProfileHome';
 import { SectionHeader } from './src/components/SectionHeader';
 import { SetupWizard } from './src/components/SetupWizard';
+import { SidePanel } from './src/components/SidePanel';
 import { StatusPill } from './src/components/StatusPill';
 import { TerminalPreview } from './src/components/TerminalPreview';
 import type { FileItem } from './src/data';
@@ -68,7 +70,13 @@ import {
   mobileReducer,
 } from './src/mobileState';
 import { colors, radius, spacing, surfaces, typography } from './src/theme';
-import { viewTitle, type PrimaryView } from './src/navigation';
+import { barHeight, grid, systemColors, typeScale } from './src/hig';
+import {
+  isPanelOpen,
+  type PanelDestination,
+  type PanelSection,
+  type TerminalAction,
+} from './src/navigation';
 
 type SetupStep = 'environment' | 'ai' | 'ssh' | 'finish';
 type MobilePressEvent = { stopPropagation: () => void };
@@ -145,69 +153,67 @@ const AppContent: FC = () => {
   );
 
   const activeTerminal = getActiveTerminal(state);
-  const selectPrimaryView = (view: PrimaryView) => {
+  const panelOpen = isPanelOpen(state.currentView);
+  /** Keep the last section mounted while the closing animation runs. */
+  const lastSection = useRef<PanelSection>('ai');
+  if (panelOpen) lastSection.current = state.currentView as PanelSection;
+  const panelSection = lastSection.current;
+  const pageSubtitle = `${activeTerminal.title} · ${
+    runtime.status.installed ? 'Linux 就绪' : '需要配置'
+  }`;
+
+  const openAiAssistant = () => dispatch({ type: 'openAiChat' });
+  const closePanel = () => dispatch({ type: 'setView', view: 'terminal' });
+  const openMenu = () => dispatch({ type: 'setView', view: 'menu' });
+  const selectPanelDestination = (view: PanelDestination) => {
     if (view === 'ai') {
       dispatch({ type: 'openAiChat' });
     } else {
       dispatch({ type: 'setView', view });
     }
   };
-  const fullHeightWorkspace = state.currentView === 'terminal' || state.currentView === 'ai';
-  const secondaryView = ['sessions', 'history', 'settings'].includes(state.currentView);
-  const headerProvider = activeProvider(config);
-  const pageSubtitle = (() => {
-    switch (state.currentView) {
-      case 'terminal':
-        return activeTerminal.title;
-      case 'ai':
-        return headerProvider
-          ? `${headerProvider.displayName} · ${headerProvider.model}`
-          : '未配置 AI 提供商';
-      case 'explorer':
-        return runtime.status.installed
-          ? `${runtime.status.distro || 'Alpine'} · ${state.currentPath}`
-          : '安装内置 Linux 后浏览文件';
-      case 'ssh':
-        return config.sshProfiles.length
-          ? `${config.sshProfiles.length} 个已保存连接`
-          : '添加第一个远程主机';
-      case 'sessions':
-        return `${config.workspaceSessions.length} 个已保存工作区`;
-      case 'history':
-        return `${config.history.length} 条已提交命令`;
-      case 'settings':
-        return '环境、安全与偏好';
-      case 'profile':
-        return 'AI Shell · esdkaiyuan';
-      default:
-        return '';
+  /** Terminal-scoped actions run in place, then dismiss the sheet back to the terminal. */
+  const runTerminalAction = (action: TerminalAction) => {
+    switch (action) {
+      case 'newLocalTerminal':
+        dispatch({ type: 'newLocalTerminal' });
+        break;
+      case 'toggleSplit':
+        dispatch({ type: 'toggleSplit' });
+        break;
+      case 'toggleSearch':
+        dispatch({ type: 'toggleSearch' });
+        break;
+      case 'clearPane':
+        terminalApi.clearActive();
+        break;
+      case 'copyOutput':
+        terminalApi.copyOutput();
+        break;
+      case 'paste':
+        readClipboard()
+          .then(text => {
+            if (text) dispatch({ type: 'setCommandInput', value: state.commandInput + text });
+          })
+          .catch(() => undefined);
+        break;
     }
-  })();
-  const headerStatus: { label: string; tone: 'green' | 'yellow' } | null =
-    state.currentView === 'ai'
-      ? headerProvider
-        ? { label: 'AI 已配置', tone: 'green' }
-        : { label: '未配置 AI', tone: 'yellow' }
-      : ['terminal', 'explorer', 'ssh'].includes(state.currentView)
-        ? runtime.status.installed
-          ? { label: 'Linux 就绪', tone: 'green' }
-          : { label: '需要配置', tone: 'yellow' }
-        : null;
+    closePanel();
+  };
 
-  const renderContent = () => {
-    switch (state.currentView) {
-      case 'terminal':
+  /** Every destination lives inside the trailing sheet; the main page is terminal only. */
+  const renderPanelContent = () => {
+    switch (panelSection) {
+      case 'menu':
         return (
-          <TerminalWorkspace
-            state={state}
-            dispatch={dispatch}
-            config={config}
-            runtime={runtime.status}
-            terminalApi={terminalApi}
-            showAuxiliary={showAuxiliary}
-            onOpenSetup={openSetup}
+          <FunctionMenu
+            section={panelSection}
+            onSelect={selectPanelDestination}
+            onAction={runTerminalAction}
           />
         );
+      case 'terminal':
+        return null;
       case 'ssh':
         return <SSHWorkspace config={config} dispatch={dispatch} onOpenSetup={openSetup} />;
       case 'sessions':
@@ -274,43 +280,32 @@ const AppContent: FC = () => {
   }
 
   return (
-    <View
-      style={[
-        styles.safeArea,
-        {
-          paddingTop: insets.top,
-          paddingLeft: insets.left,
-          paddingRight: insets.right,
-        },
-      ]}
-    >
-      <StatusBar style="light" />
-      <View style={styles.appBar}>
-        {secondaryView ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="返回我的"
-            style={styles.backButton}
-            onPress={() => dispatch({ type: 'setView', view: 'profile' })}
-          >
-            <Ionicons name="chevron-back" size={22} color={colors.accent} />
-          </Pressable>
-        ) : (
-          <View style={styles.brandMark}>
-            <Ionicons name="terminal" size={18} color={colors.accent} />
-          </View>
-        )}
-        <View style={styles.appBarText}>
-          <Text style={styles.appName}>{viewTitle(state.currentView)}</Text>
-          <Text numberOfLines={1} style={styles.appSub}>
-            {pageSubtitle}
-          </Text>
-        </View>
-        {headerStatus ? <StatusPill label={headerStatus.label} tone={headerStatus.tone} /> : null}
-      </View>
+    <View style={styles.root}>
+      <View
+        style={[
+          styles.safeArea,
+          {
+            paddingTop: insets.top,
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
+            paddingBottom: insets.bottom,
+          },
+        ]}
+      >
+        <StatusBar style="light" />
 
-      <View style={styles.main}>
-        {fullHeightWorkspace ? (
+        {/* HIG large-title navigation bar with a single prominent action. */}
+        <View style={styles.titleBar}>
+          <View style={styles.titleBarText}>
+            <Text style={styles.largeTitle}>终端</Text>
+            <Text numberOfLines={1} style={styles.titleSubtitle}>
+              {pageSubtitle}
+            </Text>
+          </View>
+          <AIAssistButton active={panelOpen} onPress={openAiAssistant} />
+        </View>
+
+        <View style={styles.main}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={[
@@ -320,36 +315,38 @@ const AppContent: FC = () => {
                 : null,
             ]}
           >
-            {renderContent()}
+            <TerminalWorkspace
+              state={state}
+              dispatch={dispatch}
+              config={config}
+              runtime={runtime.status}
+              terminalApi={terminalApi}
+              showAuxiliary={showAuxiliary}
+              onOpenSetup={openSetup}
+            />
           </KeyboardAvoidingView>
-        ) : (
-          <ScrollView
-            style={styles.content}
-            contentContainerStyle={[
-              styles.contentInner,
-              maxContentWidth
-                ? { width: '100%', maxWidth: maxContentWidth, alignSelf: 'center' }
-                : null,
-            ]}
-          >
-            {renderContent()}
-          </ScrollView>
-        )}
+        </View>
+
+        <SetupWizard
+          visible={wizardOpen}
+          initialStep={wizardStep}
+          onComplete={() => {
+            setWizardOpen(false);
+            runtimeStore.refresh();
+          }}
+          onClose={config.setupCompleted ? () => setWizardOpen(false) : undefined}
+        />
       </View>
 
-      <View style={[styles.bottomNavInset, { paddingBottom: insets.bottom }]}>
-        <BottomNav currentView={state.currentView} onSelect={selectPrimaryView} />
-      </View>
-
-      <SetupWizard
-        visible={wizardOpen}
-        initialStep={wizardStep}
-        onComplete={() => {
-          setWizardOpen(false);
-          runtimeStore.refresh();
-        }}
-        onClose={config.setupCompleted ? () => setWizardOpen(false) : undefined}
-      />
+      {/* Trailing sheet overlays the whole window, including the status-bar area. */}
+      <SidePanel
+        open={panelOpen}
+        section={panelSection}
+        onClose={closePanel}
+        onBack={openMenu}
+      >
+        {renderPanelContent()}
+      </SidePanel>
     </View>
   );
 };
@@ -376,7 +373,6 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
   showAuxiliary,
   onOpenSetup,
 }) => {
-  const [toolsOpen, setToolsOpen] = useState(false);
   const activeTerminal = getActiveTerminal(state);
   const activePane = getActivePane(state);
   const commandPlatform = commandPlatformForTerminal(
@@ -401,13 +397,6 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
   const visibleLines = query
     ? activePane.lines.filter(line => line.text.toLowerCase().includes(query.toLowerCase()))
     : activePane.lines;
-
-  const paste = async () => {
-    const text = await readClipboard().catch(() => '');
-    if (text) {
-      dispatch({ type: 'setCommandInput', value: state.commandInput + text });
-    }
-  };
 
   return (
     <>
@@ -476,45 +465,6 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
           <Ionicons name="add" size={18} color={colors.textMuted} />
         </Pressable>
       </ScrollView>
-
-      <View style={styles.toolbarGrid}>
-        <ToolButton
-          icon="git-compare-outline"
-          label="分屏"
-          onPress={() => dispatch({ type: 'toggleSplit' })}
-        />
-        <ToolButton
-          icon="search-outline"
-          label="查找"
-          onPress={() => dispatch({ type: 'toggleSearch' })}
-        />
-        <ToolButton
-          icon="sparkles-outline"
-          label="AI"
-          onPress={() => dispatch({ type: 'openAiChat' })}
-        />
-        <ToolButton
-          icon={toolsOpen ? 'chevron-up-outline' : 'ellipsis-horizontal'}
-          label={toolsOpen ? '收起' : '更多'}
-          onPress={() => setToolsOpen(open => !open)}
-        />
-      </View>
-      {toolsOpen ? (
-        <View style={styles.secondaryTools}>
-          <ToolButton
-            icon="add"
-            label="本地"
-            onPress={() => dispatch({ type: 'newLocalTerminal' })}
-          />
-          <ToolButton icon="copy-outline" label="复制" onPress={() => terminalApi.copyOutput()} />
-          <ToolButton icon="clipboard-outline" label="粘贴" onPress={paste} />
-          <ToolButton
-            icon="refresh-outline"
-            label="清屏"
-            onPress={() => terminalApi.clearActive()}
-          />
-        </View>
-      ) : null}
 
       {activeTerminal.showSearch ? (
         <View style={styles.searchPanel}>
@@ -1564,19 +1514,6 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
   );
 };
 
-interface ToolButtonProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-}
-
-const ToolButton: FC<ToolButtonProps> = ({ icon, label, onPress }) => (
-  <Pressable style={styles.toolButton} onPress={onPress}>
-    <Ionicons name={icon} size={16} color={colors.textMuted} />
-    <Text style={styles.toolButtonText}>{label}</Text>
-  </Pressable>
-);
-
 interface SettingRowProps {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
@@ -1596,6 +1533,7 @@ const SettingRow: FC<SettingRowProps> = ({ icon, title, value }) => (
 );
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: systemColors.systemBackground },
   safeArea: {
     flex: 1,
     backgroundColor: colors.appBg,
@@ -1619,104 +1557,35 @@ const styles = StyleSheet.create({
   bootTitle: { color: colors.text, fontSize: 22, fontWeight: '700' },
   bootSub: { color: colors.textDim, fontSize: 12 },
   bootSpinner: { marginTop: spacing.md },
-  appBar: {
-    height: 56,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
-    backgroundColor: colors.toolbar,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  brandMark: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: colors.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  appBarText: { flex: 1, minWidth: 0 },
-  backButton: {
-    width: 44,
-    height: 44,
-    marginLeft: -10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  appName: { color: colors.text, fontSize: 18, fontWeight: '600', letterSpacing: -0.2 },
-  appSub: { color: colors.textDim, fontSize: 11, marginTop: 2 },
-  liveChip: {
-    height: 28,
-    paddingHorizontal: 9,
-    borderRadius: radius.pill,
-    backgroundColor: colors.panel,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  liveDot: { width: 6, height: 6, borderRadius: 3 },
-  liveText: { color: colors.textMuted, fontSize: 10, fontWeight: '600' },
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: colors.panelRaised,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusStrip: {
-    height: 28,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
-    backgroundColor: colors.bg,
+  /** HIG large-title navigation bar: one title, one prominent action. */
+  titleBar: {
+    minHeight: barHeight.largeTitle + grid.tight,
+    paddingHorizontal: grid.base,
+    paddingTop: grid.unit,
+    paddingBottom: grid.tight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.sm,
+    gap: grid.tight,
+    backgroundColor: systemColors.systemGroupedBackground,
   },
-  statusStripText: { color: colors.textDim, fontSize: 10, fontFamily: 'Courier' },
+  titleBarText: { flex: 1, minWidth: 0, gap: 2 },
+  largeTitle: {
+    color: systemColors.label,
+    fontSize: typeScale.title1.fontSize,
+    lineHeight: typeScale.title1.lineHeight,
+    fontWeight: '700',
+    letterSpacing: typeScale.title1.letterSpacing,
+  },
+  titleSubtitle: {
+    color: systemColors.secondaryLabel,
+    fontSize: typeScale.footnote.fontSize,
+    lineHeight: typeScale.footnote.lineHeight,
+    letterSpacing: typeScale.footnote.letterSpacing,
+  },
   main: { flex: 1 },
-  navRail: {
-    maxHeight: 66,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
-    backgroundColor: colors.toolbar,
-  },
-  navRailInner: { paddingHorizontal: 6, paddingVertical: spacing.sm, gap: 2 },
-  navButton: {
-    width: 48,
-    height: 46,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  navButtonActive: { backgroundColor: colors.selection },
-  navLabel: { color: colors.textDim, fontSize: 10, fontWeight: '500' },
-  navLabelActive: { color: colors.accent },
-  content: { flex: 1 },
   fullHeightContent: { flex: 1, padding: spacing.lg },
-  bottomNavInset: { backgroundColor: colors.toolbar },
-  contentInner: { flexGrow: 1, padding: spacing.lg, paddingBottom: spacing.xxl },
   flexText: { flex: 1, minWidth: 0 },
-  headerLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    gap: spacing.md,
-  },
-  eyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  title: { color: colors.text, fontSize: 26, fontWeight: '700', letterSpacing: -0.5, marginTop: 2 },
   pageActionRow: {
     minHeight: 44,
     flexDirection: 'row',
@@ -1759,30 +1628,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  toolbarGrid: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  secondaryTools: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: -spacing.sm,
-    marginBottom: spacing.md,
-  },
-  toolButton: {
-    flex: 1,
-    minWidth: 0,
-    height: 44,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 10,
-    backgroundColor: colors.panelRaised,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-  },
-  toolButtonText: { color: colors.textMuted, fontSize: 11, fontWeight: '500' },
   runtimeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
