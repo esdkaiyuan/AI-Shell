@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { FC } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FileItem } from '../data';
+import { monoFont, typeScale } from '../hig';
 import { colors, radius, spacing } from '../theme';
 
 interface FileRowProps {
@@ -44,13 +45,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.panel,
+    backgroundColor: colors.panelRaised,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
   },
   pressed: {
-    backgroundColor: colors.panelRaised,
+    backgroundColor: colors.selection,
   },
   active: {
     backgroundColor: colors.selection,
@@ -61,12 +62,15 @@ const styles = StyleSheet.create({
   },
   name: {
     color: colors.text,
-    fontSize: 14,
+    fontSize: typeScale.subheadline.fontSize,
+    lineHeight: typeScale.subheadline.lineHeight,
     fontWeight: '500',
+    letterSpacing: typeScale.subheadline.letterSpacing,
   },
   path: {
     color: colors.textDim,
-    fontSize: 11,
+    fontSize: typeScale.caption1.fontSize,
+    lineHeight: typeScale.caption1.lineHeight,
     marginTop: 3,
   },
   trailing: {
@@ -75,11 +79,13 @@ const styles = StyleSheet.create({
   },
   modified: {
     color: colors.textDim,
-    fontSize: 10,
+    fontSize: typeScale.caption2.fontSize,
+    lineHeight: typeScale.caption2.lineHeight,
   },
   size: {
     color: colors.textMuted,
-    fontSize: 11,
-    fontFamily: 'Courier',
+    fontSize: typeScale.caption1.fontSize,
+    lineHeight: typeScale.caption1.lineHeight,
+    fontFamily: monoFont.family,
   },
 });

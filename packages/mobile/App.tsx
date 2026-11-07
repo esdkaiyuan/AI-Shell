@@ -79,7 +79,7 @@ import {
   mobileReducer,
 } from './src/mobileState';
 import { colors, radius, spacing, surfaces, typography } from './src/theme';
-import { barHeight, grid, systemColors, typeScale } from './src/hig';
+import { barHeight, corner, grid, monoFont, systemColors, typeScale } from './src/hig';
 import {
   isPanelOpen,
   type PanelDestination,
@@ -161,15 +161,11 @@ const AppContent: FC = () => {
     [runtime.status.installed]
   );
 
-  const activeTerminal = getActiveTerminal(state);
   const panelOpen = isPanelOpen(state.currentView);
   /** Keep the last section mounted while the closing animation runs. */
   const lastSection = useRef<PanelSection>('ai');
   if (panelOpen) lastSection.current = state.currentView as PanelSection;
   const panelSection = lastSection.current;
-  const pageSubtitle = `${activeTerminal.title} · ${
-    runtime.status.installed ? 'Linux 就绪' : '需要配置'
-  }`;
   /**
    * A one-message conversation stays short; the card grows up to 62% as chat
    * builds. SidePanel compensates for the IME from its own measured height.
@@ -289,7 +285,12 @@ const AppContent: FC = () => {
       <View style={[styles.boot, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <StatusBar style="light" />
         <View style={styles.bootMark}>
-          <Ionicons name="terminal" size={28} color={colors.accent} />
+          {/* A vector mark instead of an icon font: the boot screen paints
+              before the icon font is ready, and a glyph would read blank. */}
+          <View style={styles.bootWindow}>
+            <View style={styles.bootLine} />
+            <View style={styles.bootCursor} />
+          </View>
         </View>
         <Text style={styles.bootTitle}>AI Shell</Text>
         <Text style={styles.bootSub}>正在加载内置 Linux 环境…</Text>
@@ -315,12 +316,7 @@ const AppContent: FC = () => {
 
         {/* HIG large-title navigation bar with a single prominent action. */}
         <View style={styles.titleBar}>
-          <View style={styles.titleBarText}>
-            <Text style={styles.largeTitle}>终端</Text>
-            <Text numberOfLines={1} style={styles.titleSubtitle}>
-              {pageSubtitle}
-            </Text>
-          </View>
+          <Text style={styles.largeTitle}>终端</Text>
           <AIAssistButton active={panelOpen} onPress={openAiAssistant} />
         </View>
 
@@ -1681,8 +1677,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
-  bootTitle: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  bootSub: { color: colors.textDim, fontSize: 12 },
+  bootWindow: {
+    width: 32,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  bootLine: {
+    width: 12,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.accent,
+  },
+  bootCursor: {
+    width: 4,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.accent,
+    opacity: 0.55,
+  },
+  bootTitle: {
+    color: colors.text,
+    fontSize: typeScale.title3.fontSize,
+    lineHeight: typeScale.title3.lineHeight,
+    fontWeight: '600',
+    letterSpacing: typeScale.title3.letterSpacing,
+  },
+  bootSub: {
+    color: colors.textDim,
+    fontSize: typeScale.footnote.fontSize,
+    lineHeight: typeScale.footnote.lineHeight,
+  },
   bootSpinner: { marginTop: spacing.md },
   /** HIG large-title navigation bar: one title, one prominent action. */
   titleBar: {
@@ -1696,19 +1726,15 @@ const styles = StyleSheet.create({
     gap: grid.tight,
     backgroundColor: systemColors.systemGroupedBackground,
   },
-  titleBarText: { flex: 1, minWidth: 0, gap: 2 },
+  // HIG large title: 34pt regular, not a bold display face.
   largeTitle: {
+    flex: 1,
+    minWidth: 0,
     color: systemColors.label,
-    fontSize: typeScale.title1.fontSize,
-    lineHeight: typeScale.title1.lineHeight,
-    fontWeight: '700',
-    letterSpacing: typeScale.title1.letterSpacing,
-  },
-  titleSubtitle: {
-    color: systemColors.secondaryLabel,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
-    letterSpacing: typeScale.footnote.letterSpacing,
+    fontSize: typeScale.largeTitle.fontSize,
+    lineHeight: typeScale.largeTitle.lineHeight,
+    fontWeight: '400',
+    letterSpacing: typeScale.largeTitle.letterSpacing,
   },
   main: { flex: 1 },
   fullHeightContent: { flex: 1, padding: spacing.lg },
@@ -1785,7 +1811,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   searchInput: { flex: 1, color: colors.text, fontSize: 13, paddingVertical: 8 },
-  searchCount: { color: colors.textDim, fontSize: 11, fontFamily: 'Courier' },
+  searchCount: { color: colors.textDim, fontSize: 11, fontFamily: monoFont.family },
   paneSelector: { flexDirection: 'row', gap: spacing.sm, marginBottom: 10 },
   paneButton: {
     flex: 1,
@@ -1816,13 +1842,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.panel,
     color: colors.text,
-    fontFamily: 'Courier',
+    fontFamily: monoFont.family,
     fontSize: 13,
   },
   runButton: {
     width: 46,
     height: 46,
-    borderRadius: 10,
+    // A round prominent button, the way iOS presents its send affordance.
+    borderRadius: 23,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1854,7 +1881,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  keyText: { color: colors.textMuted, fontSize: 11, fontWeight: '600', fontFamily: 'Courier' },
+  keyText: { color: colors.textMuted, fontSize: 11, fontWeight: '600', fontFamily: monoFont.family },
   quickPanel: { gap: 5, paddingTop: 0 },
   quickLabel: {
     color: colors.textDim,
@@ -1877,7 +1904,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 3,
   },
-  suggestionCommand: { color: colors.text, fontFamily: 'Courier', fontSize: 12 },
+  suggestionCommand: { color: colors.text, fontFamily: monoFont.family, fontSize: 12 },
   suggestionDescription: { color: colors.textDim, fontSize: typography.caption },
   card: {
     minHeight: 78,
@@ -1913,7 +1940,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mono: { color: colors.textMuted, fontFamily: 'Courier', fontSize: 12, marginTop: 4 },
+  mono: { color: colors.textMuted, fontFamily: monoFont.family, fontSize: 12, marginTop: 4 },
   authPill: {
     minHeight: 22,
     paddingHorizontal: 8,
@@ -1940,7 +1967,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pathText: { flex: 1, color: colors.textMuted, fontFamily: 'Courier', fontSize: 12 },
+  pathText: { flex: 1, color: colors.textMuted, fontFamily: monoFont.family, fontSize: 12 },
   fileStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   fileStatusText: { color: colors.textDim, fontSize: 12 },
   errorText: { color: colors.red, fontSize: 12, lineHeight: 18, marginBottom: 8 },
@@ -1956,7 +1983,7 @@ const styles = StyleSheet.create({
   filePreviewScroll: { maxHeight: 200 },
   filePreviewContent: {
     color: colors.textMuted,
-    fontFamily: 'Courier',
+    fontFamily: monoFont.family,
     fontSize: 11.5,
     lineHeight: 17,
   },
@@ -2032,7 +2059,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   segmentButtonActive: { backgroundColor: colors.panelRaised },
-  segmentText: { color: colors.textDim, fontSize: 11, fontWeight: '600' },
+  segmentText: {
+    color: colors.textDim,
+    fontSize: typeScale.footnote.fontSize,
+    lineHeight: typeScale.footnote.lineHeight,
+    fontWeight: '600',
+    letterSpacing: typeScale.footnote.letterSpacing,
+  },
   segmentTextActive: { color: colors.text },
   // One 28px meta line replaces the old two-line context card.
   aiContextPanel: {
@@ -2059,7 +2092,7 @@ const styles = StyleSheet.create({
   },
   providerScroll: { flex: 1 },
   providerScrollContent: { flexGrow: 1, paddingBottom: spacing.xl },
-  chatBubble: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: 11, maxWidth: '92%' },
+  chatBubble: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: corner.card, maxWidth: '92%' },
   chatBubbleAssistant: {
     backgroundColor: colors.panel,
     borderBottomLeftRadius: 4,
@@ -2090,7 +2123,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     color: colors.textMuted,
     fontSize: 10,
-    fontFamily: 'Courier',
+    fontFamily: monoFont.family,
   },
   messageActionButton: {
     paddingHorizontal: 6,
@@ -2127,7 +2160,7 @@ const styles = StyleSheet.create({
     maxHeight: 76,
     paddingHorizontal: 10,
     paddingVertical: 7,
-    borderRadius: 9,
+    borderRadius: corner.control,
     backgroundColor: colors.panel,
     color: colors.text,
     fontSize: 12.5,
@@ -2135,7 +2168,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 38,
     height: 38,
-    borderRadius: 9,
+    borderRadius: 19,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2147,11 +2180,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.panel,
   },
-  historyCommand: { color: colors.text, fontFamily: 'Courier', fontSize: 13 },
+  historyCommand: { color: colors.text, fontFamily: monoFont.family, fontSize: 13 },
   historyMeta: { color: colors.textDim, fontSize: 11, marginTop: 5 },
   settingGroup: {
     marginTop: spacing.md,
-    borderRadius: 14,
+    borderRadius: corner.grouped,
     overflow: 'hidden',
     backgroundColor: colors.panel,
   },
@@ -2194,8 +2227,8 @@ const styles = StyleSheet.create({
   providerCardActive: { backgroundColor: colors.selection },
   providerCardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   providerName: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  providerEndpoint: { color: colors.textDim, fontSize: 11, marginTop: 3, fontFamily: 'Courier' },
-  providerKey: { color: colors.green, fontSize: 11, fontFamily: 'Courier' },
+  providerEndpoint: { color: colors.textDim, fontSize: 11, marginTop: 3, fontFamily: monoFont.family },
+  providerKey: { color: colors.green, fontSize: 11, fontFamily: monoFont.family },
   modelChipRow: { gap: 6, paddingRight: spacing.md },
   modelChip: {
     minHeight: 44,
@@ -2205,7 +2238,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modelChipActive: { backgroundColor: colors.accentSoft },
-  modelText: { color: colors.textMuted, fontSize: typography.caption, fontFamily: 'Courier' },
+  modelText: { color: colors.textMuted, fontSize: typography.caption, fontFamily: monoFont.family },
   modelTextActive: { color: colors.accent },
   providerActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   coverageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

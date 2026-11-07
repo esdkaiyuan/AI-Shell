@@ -35,6 +35,7 @@ import {
 import { runtimeStore, useRuntime } from '../services/runtimeStore';
 import { pickPrivateKeyFile } from '../services/sshKeyFiles';
 import { parsePrivateKey } from '../services/sshKeys';
+import { corner, monoFont, systemColors, typeScale } from '../hig';
 import { colors, radius, spacing } from '../theme';
 import { HORIZONTAL_FADE_LENGTH } from '../layout';
 
@@ -939,7 +940,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: typeScale.footnote.fontSize,
     fontWeight: '600',
     marginBottom: spacing.sm,
     marginTop: spacing.sm,
@@ -955,18 +956,18 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   providerChipActive: { backgroundColor: colors.selection },
-  providerName: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
+  providerName: { color: colors.textMuted, fontSize: typeScale.footnote.fontSize, fontWeight: '600' },
   providerNameActive: { color: colors.text },
-  providerDesc: { color: colors.textDim, fontSize: 10 },
+  providerDesc: { color: colors.textDim, fontSize: typeScale.caption2.fontSize },
   card: {
     backgroundColor: colors.panel,
-    borderRadius: 16,
+    borderRadius: corner.grouped,
     padding: spacing.lg,
     gap: spacing.md,
     marginBottom: spacing.md,
   },
   field: { gap: 6 },
-  fieldLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '500' },
+  fieldLabel: { color: colors.textMuted, fontSize: typeScale.footnote.fontSize, fontWeight: '500' },
   input: {
     minHeight: 44,
     paddingHorizontal: spacing.md,
@@ -974,7 +975,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.bg,
     color: colors.text,
-    fontSize: 14,
+    fontSize: typeScale.subheadline.fontSize,
   },
   keyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   keyInput: {
@@ -985,7 +986,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.bg,
     color: colors.text,
-    fontSize: 14,
+    fontSize: typeScale.subheadline.fontSize,
   },
   eyeButton: {
     width: 44,
@@ -995,7 +996,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hint: { color: colors.textDim, fontSize: 11, lineHeight: 16 },
+  hint: { color: colors.textDim, fontSize: typeScale.caption1.fontSize,
+    lineHeight: typeScale.caption1.lineHeight },
   modelRow: { gap: 6, paddingTop: 8, paddingRight: spacing.md },
   modelChip: {
     minHeight: 44,
@@ -1005,7 +1007,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modelChipActive: { backgroundColor: colors.accentSoft },
-  modelText: { color: colors.textMuted, fontSize: 11, fontFamily: 'Courier' },
+  modelText: { color: colors.textMuted, fontSize: 11, fontFamily: monoFont.family },
   modelTextActive: { color: colors.accent },
   secondaryAction: {
     minHeight: 44,
@@ -1022,7 +1024,7 @@ const styles = StyleSheet.create({
   skipHint: { color: colors.textDim, fontSize: 11, textAlign: 'center', marginTop: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.md },
   portField: { width: 92, gap: 6 },
-  keyTextarea: { minHeight: 110, textAlignVertical: 'top', fontFamily: 'Courier', fontSize: 11 },
+  keyTextarea: { minHeight: 110, textAlignVertical: 'top', fontFamily: monoFont.family, fontSize: 11 },
   keyActionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: 8 },
   clearKeyButton: {
     width: 44,
@@ -1054,7 +1056,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: { flex: 1, minWidth: 0 },
   profileName: { color: colors.text, fontSize: 13, fontWeight: '600' },
-  profileHost: { color: colors.textDim, fontSize: 11, marginTop: 2, fontFamily: 'Courier' },
+  profileHost: { color: colors.textDim, fontSize: 11, marginTop: 2, fontFamily: monoFont.family },
   removeButton: {
     width: 44,
     height: 44,
@@ -1081,7 +1083,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panelRaised,
     justifyContent: 'center',
   },
-  statusPillReady: { backgroundColor: 'rgba(48, 209, 88, 0.14)' },
+  statusPillReady: { backgroundColor: systemColors.systemFill },
   statusText: { color: colors.textMuted, fontSize: 10, fontWeight: '600' },
   statusTextReady: { color: colors.green },
   bulletList: { gap: 9 },

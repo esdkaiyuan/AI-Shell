@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   barHeight,
   corner,
+  elevation,
   grabber,
   grid,
   motion,
@@ -30,6 +31,7 @@ import {
 } from '../hig';
 import { KEYBOARD_WINDOW_SHRINK } from '../layout';
 import { isPanelRoot, panelContentMode, panelTitle, type PanelSection } from '../navigation';
+import { surfaces } from '../theme';
 
 interface SidePanelProps {
   /** `false` keeps the sheet mounted but slides it out of the way. */
@@ -272,10 +274,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     bottom: 0,
-    backgroundColor: systemColors.systemGroupedBackground,
+    // One elevation step above the grouped page, the way a presented sheet
+    // sits above its context.
+    backgroundColor: surfaces.sheet,
     shadowColor: '#000000',
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
+    shadowOpacity: elevation.level3.shadowOpacity,
+    shadowRadius: elevation.level3.shadowRadius,
+    shadowOffset: elevation.level3.shadowOffset,
     elevation: 16,
     overflow: 'hidden',
   },

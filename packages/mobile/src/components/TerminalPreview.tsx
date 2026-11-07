@@ -2,6 +2,7 @@ import type { FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalLine, PaneSessionStatus } from '../mobileState';
+import { monoFont, systemColors, typeScale } from '../hig';
 import { colors, radius, spacing, surfaces } from '../theme';
 
 interface TerminalPreviewProps {
@@ -26,6 +27,15 @@ const emptyText: Record<PaneSessionStatus, string> = {
   error: '会话启动失败，请检查设置',
 };
 
+/** A second line explains what to do next, the way iOS empty states do. */
+const emptyHint: Record<PaneSessionStatus, string> = {
+  idle: '先在设置里完成环境准备，再回到终端',
+  starting: '首次启动需要解压内置 Alpine 运行环境',
+  ready: '在下方命令坞输入命令，回车即可执行',
+  exited: '点上方状态条重新连接，或新建一个终端',
+  error: '前往「设置」检查运行环境与权限',
+};
+
 export const TerminalPreview: FC<TerminalPreviewProps> = ({ title, lines, status }) => {
   const scrollRef = useRef<ScrollView | null>(null);
   const meta = statusMeta[status];
@@ -40,7 +50,7 @@ export const TerminalPreview: FC<TerminalPreviewProps> = ({ title, lines, status
         <Text numberOfLines={1} style={styles.title}>
           {title}
         </Text>
-        <View style={[styles.badge, { backgroundColor: `${meta.color}22` }]}>
+        <View style={styles.badge}>
           <View style={[styles.dot, { backgroundColor: meta.color }]} />
           <Text style={[styles.badgeText, { color: meta.color }]}>{meta.label}</Text>
         </View>
@@ -53,7 +63,10 @@ export const TerminalPreview: FC<TerminalPreviewProps> = ({ title, lines, status
         showsVerticalScrollIndicator={false}
       >
         {lines.length === 0 ? (
-          <Text style={styles.empty}>{emptyText[status]}</Text>
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>{emptyText[status]}</Text>
+            <Text style={styles.emptyHint}>{emptyHint[status]}</Text>
+          </View>
         ) : (
           lines.map((line, index) => (
             <Text
@@ -80,18 +93,16 @@ const styles = StyleSheet.create({
   shell: {
     flex: 1,
     minHeight: 140,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: surfaces.outline,
+    // The console is a window into the session, not a card: no radius and no
+    // frame, just a hairline that separates it from the chrome above.
+    marginHorizontal: -spacing.lg,
     backgroundColor: surfaces.terminal,
-    overflow: 'hidden',
   },
   topbar: {
     minHeight: 36,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.borderSoft,
-    backgroundColor: colors.toolbar,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -100,37 +111,60 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     color: colors.text,
-    fontSize: 12,
+    fontSize: typeScale.subheadline.fontSize,
+    lineHeight: typeScale.subheadline.lineHeight,
     fontWeight: '600',
+    letterSpacing: typeScale.subheadline.letterSpacing,
   },
   badge: {
     minHeight: 20,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     borderRadius: radius.pill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    // A system fill keeps the badge neutral; only the label carries meaning.
+    backgroundColor: systemColors.systemFill,
   },
   dot: { width: 5, height: 5, borderRadius: 3 },
-  badgeText: { fontSize: 10, fontWeight: '600', letterSpacing: 0.2 },
+  badgeText: {
+    fontSize: typeScale.caption2.fontSize,
+    lineHeight: typeScale.caption2.lineHeight,
+    fontWeight: '600',
+    letterSpacing: typeScale.caption2.letterSpacing,
+  },
   output: {
     flex: 1,
   },
   lines: {
     flexGrow: 1,
-    padding: 14,
+    padding: spacing.lg,
   },
   empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.xl,
+  },
+  emptyTitle: {
+    color: colors.textMuted,
+    fontSize: typeScale.subheadline.fontSize,
+    lineHeight: typeScale.subheadline.lineHeight,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  emptyHint: {
     color: colors.textDim,
-    fontSize: 12.5,
-    fontFamily: 'Courier',
-    lineHeight: 20,
+    fontSize: typeScale.footnote.fontSize,
+    lineHeight: typeScale.footnote.lineHeight,
+    textAlign: 'center',
   },
   line: {
     color: colors.text,
-    fontFamily: 'Courier',
-    fontSize: 12.5,
-    lineHeight: 20,
+    fontFamily: monoFont.family,
+    fontSize: monoFont.size,
+    lineHeight: monoFont.lineHeight,
   },
   prompt: { color: colors.green },
   info: { color: colors.cyan },

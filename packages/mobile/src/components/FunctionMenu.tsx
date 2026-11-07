@@ -44,7 +44,7 @@ export const FunctionMenu: FC<FunctionMenuProps> = ({ section, onSelect, onActio
 
     {panelGroups.map(group => (
       <View key={group.title} style={styles.group}>
-        <Text style={styles.groupHeader}>{group.title.toUpperCase()}</Text>
+        <Text style={styles.groupHeader}>{group.title}</Text>
         <View style={styles.card}>
           {group.items.map((item, index) => (
             <View key={item.key}>
@@ -62,8 +62,8 @@ export const FunctionMenu: FC<FunctionMenuProps> = ({ section, onSelect, onActio
                 ]}
                 onPress={() => handleItemPress(item, onSelect, onAction)}
               >
-                <View style={[styles.iconBox, { backgroundColor: `${item.tint}22` }]}>
-                  <Ionicons name={item.icon} size={20} color={item.tint} />
+                <View style={styles.iconBox}>
+                  <Ionicons name={item.icon} size={22} color={item.tint} />
                 </View>
                 <View style={styles.rowText}>
                   <Text style={styles.rowTitle}>{item.title}</Text>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     color: systemColors.label,
     fontSize: typeScale.largeTitle.fontSize,
     lineHeight: typeScale.largeTitle.lineHeight,
-    fontWeight: '700',
+    fontWeight: '400',
     letterSpacing: typeScale.largeTitle.letterSpacing,
   },
   intro: {
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: corner.grouped,
-    backgroundColor: systemColors.secondarySystemGroupedBackground,
+    backgroundColor: systemColors.tertiarySystemGroupedBackground,
     overflow: 'hidden',
   },
   separator: {

@@ -45,6 +45,16 @@ export const systemColors = {
   systemRed: '#FF453A',
   systemTeal: '#40C8E0',
   systemYellow: '#FFD60A',
+  systemCyan: '#64D2FF',
+  systemMint: '#63E6E2',
+
+  // Neutral gray ramp (iOS 13+ systemGray family, dark variant).
+  systemGray: '#8E8E93',
+  systemGray2: '#636366',
+  systemGray3: '#48484A',
+  systemGray4: '#3A3A3C',
+  systemGray5: '#2C2C2E',
+  systemGray6: '#1C1C1E',
 
   // Sheet scrim — HIG dims the presenting context behind a modal sheet.
   scrim: 'rgba(0, 0, 0, 0.55)',
@@ -89,9 +99,39 @@ export const grid = {
 export const corner = {
   control: 10,
   card: 12,
-  grouped: 14,
+  /** Inset grouped list containers sit at roughly a 12pt corner. */
+  grouped: 12,
   sheet: 20,
   pill: 999,
+} as const;
+
+/**
+ * iOS materials. They are translucent chrome surfaces that float above
+ * content; where the platform cannot blur, the opaque fallback carries the
+ * same separation.
+ */
+export const materials = {
+  /** Navigation bar chrome. */
+  bar: 'rgba(28, 28, 30, 0.94)',
+  /** Compact toolbars and the bottom command dock. */
+  chrome: 'rgba(28, 28, 30, 0.90)',
+} as const;
+
+/**
+ * iOS shadows are neutral black — a tinted shadow reads as a Material
+ * elevation halo rather than an Apple surface lift.
+ */
+export const elevation = {
+  level1: { shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  level2: { shadowOpacity: 0.22, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
+  level3: { shadowOpacity: 0.34, shadowRadius: 26, shadowOffset: { width: 0, height: 10 } },
+} as const;
+
+/** Monospaced face for console surfaces (SF Mono on Apple platforms). */
+export const monoFont = {
+  family: 'Courier',
+  size: 13,
+  lineHeight: 20,
 } as const;
 
 /** HIG minimum tappable area, in points. */

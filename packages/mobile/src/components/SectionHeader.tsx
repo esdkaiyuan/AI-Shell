@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { typeScale } from '../hig';
 import { colors, spacing } from '../theme';
 
 interface SectionHeaderProps {
@@ -20,16 +21,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: spacing.xl,
-    marginBottom: 10,
+    marginBottom: spacing.md,
   },
   title: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: typeScale.subheadline.fontSize,
+    lineHeight: typeScale.subheadline.lineHeight,
     fontWeight: '600',
-    letterSpacing: -0.1,
+    letterSpacing: typeScale.subheadline.letterSpacing,
   },
   meta: {
     color: colors.textDim,
-    fontSize: 12,
+    fontSize: typeScale.caption1.fontSize,
+    lineHeight: typeScale.caption1.lineHeight,
   },
 });

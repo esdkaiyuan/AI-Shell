@@ -42,10 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI 对话持久化、多会话切换、流式输出与停止生成
 - 终端标签重命名/拖拽排序、Tab 路径补全、快捷命令片段和 AI 面板拖拽尺寸
 - 桌面状态栏与页面空状态移除虚假连接和演示数据
+- **按 Apple HIG 重做窗口与视觉体系**：大标题改为 34pt Regular 并去掉副标题；终端输出区从圆角卡片改为沉浸式控制台（无圆角无边框、左右拉通、仅顶部 hairline）；侧窗与卡片按「页面 / 侧窗 / 卡片」三级表面分层；状态徽章与能力芯片改用 `systemFill` 中性底 + 系统色文字，去掉十六进制拼色与彩色投影；新增 `materials` / `elevation` / `monoFont` 令牌，等宽字体与字阶统一走令牌
 
 ### Fixed
 
 - 修复安卓端启动即崩溃：RN 原生动画驱动不支持在 `Animated.View` 上动画 `height`，移除该高度动画，改由布局测量值直接计算卡片高度
+- 修复首启加载页的品牌标记渲染为空白：加载页改用无字体依赖的矢量图形绘制终端标记，避免图标字体尚未就绪时首帧空白
 - 修复软键盘弹起时 AI 对话输入框被键盘工具栏遮挡：卡片高度按遮罩层实测的可见区高度计算（Android `adjustResize` 只缩小根视图、不更新 `useWindowDimensions`），键盘弹起时把占比提到 62% 以保持卡片绝对高度，并移除紧凑卡片内重复的 `KeyboardAvoidingView` 高度压缩
 - 修复终端页横向 ScrollView 在 flex 列中被拉伸造成的中段空白（实测约 165dp）
 - 修复软键盘弹出时控制键/快捷命令挤占终端输出区；改用窗口高度差判断（`isKeyboardCoveringWindow`），避免模拟器硬件键盘跳过 RN 键盘事件导致辅助控件收起后无法恢复

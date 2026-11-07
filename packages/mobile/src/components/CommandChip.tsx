@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { monoFont } from '../hig';
 import { colors, radius, spacing } from '../theme';
 
 interface CommandChipProps {
@@ -34,7 +35,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: colors.textMuted,
-    fontFamily: 'Courier',
+    fontFamily: monoFont.family,
     fontSize: 12.5,
   },
 });

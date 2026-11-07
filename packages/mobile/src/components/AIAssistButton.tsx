@@ -38,11 +38,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    shadowColor: systemColors.systemBlue,
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    // An iOS prominent button carries no shadow: a colored glow reads as a
+    // Material elevation halo rather than an Apple surface lift.
   },
   pressed: { opacity: 0.72 },
   label: {

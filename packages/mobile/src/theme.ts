@@ -6,7 +6,7 @@
  * `colors` / `spacing` / `radius` / `typography` keep their historical keys to
  * avoid churn across the existing workspaces; new UI should prefer `hig.ts`.
  */
-import { corner, grid, systemColors, typeScale } from './hig';
+import { corner, grid, materials, systemColors, typeScale } from './hig';
 
 export const colors = {
   bg: systemColors.systemBackground,
@@ -24,7 +24,7 @@ export const colors = {
   green: systemColors.systemGreen,
   yellow: systemColors.systemOrange,
   red: systemColors.systemRed,
-  cyan: '#64D2FF',
+  cyan: systemColors.systemCyan,
   toolbar: systemColors.secondarySystemBackground,
   selection: 'rgba(10, 132, 255, 0.18)',
 };
@@ -61,10 +61,14 @@ export const typography = {
 
 /** Surfaces that separate scrollable content from the window background. */
 export const surfaces = {
-  terminal: '#050506',
+  /** Console surface: the terminal is a window into the session, not a card. */
+  terminal: systemColors.systemBackground,
   outline: 'rgba(84, 84, 88, 0.48)',
-  dock: 'rgba(20, 20, 22, 0.92)',
+  /** Bottom command dock chrome that floats over the console. */
+  dock: materials.chrome,
+  /** Elevated sheet: one step above the grouped page background. */
   sheet: systemColors.secondarySystemGroupedBackground,
+  /** Cards inside a sheet, one step above the sheet itself. */
   sheetRaised: systemColors.tertiarySystemGroupedBackground,
   scrim: systemColors.scrim,
 };

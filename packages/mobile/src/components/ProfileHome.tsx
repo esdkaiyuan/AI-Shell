@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { MainView } from '../mobileState';
 import type { LinuxStatus } from '../native/nativeBridge';
 import { activeProvider, type AppConfig } from '../services/config';
+import { corner, typeScale } from '../hig';
 import { colors, radius, spacing } from '../theme';
 import { SectionHeader } from './SectionHeader';
 import { StatusPill } from './StatusPill';
@@ -49,7 +50,9 @@ export const ProfileHome: FC<ProfileHomeProps> = ({ config, runtime, onOpen }) =
           </View>
           <View style={styles.summaryText}>
             <Text style={styles.title}>AI Shell</Text>
-            <Text style={styles.subtitle}>本地 Linux 与远程运维工作台</Text>
+            <Text numberOfLines={2} style={styles.subtitle}>
+              本地 Linux 与远程运维工作台
+            </Text>
           </View>
           <StatusPill
             label={runtime.installed ? '已就绪' : '待配置'}
@@ -110,25 +113,46 @@ const styles = StyleSheet.create({
   summary: {
     padding: spacing.lg,
     borderRadius: radius.lg,
-    backgroundColor: colors.panel,
+    backgroundColor: colors.panelRaised,
   },
   summaryTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   mark: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: corner.card,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.accentSoft,
   },
   summaryText: { flex: 1, minWidth: 0 },
-  title: { color: colors.text, fontSize: 20, fontWeight: '700', letterSpacing: -0.4 },
-  subtitle: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
+  title: {
+    color: colors.text,
+    fontSize: typeScale.title3.fontSize,
+    lineHeight: typeScale.title3.lineHeight,
+    fontWeight: '600',
+    letterSpacing: typeScale.title3.letterSpacing,
+  },
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: typeScale.caption1.fontSize,
+    lineHeight: typeScale.caption1.lineHeight,
+    marginTop: 3,
+  },
   metrics: { marginTop: spacing.lg, gap: spacing.md },
   metric: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  metricLabel: { color: colors.textDim, fontSize: 12 },
-  metricValue: { flex: 1, color: colors.text, fontSize: 12, textAlign: 'right' },
-  group: { overflow: 'hidden', borderRadius: radius.md, backgroundColor: colors.panel },
+  metricLabel: {
+    color: colors.textDim,
+    fontSize: typeScale.footnote.fontSize,
+    lineHeight: typeScale.footnote.lineHeight,
+  },
+  metricValue: {
+    flex: 1,
+    color: colors.text,
+    fontSize: typeScale.footnote.fontSize,
+    lineHeight: typeScale.footnote.lineHeight,
+    textAlign: 'right',
+  },
+  group: { overflow: 'hidden', borderRadius: radius.md, backgroundColor: colors.panelRaised },
   row: {
     minHeight: 68,
     paddingHorizontal: spacing.lg,
@@ -139,8 +163,24 @@ const styles = StyleSheet.create({
   rowBorder: { borderTopWidth: 1, borderTopColor: colors.borderSoft },
   rowIcon: { width: 28, alignItems: 'center' },
   rowText: { flex: 1, minWidth: 0 },
-  rowTitle: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  rowSubtitle: { color: colors.textDim, fontSize: 11, marginTop: 3 },
-  pressed: { backgroundColor: colors.panelRaised },
-  footnote: { color: colors.textDim, fontSize: 11, lineHeight: 17, textAlign: 'center' },
+  rowTitle: {
+    color: colors.text,
+    fontSize: typeScale.subheadline.fontSize,
+    lineHeight: typeScale.subheadline.lineHeight,
+    fontWeight: '600',
+    letterSpacing: typeScale.subheadline.letterSpacing,
+  },
+  rowSubtitle: {
+    color: colors.textDim,
+    fontSize: typeScale.caption1.fontSize,
+    lineHeight: typeScale.caption1.lineHeight,
+    marginTop: 3,
+  },
+  pressed: { backgroundColor: colors.selection },
+  footnote: {
+    color: colors.textDim,
+    fontSize: typeScale.caption1.fontSize,
+    lineHeight: typeScale.caption1.lineHeight,
+    textAlign: 'center',
+  },
 });
