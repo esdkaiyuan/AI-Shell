@@ -55,8 +55,10 @@
 - 表面层级固定为「页面 → 侧窗 → 卡片」三级，浅色下同样成立，只是明度方向相反。
 - 终端控制台**始终保持深色**：它是通往会话的窗口，ANSI 语义色放到浅底上会失去可读性，因此它拥有独立的一套配色（`theme.console`）。
 - 状态徽章与能力芯片使用中性 `systemFill` 底 + 系统色文字，不做半透明拼色。
-- 字号随系统「文字大小」设置缩放（Dynamic Type）：字阶定义在 `src/hig.ts`，缩放由 `src/theme.ts` 的 `createTheme` 统一施加，组件只消费 `theme.type`。
+- 字号随系统「文字大小」设置缩放（Dynamic Type）：**由平台原生完成**。React Native 的 `Text` 默认 `allowFontScaling`，字号与行高按 sp 解析并跟随系统缩放，应用层不得再预乘 `fontScale`（否则 1.3 档会放大到 1.69 倍）。字阶设计值定义在 `src/hig.ts` 的 `typeScale`，样式表直接引用其数值。
+- 承载文字的容器用 `minHeight` 而非固定 `height`，并通过 `theme.scale(n)` 让最小高度跟随字号成长，避免大字号下文字被裁切；纯图标容器保持固定尺寸（图标不随 Dynamic Type 缩放）。
 - 颜色与字阶通过 `src/theme-context.tsx` 的 `ThemeProvider` 注入，样式表以 `makeStyles(theme)` 工厂编写，主题或缩放变化时整体重建。
+- 语义色只以「角色」存在于静态数据中（如 `PanelTintRole`），具体颜色在渲染时从当前主题取，深浅两套外观各自正确。
 - 用户可在「设置 → 外观」中选择跟随系统、强制浅色或强制深色；外观偏好随加密配置保存。
 
 

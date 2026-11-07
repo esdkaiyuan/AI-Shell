@@ -87,7 +87,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   },
   chipChecked: {
     backgroundColor: theme.colors.accentSoft,
-    borderColor: 'rgba(10, 132, 255, 0.42)',
+    borderColor: theme.system.systemBlue,
   },
   chipSensitive: {
     backgroundColor: theme.system.systemOrange,

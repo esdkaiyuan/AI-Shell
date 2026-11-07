@@ -1,6 +1,5 @@
 import type { Ionicons } from '@expo/vector-icons';
 import type { MainView } from './mobileState';
-import { systemColors } from './hig';
 
 /**
  * Navigation model after the HIG restructure:
@@ -21,11 +20,18 @@ export type TerminalAction =
   | 'copyOutput'
   | 'paste';
 
+/**
+ * The semantic role of a row icon. The concrete colour is resolved from the
+ * live theme at render time, so a static data module never pins a palette
+ * that only fits one appearance.
+ */
+export type PanelTintRole = 'accent' | 'success' | 'warning' | 'danger' | 'neutral';
+
 interface PanelItemBase {
   title: string;
   subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
+  tint: PanelTintRole;
 }
 
 export interface PanelDestinationItem extends PanelItemBase {
@@ -58,7 +64,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: 'AI 助手',
         subtitle: '解释输出、生成命令、排查故障',
         icon: 'sparkles-outline',
-        tint: systemColors.systemBlue,
+        tint: 'accent',
       },
     ],
   },
@@ -71,7 +77,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '文件',
         subtitle: '浏览内置 Linux 文件系统',
         icon: 'folder-outline',
-        tint: systemColors.systemTeal,
+        tint: 'neutral',
       },
       {
         kind: 'destination',
@@ -79,7 +85,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: 'SSH',
         subtitle: '管理远程主机与私钥',
         icon: 'server-outline',
-        tint: systemColors.systemIndigo,
+        tint: 'neutral',
       },
       {
         kind: 'destination',
@@ -87,7 +93,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '会话',
         subtitle: '保存与恢复终端工作区',
         icon: 'albums-outline',
-        tint: systemColors.systemPurple,
+        tint: 'neutral',
       },
       {
         kind: 'destination',
@@ -95,7 +101,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '命令历史',
         subtitle: '查看并重新填入已提交命令',
         icon: 'time-outline',
-        tint: systemColors.systemOrange,
+        tint: 'warning',
       },
     ],
   },
@@ -109,7 +115,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '新建终端',
         subtitle: '打开一个新的本地 Linux 会话',
         icon: 'add-outline',
-        tint: systemColors.systemGreen,
+        tint: 'success',
       },
       {
         kind: 'action',
@@ -117,7 +123,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '分屏',
         subtitle: '在双窗格与单窗格之间切换',
         icon: 'git-compare-outline',
-        tint: systemColors.systemTeal,
+        tint: 'neutral',
       },
       {
         kind: 'action',
@@ -125,7 +131,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '查找输出',
         subtitle: '在当前终端输出中过滤关键字',
         icon: 'search-outline',
-        tint: systemColors.systemIndigo,
+        tint: 'neutral',
       },
       {
         kind: 'action',
@@ -133,7 +139,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '复制输出',
         subtitle: '把当前窗格的输出复制到剪贴板',
         icon: 'copy-outline',
-        tint: systemColors.systemPurple,
+        tint: 'neutral',
       },
       {
         kind: 'action',
@@ -141,7 +147,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '粘贴到命令',
         subtitle: '把剪贴板内容追加到输入栏',
         icon: 'clipboard-outline',
-        tint: systemColors.systemOrange,
+        tint: 'warning',
       },
       {
         kind: 'action',
@@ -149,7 +155,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '清屏',
         subtitle: '清空当前窗格的显示内容',
         icon: 'refresh-outline',
-        tint: systemColors.systemRed,
+        tint: 'danger',
       },
     ],
   },
@@ -162,7 +168,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '设置',
         subtitle: '运行环境、AI 提供商与安全',
         icon: 'settings-outline',
-        tint: '#8E8E93',
+        tint: 'neutral',
       },
       {
         kind: 'destination',
@@ -170,7 +176,7 @@ export const panelGroups: readonly PanelGroup[] = [
         title: '我的',
         subtitle: '设备状态与已保存的配置',
         icon: 'person-circle-outline',
-        tint: systemColors.systemGreen,
+        tint: 'success',
       },
     ],
   },

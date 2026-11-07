@@ -7,6 +7,7 @@ import {
   panelDestinations,
   panelGroups,
   panelTitle,
+  type PanelTintRole,
 } from './navigation';
 
 describe('trailing-sheet navigation', () => {
@@ -36,12 +37,21 @@ describe('trailing-sheet navigation', () => {
     }
   });
 
-  it('gives every row a title, subtitle, icon and hex tint', () => {
+  it('gives every row a title, subtitle, icon and a semantic tint role', () => {
+    const roles = new Set<PanelTintRole>([
+      'accent',
+      'success',
+      'warning',
+      'danger',
+      'neutral',
+    ]);
     for (const item of panelGroups.flatMap(group => group.items)) {
       expect(item.title.length).toBeGreaterThan(0);
       expect(item.subtitle.length).toBeGreaterThan(0);
       expect(item.icon.length).toBeGreaterThan(0);
-      expect(item.tint).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      // The tint is a role, not a literal colour: the concrete value is
+      // resolved from the live theme so both appearances stay correct.
+      expect(roles.has(item.tint)).toBe(true);
     }
   });
 

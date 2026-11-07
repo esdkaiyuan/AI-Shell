@@ -1079,7 +1079,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   bullet: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   bulletText: { color: theme.colors.textMuted, fontSize: 12.5 },
   installButton: {
-    height: 48,
+    minHeight: theme.scale(48),
     borderRadius: 12,
     backgroundColor: theme.colors.accent,
     flexDirection: 'row',
@@ -1106,7 +1106,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 22,
-    backgroundColor: 'rgba(48, 209, 88, 0.14)',
+    backgroundColor: theme.colors.successTint,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
@@ -1161,7 +1161,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   primaryButtonDisabled: { opacity: 0.4 },
   primaryText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   backButton: {
-    height: 48,
+    minHeight: theme.scale(48),
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',

@@ -131,7 +131,7 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
       gap: 5,
       // A system fill keeps the badge neutral; only the label carries meaning.
-      backgroundColor: 'rgba(120, 120, 128, 0.28)',
+      backgroundColor: theme.system.systemFill,
     },
     dot: { width: 5, height: 5, borderRadius: 3 },
     badgeText: {
@@ -170,8 +170,8 @@ const makeStyles = (theme: Theme) =>
     line: {
       color: theme.console.text,
       fontFamily: monoFont.family,
-      fontSize: Math.round(monoFont.size * theme.fontScale),
-      lineHeight: Math.round(monoFont.lineHeight * theme.fontScale),
+      fontSize: monoFont.size,
+      lineHeight: monoFont.lineHeight,
     },
     prompt: { color: theme.console.prompt },
     info: { color: theme.console.info },

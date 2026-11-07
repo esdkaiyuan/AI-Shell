@@ -5,12 +5,12 @@ import {
   MIN_TOUCH_TARGET,
   corner,
   grid,
-  systemColors,
 } from '../hig';
 import type { Theme } from '../theme';
-import { useThemedStyles } from '../theme-context';
+import { useTheme, useThemedStyles } from '../theme-context';
 import {
   panelGroups,
+  type PanelTintRole,
   type PanelDestination,
   type PanelItem,
   type TerminalAction,
@@ -36,7 +36,24 @@ const handleItemPress = (
  * HIG inset-grouped list: a large title, grouped rounded containers, hairline
  * separators inset to the text, 44pt minimum rows and descriptive footers.
  */
+/** Resolves a row's semantic icon colour from the live theme. */
+const resolveTint = (role: PanelTintRole, theme: Theme): string => {
+  switch (role) {
+    case 'accent':
+      return theme.system.systemBlue;
+    case 'success':
+      return theme.system.systemGreen;
+    case 'warning':
+      return theme.system.systemOrange;
+    case 'danger':
+      return theme.system.systemRed;
+    default:
+      return theme.system.secondaryLabel;
+  }
+};
+
 export const FunctionMenu: FC<FunctionMenuProps> = ({ section, onSelect, onAction }) => {
+  const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
   <View style={styles.container}>
@@ -66,7 +83,7 @@ export const FunctionMenu: FC<FunctionMenuProps> = ({ section, onSelect, onActio
                 onPress={() => handleItemPress(item, onSelect, onAction)}
               >
                 <View style={styles.iconBox}>
-                  <Ionicons name={item.icon} size={22} color={item.tint} />
+                  <Ionicons name={item.icon} size={22} color={resolveTint(item.tint, theme)} />
                 </View>
                 <View style={styles.rowText}>
                   <Text style={styles.rowTitle}>{item.title}</Text>
@@ -77,7 +94,7 @@ export const FunctionMenu: FC<FunctionMenuProps> = ({ section, onSelect, onActio
                 <Ionicons
                   name={item.kind === 'destination' ? 'chevron-forward' : 'flash-outline'}
                   size={17}
-                  color={systemColors.tertiaryLabel}
+                  color={theme.system.tertiaryLabel}
                 />
               </Pressable>
             </View>

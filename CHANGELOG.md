@@ -47,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 修复 Dynamic Type 双重缩放：应用层按 `fontScale` 预乘字号，而 React Native 的 `Text` 已通过 `allowFontScaling` 原生缩放，1.3 档实际放大到 1.68 倍。改为完全交由平台缩放，字号保持设计值
+- 修复大字号下文字被裁切：终端标签、分栏按钮、控制键、输入框与向导按钮改为 `minHeight` 并通过 `theme.scale(n)` 跟随字号成长；终端标签宽度上限放宽
+- 修复静态导航数据锁死深色系统色：功能清单图标色改为语义角色（`PanelTintRole`），渲染时从当前主题取色，深浅两套外观各自正确
+- 修复浅色模式下语义底色对比度不稳：橙 / 蓝 / 绿 / 红底色收敛为 `accentTint` / `successTint` / `warningTint` / `dangerTint` 主题令牌，中性徽章改用 `systemFill`
 - 修复安卓端启动即崩溃：RN 原生动画驱动不支持在 `Animated.View` 上动画 `height`，移除该高度动画，改由布局测量值直接计算卡片高度
 - 修复首启加载页的品牌标记渲染为空白：加载页改用无字体依赖的矢量图形绘制终端标记，避免图标字体尚未就绪时首帧空白
 - 修复软键盘弹起时 AI 对话输入框被键盘工具栏遮挡：卡片高度按遮罩层实测的可见区高度计算（Android `adjustResize` 只缩小根视图、不更新 `useWindowDimensions`），键盘弹起时把占比提到 62% 以保持卡片绝对高度，并移除紧凑卡片内重复的 `KeyboardAvoidingView` 高度压缩

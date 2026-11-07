@@ -42,6 +42,11 @@ export interface ThemeColors {
   cyan: string;
   toolbar: string;
   selection: string;
+  /** Tinted backgrounds for semantic states; each pairs with its system colour. */
+  accentTint: string;
+  successTint: string;
+  warningTint: string;
+  dangerTint: string;
 }
 
 export interface ThemeSurfaces {
@@ -77,7 +82,7 @@ export interface ElevationTokens {
 
 export interface Theme {
   scheme: ColorScheme;
-  /** The user's Dynamic Type setting, applied to every type style. */
+  /** The user's Dynamic Type setting. */
   fontScale: number;
   /** The raw system palette for this appearance. */
   system: Record<string, string>;
@@ -85,25 +90,26 @@ export interface Theme {
   surfaces: ThemeSurfaces;
   console: ConsoleColors;
   elevation: ElevationTokens;
-  /** Type styles scaled for the user's Dynamic Type setting. */
+  /**
+   * Type styles at their designed size. React Native already applies the
+   * system font scale to text, so these are deliberately not pre-scaled —
+   * doing both would compound the growth.
+   */
   type: Record<string, TypeStyle>;
+  /**
+   * Scales a layout dimension that the platform does not scale — the minimum
+   * height of a control that has to hold larger text, for instance. Use it
+   * for spacing and size, never for `fontSize` or `lineHeight`.
+   */
+  scale: (size: number) => number;
 }
 
-/** Scales point sizes and leading; tracking stays as designed. */
-const scaleType = (scale: number): Record<string, TypeStyle> => {
-  if (scale === 1) return typeScale;
-  const scaled: Record<string, TypeStyle> = {};
-  for (const key of Object.keys(typeScale)) {
-    const style = typeScale[key];
-    scaled[key] = {
-      ...style,
-      fontSize: Math.round(style.fontSize * scale),
-      lineHeight: Math.round(style.lineHeight * scale),
-    };
-  }
-  return scaled;
-};
-
+/**
+ * React Native already applies the system font scale to `fontSize` and
+ * `lineHeight` (both are resolved through sp), so the type scale must stay at
+ * its designed size. Pre-scaling here would compound the growth — a 1.3×
+ * setting would render at 1.69×.
+ */
 export const createTheme = (scheme: ColorScheme, fontScale = 1): Theme => {
   const light = scheme === 'light';
   const system = light ? lightSystemColors : darkSystemColors;
@@ -133,6 +139,10 @@ export const createTheme = (scheme: ColorScheme, fontScale = 1): Theme => {
       cyan: system.systemCyan,
       toolbar: system.secondarySystemBackground,
       selection: light ? 'rgba(0, 122, 255, 0.16)' : 'rgba(10, 132, 255, 0.18)',
+      accentTint: light ? 'rgba(0, 122, 255, 0.12)' : 'rgba(10, 132, 255, 0.16)',
+      successTint: light ? 'rgba(52, 199, 89, 0.14)' : 'rgba(48, 209, 88, 0.14)',
+      warningTint: light ? 'rgba(255, 149, 0, 0.12)' : 'rgba(255, 159, 10, 0.12)',
+      dangerTint: light ? 'rgba(255, 69, 58, 0.10)' : 'rgba(255, 69, 58, 0.12)',
     },
     surfaces: {
       terminal: '#000000',
@@ -153,7 +163,10 @@ export const createTheme = (scheme: ColorScheme, fontScale = 1): Theme => {
       error: system.systemRed,
     },
     elevation: lift,
-    type: scaleType(fontScale),
+    type: typeScale,
+    // Layout dimensions have to grow with the text they hold; the platform
+    // scales type on its own, so this only covers the boxes around it.
+    scale: (size: number) => Math.round(size * fontScale * 10) / 10,
   };
 };
 
