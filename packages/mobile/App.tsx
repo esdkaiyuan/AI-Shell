@@ -18,13 +18,14 @@ import {
 } from 'react-native';
 import { AIAssistButton } from './src/components/AIAssistButton';
 import {
-  AI_CAPABILITIES,
   hasCapability,
   planAIActions,
   extractCommands,
   describeAIAction,
   type AIActionPlan,
+  type AICapability,
 } from './src/aiTerminal';
+import { AiCapabilitySwitcher } from './src/components/AiCapabilitySwitcher';
 import { CommandChip } from './src/components/CommandChip';
 import { FileRow } from './src/components/FileRow';
 import { FunctionMenu } from './src/components/FunctionMenu';
@@ -531,59 +532,6 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
       />
 
       <View style={styles.commandDock}>
-        {/* Micro permission switches: they decide what AI may do to this terminal. */}
-        <View style={styles.aiCapabilityBar}>
-          <View style={styles.aiCapabilityBrand}>
-            <Ionicons name="sparkles-outline" size={11} color={systemColors.systemBlue} />
-            <Text style={styles.aiCapabilityBrandText}>AI</Text>
-          </View>
-          <View style={styles.aiCapabilityItems}>
-            {AI_CAPABILITIES.map(option => {
-              const checked = hasCapability(state.aiCapabilities, option.id);
-              return (
-                <Pressable
-                  key={option.id}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked }}
-                  accessibilityLabel={`${option.label}：${option.hint}`}
-                  hitSlop={{ top: 8, bottom: 8, left: 5, right: 5 }}
-                  onPress={() =>
-                    dispatch({ type: 'toggleAiCapability', capability: option.id })
-                  }
-                  style={styles.aiCapabilityItem}
-                >
-                  <View
-                    style={[
-                      styles.aiCheckbox,
-                      checked && styles.aiCheckboxChecked,
-                      option.sensitive && checked && styles.aiCheckboxSensitive,
-                    ]}
-                  >
-                    {checked ? <Ionicons name="checkmark" size={9} color="#FFFFFF" /> : null}
-                  </View>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.aiCapabilityLabel,
-                      checked && styles.aiCapabilityLabelChecked,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {hasCapability(state.aiCapabilities, 'run') ? (
-            <View style={styles.aiRunNotice}>
-              <View style={styles.aiRunDot} />
-              <Text numberOfLines={1} style={styles.aiRunNoticeText}>
-                自动执行已开启
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
         {showAuxiliary ? (
           <ScrollView
             horizontal
@@ -1254,6 +1202,13 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
 
       {chatActive ? (
         <>
+          <AiCapabilitySwitcher
+            capabilities={state.aiCapabilities}
+            onToggle={(capability: AICapability) =>
+              dispatch({ type: 'toggleAiCapability', capability })
+            }
+          />
+
           {showAuxiliary ? (
             <View style={styles.aiContextPanel}>
               <Ionicons name="terminal-outline" size={12} color={systemColors.systemBlue} />
@@ -1882,53 +1837,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
   },
-  // Deliberately tiny: a 13px check square and 10px label keep the whole
-  // permission row under 26px so the terminal output keeps its height.
-  // hitSlop gives each switch a comfortable touch area without visual bulk.
-  aiCapabilityBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    minHeight: 24,
-    paddingTop: 1,
-    paddingBottom: 3,
-  },
-  aiCapabilityBrand: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  aiCapabilityBrandText: {
-    color: systemColors.systemBlue,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  aiCapabilityItems: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  aiCapabilityItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  aiCheckbox: {
-    width: 13,
-    height: 13,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.textDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiCheckboxChecked: {
-    backgroundColor: systemColors.systemBlue,
-    borderColor: systemColors.systemBlue,
-  },
-  aiCheckboxSensitive: {
-    backgroundColor: systemColors.systemOrange,
-    borderColor: systemColors.systemOrange,
-  },
-  aiCapabilityLabel: { color: colors.textDim, fontSize: 10.5 },
-  aiCapabilityLabelChecked: { color: systemColors.label },
-  aiRunNotice: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  aiRunDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: systemColors.systemOrange,
-  },
-  aiRunNoticeText: { color: systemColors.systemOrange, fontSize: 9.5 },
+  // The AI permission switches moved into the AI panel, so the dock holds
+  // terminal keys, quick commands and the input row only.
   // A horizontal ScrollView without an explicit height grows into whatever
   // space the flex column has left, which pushes the command dock away from
   // the terminal output. Pin the strips so the output area owns the slack.
