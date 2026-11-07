@@ -2,8 +2,9 @@ import type { FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TerminalLine, PaneSessionStatus } from '../mobileState';
-import { monoFont, systemColors, typeScale } from '../hig';
-import { colors, radius, spacing, surfaces } from '../theme';
+import { monoFont } from '../hig';
+import { radius, spacing, type Theme } from '../theme';
+import { useTheme, useThemedStyles } from '../theme-context';
 
 interface TerminalPreviewProps {
   title: string;
@@ -11,13 +12,16 @@ interface TerminalPreviewProps {
   status: PaneSessionStatus;
 }
 
-const statusMeta: Record<PaneSessionStatus, { label: string; color: string }> = {
-  idle: { label: '待连接', color: colors.textDim },
-  starting: { label: '启动中', color: colors.yellow },
-  ready: { label: '已连接', color: colors.green },
-  exited: { label: '已结束', color: colors.yellow },
-  error: { label: '失败', color: colors.red },
-};
+/** The console keeps a dark surface in both appearances, so its own palette. */
+const statusMeta = (
+  theme: Theme
+): Record<PaneSessionStatus, { label: string; color: string }> => ({
+  idle: { label: '待连接', color: theme.console.dim },
+  starting: { label: '启动中', color: theme.console.warning },
+  ready: { label: '已连接', color: theme.console.prompt },
+  exited: { label: '已结束', color: theme.console.warning },
+  error: { label: '失败', color: theme.console.error },
+});
 
 const emptyText: Record<PaneSessionStatus, string> = {
   idle: '内置 Linux 尚未启动',
@@ -37,8 +41,10 @@ const emptyHint: Record<PaneSessionStatus, string> = {
 };
 
 export const TerminalPreview: FC<TerminalPreviewProps> = ({ title, lines, status }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const scrollRef = useRef<ScrollView | null>(null);
-  const meta = statusMeta[status];
+  const meta = statusMeta(theme)[status];
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
@@ -89,85 +95,86 @@ export const TerminalPreview: FC<TerminalPreviewProps> = ({ title, lines, status
   );
 };
 
-const styles = StyleSheet.create({
-  shell: {
-    flex: 1,
-    minHeight: 140,
-    // The console is a window into the session, not a card: no radius and no
-    // frame, just a hairline that separates it from the chrome above.
-    marginHorizontal: -spacing.lg,
-    backgroundColor: surfaces.terminal,
-  },
-  topbar: {
-    minHeight: 36,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderSoft,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  title: {
-    flex: 1,
-    color: colors.text,
-    fontSize: typeScale.subheadline.fontSize,
-    lineHeight: typeScale.subheadline.lineHeight,
-    fontWeight: '600',
-    letterSpacing: typeScale.subheadline.letterSpacing,
-  },
-  badge: {
-    minHeight: 20,
-    paddingHorizontal: 8,
-    borderRadius: radius.pill,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    // A system fill keeps the badge neutral; only the label carries meaning.
-    backgroundColor: systemColors.systemFill,
-  },
-  dot: { width: 5, height: 5, borderRadius: 3 },
-  badgeText: {
-    fontSize: typeScale.caption2.fontSize,
-    lineHeight: typeScale.caption2.lineHeight,
-    fontWeight: '600',
-    letterSpacing: typeScale.caption2.letterSpacing,
-  },
-  output: {
-    flex: 1,
-  },
-  lines: {
-    flexGrow: 1,
-    padding: spacing.lg,
-  },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.xl,
-  },
-  emptyTitle: {
-    color: colors.textMuted,
-    fontSize: typeScale.subheadline.fontSize,
-    lineHeight: typeScale.subheadline.lineHeight,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  emptyHint: {
-    color: colors.textDim,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
-    textAlign: 'center',
-  },
-  line: {
-    color: colors.text,
-    fontFamily: monoFont.family,
-    fontSize: monoFont.size,
-    lineHeight: monoFont.lineHeight,
-  },
-  prompt: { color: colors.green },
-  info: { color: colors.cyan },
-  warning: { color: colors.yellow },
-  error: { color: colors.red },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    shell: {
+      flex: 1,
+      minHeight: 140,
+      // The console is a window into the session, not a card: no radius and no
+      // frame, just a hairline that separates it from the chrome above.
+      marginHorizontal: -spacing.lg,
+      backgroundColor: theme.console.background,
+    },
+    topbar: {
+      minHeight: 36,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.console.dim,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    title: {
+      flex: 1,
+      color: theme.console.text,
+      fontSize: theme.type.subheadline.fontSize,
+      lineHeight: theme.type.subheadline.lineHeight,
+      fontWeight: '600',
+      letterSpacing: theme.type.subheadline.letterSpacing,
+    },
+    badge: {
+      minHeight: 20,
+      paddingHorizontal: 8,
+      borderRadius: radius.pill,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      // A system fill keeps the badge neutral; only the label carries meaning.
+      backgroundColor: 'rgba(120, 120, 128, 0.28)',
+    },
+    dot: { width: 5, height: 5, borderRadius: 3 },
+    badgeText: {
+      fontSize: theme.type.caption2.fontSize,
+      lineHeight: theme.type.caption2.lineHeight,
+      fontWeight: '600',
+      letterSpacing: theme.type.caption2.letterSpacing,
+    },
+    output: {
+      flex: 1,
+    },
+    lines: {
+      flexGrow: 1,
+      padding: spacing.lg,
+    },
+    empty: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingHorizontal: spacing.xl,
+    },
+    emptyTitle: {
+      color: theme.console.text,
+      fontSize: theme.type.subheadline.fontSize,
+      lineHeight: theme.type.subheadline.lineHeight,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    emptyHint: {
+      color: theme.console.dim,
+      fontSize: theme.type.footnote.fontSize,
+      lineHeight: theme.type.footnote.lineHeight,
+      textAlign: 'center',
+    },
+    line: {
+      color: theme.console.text,
+      fontFamily: monoFont.family,
+      fontSize: Math.round(monoFont.size * theme.fontScale),
+      lineHeight: Math.round(monoFont.lineHeight * theme.fontScale),
+    },
+    prompt: { color: theme.console.prompt },
+    info: { color: theme.console.info },
+    warning: { color: theme.console.warning },
+    error: { color: theme.console.error },
+  });

@@ -3,28 +3,9 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FC } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { AIAssistButton } from './src/components/AIAssistButton';
-import {
-  hasCapability,
-  planAIActions,
-  extractCommands,
-  describeAIAction,
-  type AIActionPlan,
-  type AICapability,
-} from './src/aiTerminal';
+import { hasCapability, planAIActions, extractCommands, describeAIAction, type AIActionPlan, type AICapability } from './src/aiTerminal';
 import { AiCapabilitySwitcher } from './src/components/AiCapabilitySwitcher';
 import { CommandChip } from './src/components/CommandChip';
 import { FileRow } from './src/components/FileRow';
@@ -36,61 +17,33 @@ import { SidePanel } from './src/components/SidePanel';
 import { StatusPill } from './src/components/StatusPill';
 import { TerminalPreview } from './src/components/TerminalPreview';
 import type { FileItem } from './src/data';
-import {
-  configStore,
-  activeProvider,
-  commandPlatformForTerminal,
-  maskSecret,
-  sshProfilePlatform,
-  useAppConfig,
-  type SSHProfile,
-  type WorkspaceSession,
-} from './src/services/config';
+import { configStore, activeProvider, commandPlatformForTerminal, maskSecret, sshProfilePlatform, useAppConfig, type AppearancePreference, type SSHProfile, type WorkspaceSession } from './src/services/config';
 import { sendChat, type AIChatMessage } from './src/services/ai';
-import {
-  COMMAND_PLATFORM_LABELS,
-  quickCommands as commandsForPlatform,
-  suggestCommands,
-} from './src/services/commandCatalog';
+import { COMMAND_PLATFORM_LABELS, suggestCommands } from './src/services/commandCatalog';
 import { runtimeStore, useRuntime } from './src/services/runtimeStore';
-import {
-  getDeviceStats,
-  getStorageInfo,
-  listLinuxDirectory,
-  readClipboard,
-  readLinuxFile,
-  type LinuxDirEntry,
-  type LinuxStatus,
-} from './src/native/nativeBridge';
+import { getDeviceStats, getStorageInfo, listLinuxDirectory, readClipboard, readLinuxFile, type LinuxDirEntry, type LinuxStatus } from './src/native/nativeBridge';
 import { useTerminalRuntime, type TerminalRuntimeApi } from './src/hooks/useTerminalRuntime';
 import { useKeyboardVisible } from './src/hooks/useKeyboardVisible';
-import {
-  HORIZONTAL_FADE_LENGTH,
-  contentMaxWidth,
-  showAuxiliaryTools,
-} from './src/layout';
-import {
-  MobileAction,
-  MobileState,
-  createInitialMobileState,
-  desktopFeatureCoverage,
-  getActivePane,
-  getActiveTerminal,
-  mobileReducer,
-} from './src/mobileState';
-import { colors, radius, spacing, surfaces, typography } from './src/theme';
-import { barHeight, corner, grid, monoFont, systemColors, typeScale } from './src/hig';
-import {
-  isPanelOpen,
-  type PanelDestination,
-  type PanelSection,
-  type TerminalAction,
-} from './src/navigation';
+import { HORIZONTAL_FADE_LENGTH, contentMaxWidth, showAuxiliaryTools } from './src/layout';
+import { quickCommands as commandsForPlatform } from './src/services/commandCatalog';
+import { MobileAction, MobileState, createInitialMobileState, desktopFeatureCoverage, getActivePane, getActiveTerminal, mobileReducer } from './src/mobileState';
+import { ThemeProvider, useTheme, useThemedStyles } from './src/theme-context';
+import {radius, spacing, typography, type Theme} from './src/theme';
+import {barHeight, corner, grid, monoFont} from './src/hig';
+import { isPanelOpen, type PanelDestination, type PanelSection, type TerminalAction } from './src/navigation';
 
 type SetupStep = 'environment' | 'ai' | 'ssh' | 'finish';
+
+const APPEARANCE_OPTIONS: Array<{ id: AppearancePreference; label: string }> = [
+  { id: 'system', label: '跟随系统' },
+  { id: 'light', label: '浅色' },
+  { id: 'dark', label: '深色' },
+];
 type MobilePressEvent = { stopPropagation: () => void };
 
 const AppContent: FC = () => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const keyboardVisible = useKeyboardVisible();
@@ -283,7 +236,7 @@ const AppContent: FC = () => {
   if (!booted) {
     return (
       <View style={[styles.boot, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <StatusBar style="light" />
+        <StatusBar style={theme.scheme === 'light' ? 'dark' : 'light'} />
         <View style={styles.bootMark}>
           {/* A vector mark instead of an icon font: the boot screen paints
               before the icon font is ready, and a glyph would read blank. */}
@@ -294,7 +247,7 @@ const AppContent: FC = () => {
         </View>
         <Text style={styles.bootTitle}>AI Shell</Text>
         <Text style={styles.bootSub}>正在加载内置 Linux 环境…</Text>
-        <ActivityIndicator color={colors.accent} style={styles.bootSpinner} />
+        <ActivityIndicator color={theme.colors.accent} style={styles.bootSpinner} />
       </View>
     );
   }
@@ -312,7 +265,7 @@ const AppContent: FC = () => {
           },
         ]}
       >
-        <StatusBar style="light" />
+        <StatusBar style={theme.scheme === 'light' ? 'dark' : 'light'} />
 
         {/* HIG large-title navigation bar with a single prominent action. */}
         <View style={styles.titleBar}>
@@ -390,6 +343,8 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
   showAuxiliary,
   onOpenSetup,
 }) => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const activeTerminal = getActiveTerminal(state);
   const activePane = getActivePane(state);
   const commandPlatform = commandPlatformForTerminal(
@@ -420,13 +375,13 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
       {!runtime.installed ? (
         <Pressable style={styles.runtimeBanner} onPress={() => onOpenSetup('environment')}>
           <View style={styles.runtimeBannerIcon}>
-            <Ionicons name="download-outline" size={20} color={colors.accent} />
+            <Ionicons name="download-outline" size={20} color={theme.colors.accent} />
           </View>
           <View style={styles.flexText}>
             <Text style={styles.runtimeBannerTitle}>内置 Linux 尚未安装</Text>
             <Text style={styles.runtimeBannerText}>安装 Alpine 根文件系统后即可离线执行命令</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.textDim} />
         </Pressable>
       ) : null}
 
@@ -451,7 +406,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
               <Ionicons
                 name={terminal.type === 'ssh' ? 'server-outline' : 'terminal-outline'}
                 size={15}
-                color={active ? colors.accent : colors.textDim}
+                color={active ? theme.colors.accent : theme.colors.textDim}
               />
               <Text numberOfLines={1} style={styles.terminalTabText}>
                 {terminal.title}
@@ -467,7 +422,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
                     dispatch({ type: 'closeTerminal', terminalId: terminal.id });
                   }}
                 >
-                  <Ionicons name="close" size={14} color={colors.textDim} />
+                  <Ionicons name="close" size={14} color={theme.colors.textDim} />
                 </Pressable>
               ) : null}
             </Pressable>
@@ -479,18 +434,18 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
           style={styles.addTab}
           onPress={() => dispatch({ type: 'newLocalTerminal' })}
         >
-          <Ionicons name="add" size={18} color={colors.textMuted} />
+          <Ionicons name="add" size={18} color={theme.colors.textMuted} />
         </Pressable>
       </ScrollView>
 
       {activeTerminal.showSearch ? (
         <View style={styles.searchPanel}>
-          <Ionicons name="search" size={16} color={colors.textDim} />
+          <Ionicons name="search" size={16} color={theme.colors.textDim} />
           <TextInput
             value={state.searchQuery}
             onChangeText={(value: string) => dispatch({ type: 'setSearchQuery', query: value })}
             placeholder="过滤终端输出"
-            placeholderTextColor={colors.textDim}
+            placeholderTextColor={theme.colors.textDim}
             style={styles.searchInput}
           />
           {query ? <Text style={styles.searchCount}>{visibleLines.length}</Text> : null}
@@ -516,7 +471,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
 
       {activePane.sessionStatus === 'exited' ? (
         <Pressable style={styles.reconnectBanner} onPress={() => terminalApi.restartActive()}>
-          <Ionicons name="refresh" size={16} color={colors.yellow} />
+          <Ionicons name="refresh" size={16} color={theme.colors.yellow} />
           <Text style={styles.reconnectText}>会话已结束，点击重新连接</Text>
         </Pressable>
       ) : null}
@@ -558,7 +513,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
             suggestions.length ? (
               <View style={styles.suggestionPanel}>
                 <View style={styles.suggestionHeader}>
-                  <Ionicons name="sparkles-outline" size={13} color={colors.accent} />
+                  <Ionicons name="sparkles-outline" size={13} color={theme.colors.accent} />
                   <Text style={styles.suggestionHeaderText}>补全 · {platformLabel}</Text>
                 </View>
                 <ScrollView
@@ -617,7 +572,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
             placeholder={
               activePane.sessionStatus === 'ready' ? `输入 ${platformLabel} 命令…` : '等待会话就绪…'
             }
-            placeholderTextColor={colors.textDim}
+            placeholderTextColor={theme.colors.textDim}
             autoCapitalize="none"
             autoCorrect={false}
             onSubmitEditing={() => terminalApi.runCommand()}
@@ -642,11 +597,14 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
   );
 };
 
-const TerminalKey: FC<{ label: string; onPress: () => void }> = ({ label, onPress }) => (
+const TerminalKey: FC<{ label: string; onPress: () => void }> = ({ label, onPress }) => {
+  const styles = useThemedStyles(makeStyles);
+  return (
   <Pressable style={styles.keyButton} onPress={onPress}>
     <Text style={styles.keyText}>{label}</Text>
   </Pressable>
 );
+};
 
 interface SSHWorkspaceProps extends WorkspaceProps {
   config: ReturnType<typeof useAppConfig>;
@@ -654,6 +612,8 @@ interface SSHWorkspaceProps extends WorkspaceProps {
 }
 
 const SSHWorkspace: FC<SSHWorkspaceProps> = ({ config, dispatch, onOpenSetup }) => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const removeProfile = (profile: SSHProfile) =>
     Alert.alert('删除 SSH 配置', `确定删除「${profile.name}」吗？`, [
       { text: '取消', style: 'cancel' },
@@ -675,7 +635,7 @@ const SSHWorkspace: FC<SSHWorkspaceProps> = ({ config, dispatch, onOpenSetup }) 
             : 'OpenSSH 已内置'}
         </Text>
         <Pressable style={styles.smallAction} onPress={() => onOpenSetup('ssh')}>
-          <Ionicons name="add" size={16} color={colors.text} />
+          <Ionicons name="add" size={16} color={theme.colors.text} />
           <Text style={styles.smallActionText}>新增连接</Text>
         </Pressable>
       </View>
@@ -683,7 +643,7 @@ const SSHWorkspace: FC<SSHWorkspaceProps> = ({ config, dispatch, onOpenSetup }) 
       {config.sshProfiles.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="server-outline" size={26} color={colors.accent} />
+            <Ionicons name="server-outline" size={26} color={theme.colors.accent} />
           </View>
           <Text style={styles.emptyTitle}>还没有 SSH 配置</Text>
           <Text style={styles.emptyText}>
@@ -714,7 +674,10 @@ const SSHCard: FC<{ profile: SSHProfile; onConnect: () => void; onDelete: () => 
   profile,
   onConnect,
   onDelete,
-}) => (
+}) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
   <Pressable
     accessibilityRole="button"
     accessibilityLabel={`连接 ${profile.name}`}
@@ -722,7 +685,7 @@ const SSHCard: FC<{ profile: SSHProfile; onConnect: () => void; onDelete: () => 
     onPress={onConnect}
   >
     <View style={styles.cardIcon}>
-      <Ionicons name="server-outline" size={20} color={colors.accent} />
+      <Ionicons name="server-outline" size={20} color={theme.colors.accent} />
     </View>
     <View style={styles.cardBody}>
       <View style={styles.cardTop}>
@@ -747,10 +710,11 @@ const SSHCard: FC<{ profile: SSHProfile; onConnect: () => void; onDelete: () => 
         onDelete();
       }}
     >
-      <Ionicons name="trash-outline" size={16} color={colors.red} />
+      <Ionicons name="trash-outline" size={16} color={theme.colors.red} />
     </Pressable>
   </Pressable>
-);
+  );
+};
 
 interface SessionWorkspaceProps extends WorkspaceProps {
   config: ReturnType<typeof useAppConfig>;
@@ -758,6 +722,8 @@ interface SessionWorkspaceProps extends WorkspaceProps {
 }
 
 const SessionWorkspace: FC<SessionWorkspaceProps> = ({ config, state, dispatch }) => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const [name, setName] = useState('');
 
   const save = async () => {
@@ -793,11 +759,11 @@ const SessionWorkspace: FC<SessionWorkspaceProps> = ({ config, state, dispatch }
           value={name}
           onChangeText={setName}
           placeholder="会话名称（可选）"
-          placeholderTextColor={colors.textDim}
+          placeholderTextColor={theme.colors.textDim}
           style={styles.saveInput}
         />
         <Pressable style={styles.smallAction} onPress={save}>
-          <Ionicons name="save-outline" size={16} color={colors.text} />
+          <Ionicons name="save-outline" size={16} color={theme.colors.text} />
           <Text style={styles.smallActionText}>保存</Text>
         </Pressable>
       </View>
@@ -805,7 +771,7 @@ const SessionWorkspace: FC<SessionWorkspaceProps> = ({ config, state, dispatch }
       {config.workspaceSessions.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="albums-outline" size={26} color={colors.accent} />
+            <Ionicons name="albums-outline" size={26} color={theme.colors.accent} />
           </View>
           <Text style={styles.emptyTitle}>还没有保存的工作区</Text>
           <Text style={styles.emptyText}>保存当前标签布局，下次可一键恢复。</Text>
@@ -827,7 +793,7 @@ const SessionWorkspace: FC<SessionWorkspaceProps> = ({ config, state, dispatch }
               }
             >
               <View style={styles.cardIcon}>
-                <Ionicons name="albums-outline" size={20} color={colors.accent} />
+                <Ionicons name="albums-outline" size={20} color={theme.colors.accent} />
               </View>
               <View style={styles.cardBody}>
                 <View style={styles.cardTop}>
@@ -859,7 +825,7 @@ const SessionWorkspace: FC<SessionWorkspaceProps> = ({ config, state, dispatch }
                   ]);
                 }}
               >
-                <Ionicons name="trash-outline" size={16} color={colors.red} />
+                <Ionicons name="trash-outline" size={16} color={theme.colors.red} />
               </Pressable>
             </Pressable>
           ))}
@@ -889,6 +855,8 @@ const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({
   runtime,
   onOpenSetup,
 }) => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const [entries, setEntries] = useState<LinuxDirEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -985,19 +953,19 @@ const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({
       {!runtime.installed ? (
         <Pressable style={styles.runtimeBanner} onPress={() => onOpenSetup('environment')}>
           <View style={styles.runtimeBannerIcon}>
-            <Ionicons name="download-outline" size={20} color={colors.accent} />
+            <Ionicons name="download-outline" size={20} color={theme.colors.accent} />
           </View>
           <View style={styles.flexText}>
             <Text style={styles.runtimeBannerTitle}>安装内置 Linux 后浏览文件</Text>
             <Text style={styles.runtimeBannerText}>文件系统位于 APK 的 Alpine 根目录</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.textDim} />
         </Pressable>
       ) : (
         <>
           <View style={styles.pathBar}>
             <Pressable style={styles.pathButton} onPress={() => load(parentPath)}>
-              <Ionicons name="arrow-up" size={16} color={colors.textMuted} />
+              <Ionicons name="arrow-up" size={16} color={theme.colors.textMuted} />
             </Pressable>
             <Text numberOfLines={1} style={styles.pathText}>
               {state.currentPath}
@@ -1009,17 +977,17 @@ const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({
               <Ionicons
                 name={state.hiddenFilesVisible ? 'eye-off-outline' : 'eye-outline'}
                 size={16}
-                color={colors.textMuted}
+                color={theme.colors.textMuted}
               />
             </Pressable>
             <Pressable style={styles.pathButton} onPress={() => load(state.currentPath)}>
-              <Ionicons name="refresh" size={16} color={colors.textMuted} />
+              <Ionicons name="refresh" size={16} color={theme.colors.textMuted} />
             </Pressable>
           </View>
 
           {loading ? (
             <View style={styles.fileStatus}>
-              <ActivityIndicator size="small" color={colors.accent} />
+              <ActivityIndicator size="small" color={theme.colors.accent} />
               <Text style={styles.fileStatusText}>读取目录…</Text>
             </View>
           ) : null}
@@ -1085,6 +1053,8 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
   onClosePanel,
   onOpenSetup,
 }) => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const [actionNote, setActionNote] = useState('');
   const provider = activeProvider(config);
   const chatActive = state.aiWorkspaceMode === 'chat';
@@ -1179,7 +1149,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
           <Ionicons
             name="chatbubble-ellipses-outline"
             size={13}
-            color={chatActive ? colors.text : colors.textDim}
+            color={chatActive ? theme.colors.text : theme.colors.textDim}
           />
           <Text style={[styles.segmentText, chatActive && styles.segmentTextActive]}>对话</Text>
         </Pressable>
@@ -1190,7 +1160,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
           <Ionicons
             name="key-outline"
             size={13}
-            color={!chatActive ? colors.text : colors.textDim}
+            color={!chatActive ? theme.colors.text : theme.colors.textDim}
           />
           <Text style={[styles.segmentText, !chatActive && styles.segmentTextActive]}>模型</Text>
         </Pressable>
@@ -1207,7 +1177,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
 
           {showAuxiliary ? (
             <View style={styles.aiContextPanel}>
-              <Ionicons name="terminal-outline" size={12} color={systemColors.systemBlue} />
+              <Ionicons name="terminal-outline" size={12} color={theme.system.systemBlue} />
               <Text numberOfLines={1} style={styles.aiContextLine}>
                 {includeContext ? `${activeTerminal.title} · 已读取终端输出` : '未读取终端输出'} ·{' '}
                 {provider ? provider.model : '未配置模型'}
@@ -1307,7 +1277,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
               <Ionicons
                 name="checkmark-circle-outline"
                 size={12}
-                color={systemColors.systemGreen}
+                color={theme.system.systemGreen}
               />
               <Text numberOfLines={1} style={styles.aiActionNoteText}>
                 {actionNote}
@@ -1318,7 +1288,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 onPress={() => setActionNote('')}
               >
-                <Ionicons name="close" size={11} color={colors.textDim} />
+                <Ionicons name="close" size={11} color={theme.colors.textDim} />
               </Pressable>
             </View>
           ) : null}
@@ -1328,7 +1298,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
               value={state.aiPrompt}
               onChangeText={(prompt: string) => dispatch({ type: 'setAiPrompt', prompt })}
               placeholder="询问 AI，例如：分析当前报错并给出命令"
-              placeholderTextColor={colors.textDim}
+              placeholderTextColor={theme.colors.textDim}
               multiline
               textAlignVertical="top"
               style={styles.aiPromptInput}
@@ -1366,7 +1336,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
           {config.aiProviders.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="sparkles-outline" size={26} color={colors.accent} />
+                <Ionicons name="sparkles-outline" size={26} color={theme.colors.accent} />
               </View>
               <Text style={styles.emptyTitle}>还没有 AI 提供商</Text>
               <Text style={styles.emptyText}>
@@ -1443,7 +1413,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                           ]);
                         }}
                       >
-                        <Ionicons name="trash-outline" size={15} color={colors.red} />
+                        <Ionicons name="trash-outline" size={15} color={theme.colors.red} />
                         <Text style={[styles.secondaryActionText, styles.dangerText]}>删除</Text>
                       </Pressable>
                       {active ? (
@@ -1454,7 +1424,7 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                             onOpenSetup('ai');
                           }}
                         >
-                          <Ionicons name="create-outline" size={15} color={colors.accent} />
+                          <Ionicons name="create-outline" size={15} color={theme.colors.accent} />
                           <Text style={styles.secondaryActionText}>编辑</Text>
                         </Pressable>
                       ) : null}
@@ -1479,7 +1449,10 @@ interface HistoryWorkspaceProps extends WorkspaceProps {
   config: ReturnType<typeof useAppConfig>;
 }
 
-const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => (
+const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
+  return (
   <>
     <View style={styles.pageActionRow}>
       <Text style={styles.pageActionLabel}>{config.history.length} 条已提交命令</Text>
@@ -1497,7 +1470,7 @@ const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => (
         }
         disabled={config.history.length === 0}
       >
-        <Ionicons name="trash-outline" size={16} color={colors.text} />
+        <Ionicons name="trash-outline" size={16} color={theme.colors.text} />
         <Text style={styles.smallActionText}>清空</Text>
       </Pressable>
     </View>
@@ -1505,7 +1478,7 @@ const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => (
     {config.history.length === 0 ? (
       <View style={styles.emptyState}>
         <View style={styles.emptyIcon}>
-          <Ionicons name="time-outline" size={26} color={colors.accent} />
+          <Ionicons name="time-outline" size={26} color={theme.colors.accent} />
         </View>
         <Text style={styles.emptyTitle}>还没有命令记录</Text>
         <Text style={styles.emptyText}>在终端执行的命令会自动保存在这里。</Text>
@@ -1531,6 +1504,7 @@ const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => (
     )}
   </>
 );
+};
 
 interface SettingsWorkspaceProps {
   config: ReturnType<typeof useAppConfig>;
@@ -1547,6 +1521,8 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
   onOpenSetup,
   onReset,
 }) => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const [storage, setStorage] = useState<Awaited<ReturnType<typeof getStorageInfo>> | null>(null);
 
   useEffect(() => {
@@ -1588,9 +1564,46 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
         <SettingRow icon="person-circle-outline" title="署名" value="esdkaiyuan" />
       </View>
 
+      <View style={styles.settingGroup}>
+        <View style={styles.appearanceRow}>
+          <View style={styles.appearanceLabel}>
+            <Ionicons name="contrast-outline" size={18} color={theme.colors.accent} />
+            <Text style={styles.appearanceTitle}>外观</Text>
+          </View>
+          <View style={styles.appearanceSegment}>
+            {APPEARANCE_OPTIONS.map(option => {
+              const active = config.appearance === option.id;
+              return (
+                <Pressable
+                  key={option.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`外观 ${option.label}`}
+                  style={[styles.appearanceChip, active && styles.appearanceChipActive]}
+                  onPress={() => {
+                    configStore
+                      .update({ appearance: option.id })
+                      .catch(() => undefined);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.appearanceChipText,
+                      active && styles.appearanceChipTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
       <View style={styles.actionRow}>
         <Pressable style={styles.secondaryAction} onPress={() => onOpenSetup('environment')}>
-          <Ionicons name="settings-outline" size={16} color={colors.accent} />
+          <Ionicons name="settings-outline" size={16} color={theme.colors.accent} />
           <Text style={styles.secondaryActionText}>环境与配置向导</Text>
         </Pressable>
         {runtime.installed ? (
@@ -1613,7 +1626,7 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
               )
             }
           >
-            <Ionicons name="trash-outline" size={16} color={colors.red} />
+            <Ionicons name="trash-outline" size={16} color={theme.colors.red} />
             <Text style={[styles.secondaryActionText, styles.dangerText]}>重置环境</Text>
           </Pressable>
         ) : null}
@@ -1623,7 +1636,7 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
       <View style={styles.coverageGrid}>
         {desktopFeatureCoverage.map(item => (
           <View key={item} style={styles.coverageItem}>
-            <Ionicons name="checkmark-circle" size={14} color={colors.green} />
+            <Ionicons name="checkmark-circle" size={14} color={theme.colors.green} />
             <Text style={styles.coverageText}>{item}</Text>
           </View>
         ))}
@@ -1643,10 +1656,13 @@ interface SettingRowProps {
   value: string;
 }
 
-const SettingRow: FC<SettingRowProps> = ({ icon, title, value }) => (
+const SettingRow: FC<SettingRowProps> = ({ icon, title, value }) => {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
+  return (
   <View style={styles.settingRow}>
     <View style={styles.settingIcon}>
-      <Ionicons name={icon} size={18} color={colors.accent} />
+      <Ionicons name={icon} size={18} color={theme.colors.accent} />
     </View>
     <Text style={styles.settingTitle}>{title}</Text>
     <Text numberOfLines={1} style={styles.settingValue}>
@@ -1654,16 +1670,17 @@ const SettingRow: FC<SettingRowProps> = ({ icon, title, value }) => (
     </Text>
   </View>
 );
+};
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: systemColors.systemBackground },
+const makeStyles = (theme: Theme) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: theme.system.systemBackground },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.appBg,
+    backgroundColor: theme.colors.appBg,
   },
   boot: {
     flex: 1,
-    backgroundColor: colors.appBg,
+    backgroundColor: theme.colors.appBg,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
@@ -1672,7 +1689,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
@@ -1682,7 +1699,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: colors.accent,
+    borderColor: theme.colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1692,26 +1709,26 @@ const styles = StyleSheet.create({
     width: 12,
     height: 2,
     borderRadius: 1,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
   },
   bootCursor: {
     width: 4,
     height: 2,
     borderRadius: 1,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     opacity: 0.55,
   },
   bootTitle: {
-    color: colors.text,
-    fontSize: typeScale.title3.fontSize,
-    lineHeight: typeScale.title3.lineHeight,
+    color: theme.colors.text,
+    fontSize: theme.type.title3.fontSize,
+    lineHeight: theme.type.title3.lineHeight,
     fontWeight: '600',
-    letterSpacing: typeScale.title3.letterSpacing,
+    letterSpacing: theme.type.title3.letterSpacing,
   },
   bootSub: {
-    color: colors.textDim,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
+    color: theme.colors.textDim,
+    fontSize: theme.type.footnote.fontSize,
+    lineHeight: theme.type.footnote.lineHeight,
   },
   bootSpinner: { marginTop: spacing.md },
   /** HIG large-title navigation bar: one title, one prominent action. */
@@ -1724,17 +1741,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: grid.tight,
-    backgroundColor: systemColors.systemGroupedBackground,
+    backgroundColor: theme.system.systemGroupedBackground,
   },
   // HIG large title: 34pt regular, not a bold display face.
   largeTitle: {
     flex: 1,
     minWidth: 0,
-    color: systemColors.label,
-    fontSize: typeScale.largeTitle.fontSize,
-    lineHeight: typeScale.largeTitle.lineHeight,
+    color: theme.system.label,
+    fontSize: theme.type.largeTitle.fontSize,
+    lineHeight: theme.type.largeTitle.lineHeight,
     fontWeight: '400',
-    letterSpacing: typeScale.largeTitle.letterSpacing,
+    letterSpacing: theme.type.largeTitle.letterSpacing,
   },
   main: { flex: 1 },
   fullHeightContent: { flex: 1, padding: spacing.lg },
@@ -1747,7 +1764,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.md,
   },
-  pageActionLabel: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
+  pageActionLabel: { flex: 1, color: theme.colors.textMuted, fontSize: 13, lineHeight: 19 },
   stack: { gap: 10 },
   tabScroll: { flexGrow: 0, flexShrink: 0, maxHeight: 54 },
   tabRow: { gap: spacing.sm, paddingBottom: 10, alignItems: 'center' },
@@ -1757,14 +1774,14 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.md,
     paddingRight: 4,
     borderRadius: 10,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     flexShrink: 0,
   },
-  terminalTabActive: { backgroundColor: colors.selection },
-  terminalTabText: { maxWidth: 112, color: colors.text, fontSize: 12.5, fontWeight: '600' },
+  terminalTabActive: { backgroundColor: theme.colors.selection },
+  terminalTabText: { maxWidth: 112, color: theme.colors.text, fontSize: 12.5, fontWeight: '600' },
   tabClose: {
     width: 32,
     height: 32,
@@ -1776,7 +1793,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -1787,31 +1804,31 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     marginBottom: spacing.md,
   },
   runtimeBannerIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  runtimeBannerTitle: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  runtimeBannerText: { color: colors.textDim, fontSize: 11.5, marginTop: 3 },
+  runtimeBannerTitle: { color: theme.colors.text, fontSize: 14, fontWeight: '600' },
+  runtimeBannerText: { color: theme.colors.textDim, fontSize: 11.5, marginTop: 3 },
   searchPanel: {
     minHeight: 42,
     paddingHorizontal: spacing.md,
     borderRadius: 10,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  searchInput: { flex: 1, color: colors.text, fontSize: 13, paddingVertical: 8 },
-  searchCount: { color: colors.textDim, fontSize: 11, fontFamily: monoFont.family },
+  searchInput: { flex: 1, color: theme.colors.text, fontSize: 13, paddingVertical: 8 },
+  searchCount: { color: theme.colors.textDim, fontSize: 11, fontFamily: monoFont.family },
   paneSelector: { flexDirection: 'row', gap: spacing.sm, marginBottom: 10 },
   paneButton: {
     flex: 1,
@@ -1819,10 +1836,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
   },
-  paneButtonActive: { backgroundColor: colors.selection },
-  paneButtonText: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+  paneButtonActive: { backgroundColor: theme.colors.selection },
+  paneButtonText: { color: theme.colors.textMuted, fontSize: 12, fontWeight: '600' },
   reconnectBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1833,15 +1850,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 159, 10, 0.12)',
     marginBottom: 8,
   },
-  reconnectText: { color: colors.yellow, fontSize: 12, fontWeight: '500' },
+  reconnectText: { color: theme.colors.yellow, fontSize: 12, fontWeight: '500' },
   commandBar: { flexDirection: 'row', gap: spacing.sm, marginTop: 10 },
   commandInput: {
     flex: 1,
     height: 46,
     paddingHorizontal: spacing.md,
     borderRadius: 10,
-    backgroundColor: colors.panel,
-    color: colors.text,
+    backgroundColor: theme.colors.panel,
+    color: theme.colors.text,
     fontFamily: monoFont.family,
     fontSize: 13,
   },
@@ -1850,15 +1867,15 @@ const styles = StyleSheet.create({
     height: 46,
     // A round prominent button, the way iOS presents its send affordance.
     borderRadius: 23,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   runButtonDisabled: { opacity: 0.4 },
   commandDock: {
     borderTopWidth: 1,
-    borderTopColor: colors.borderSoft,
-    backgroundColor: surfaces.dock,
+    borderTopColor: theme.colors.borderSoft,
+    backgroundColor: theme.surfaces.dock,
     marginHorizontal: -spacing.lg,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,
@@ -1877,14 +1894,14 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 10,
     borderRadius: 10,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  keyText: { color: colors.textMuted, fontSize: 11, fontWeight: '600', fontFamily: monoFont.family },
+  keyText: { color: theme.colors.textMuted, fontSize: 11, fontWeight: '600', fontFamily: monoFont.family },
   quickPanel: { gap: 5, paddingTop: 0 },
   quickLabel: {
-    color: colors.textDim,
+    color: theme.colors.textDim,
     fontSize: typography.caption,
     fontWeight: '600',
     paddingHorizontal: 2,
@@ -1892,7 +1909,7 @@ const styles = StyleSheet.create({
   chipRow: { gap: spacing.sm, paddingRight: spacing.lg },
   suggestionPanel: { gap: 5, paddingTop: 0 },
   suggestionHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 2 },
-  suggestionHeaderText: { color: colors.accent, fontSize: typography.caption, fontWeight: '600' },
+  suggestionHeaderText: { color: theme.colors.accent, fontSize: typography.caption, fontWeight: '600' },
   suggestionRow: { gap: 7, paddingRight: spacing.lg },
   suggestionCard: {
     width: 214,
@@ -1900,17 +1917,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 11,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     justifyContent: 'center',
     gap: 3,
   },
-  suggestionCommand: { color: colors.text, fontFamily: monoFont.family, fontSize: 12 },
-  suggestionDescription: { color: colors.textDim, fontSize: typography.caption },
+  suggestionCommand: { color: theme.colors.text, fontFamily: monoFont.family, fontSize: 12 },
+  suggestionDescription: { color: theme.colors.textDim, fontSize: typography.caption },
   card: {
     minHeight: 78,
     padding: 14,
     borderRadius: 14,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -1919,7 +1936,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1930,30 +1947,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
-  cardTitle: { color: colors.text, fontSize: 15, fontWeight: '600', flex: 1 },
-  cardMeta: { color: colors.textDim, fontSize: 11.5, marginTop: 4 },
+  cardTitle: { color: theme.colors.text, fontSize: 15, fontWeight: '600', flex: 1 },
+  cardMeta: { color: theme.colors.textDim, fontSize: 11.5, marginTop: 4 },
   cardDelete: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mono: { color: colors.textMuted, fontFamily: monoFont.family, fontSize: 12, marginTop: 4 },
+  mono: { color: theme.colors.textMuted, fontFamily: monoFont.family, fontSize: 12, marginTop: 4 },
   authPill: {
     minHeight: 22,
     paddingHorizontal: 8,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
     justifyContent: 'center',
   },
-  authText: { color: colors.accent, fontSize: 10, fontWeight: '600' },
+  authText: { color: theme.colors.accent, fontSize: 10, fontWeight: '600' },
   pathBar: {
     minHeight: 44,
     paddingHorizontal: 10,
     borderRadius: 12,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -1963,52 +1980,52 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radius.sm,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pathText: { flex: 1, color: colors.textMuted, fontFamily: monoFont.family, fontSize: 12 },
+  pathText: { flex: 1, color: theme.colors.textMuted, fontFamily: monoFont.family, fontSize: 12 },
   fileStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  fileStatusText: { color: colors.textDim, fontSize: 12 },
-  errorText: { color: colors.red, fontSize: 12, lineHeight: 18, marginBottom: 8 },
+  fileStatusText: { color: theme.colors.textDim, fontSize: 12 },
+  errorText: { color: theme.colors.red, fontSize: 12, lineHeight: 18, marginBottom: 8 },
   filePreview: {
     marginTop: spacing.lg,
     borderRadius: 14,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     padding: 14,
     gap: 8,
   },
   filePreviewHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  filePreviewName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
+  filePreviewName: { flex: 1, color: theme.colors.text, fontSize: 14, fontWeight: '600' },
   filePreviewScroll: { maxHeight: 200 },
   filePreviewContent: {
-    color: colors.textMuted,
+    color: theme.colors.textMuted,
     fontFamily: monoFont.family,
     fontSize: 11.5,
     lineHeight: 17,
   },
-  hintText: { color: colors.textDim, fontSize: 11, lineHeight: 17, marginTop: spacing.md },
+  hintText: { color: theme.colors.textDim, fontSize: 11, lineHeight: 17, marginTop: spacing.md },
   saveBar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   saveInput: {
     flex: 1,
     height: 42,
     paddingHorizontal: spacing.md,
     borderRadius: 10,
-    backgroundColor: colors.panel,
-    color: colors.text,
+    backgroundColor: theme.colors.panel,
+    color: theme.colors.text,
     fontSize: 13,
   },
   smallAction: {
     minHeight: 44,
     paddingHorizontal: spacing.md,
     borderRadius: 10,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
   },
-  smallActionText: { color: colors.text, fontSize: 12, fontWeight: '600' },
+  smallActionText: { color: theme.colors.text, fontSize: 12, fontWeight: '600' },
   emptyState: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -2021,18 +2038,18 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
-  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  emptyText: { color: colors.textDim, fontSize: 12.5, lineHeight: 19, textAlign: 'center' },
+  emptyTitle: { color: theme.colors.text, fontSize: 16, fontWeight: '600' },
+  emptyText: { color: theme.colors.textDim, fontSize: 12.5, lineHeight: 19, textAlign: 'center' },
   emptyButton: {
     minHeight: 44,
     paddingHorizontal: spacing.lg,
     borderRadius: 12,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2044,7 +2061,7 @@ const styles = StyleSheet.create({
     minHeight: 34,
     padding: 2,
     borderRadius: 9,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     flexDirection: 'row',
     gap: 2,
     marginBottom: 8,
@@ -2058,30 +2075,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
   },
-  segmentButtonActive: { backgroundColor: colors.panelRaised },
+  segmentButtonActive: { backgroundColor: theme.colors.panelRaised },
   segmentText: {
-    color: colors.textDim,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
+    color: theme.colors.textDim,
+    fontSize: theme.type.footnote.fontSize,
+    lineHeight: theme.type.footnote.lineHeight,
     fontWeight: '600',
-    letterSpacing: typeScale.footnote.letterSpacing,
+    letterSpacing: theme.type.footnote.letterSpacing,
   },
-  segmentTextActive: { color: colors.text },
+  segmentTextActive: { color: theme.colors.text },
   // One 28px meta line replaces the old two-line context card.
   aiContextPanel: {
     minHeight: 28,
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginBottom: 6,
   },
-  aiContextLine: { flex: 1, color: colors.textMuted, fontSize: 10.5 },
+  aiContextLine: { flex: 1, color: theme.colors.textMuted, fontSize: 10.5 },
   aiContextAction: { paddingHorizontal: 2 },
-  aiContextActionText: { color: systemColors.systemBlue, fontSize: 10.5, fontWeight: '600' },
+  aiContextActionText: { color: theme.system.systemBlue, fontSize: 10.5, fontWeight: '600' },
   chatPanel: { flex: 1, minHeight: 64, marginBottom: 5 },
   // Messages sit just above the composer rather than leaving a tall void below them.
   chatContent: {
@@ -2094,18 +2111,18 @@ const styles = StyleSheet.create({
   providerScrollContent: { flexGrow: 1, paddingBottom: spacing.xl },
   chatBubble: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: corner.card, maxWidth: '92%' },
   chatBubbleAssistant: {
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     borderBottomLeftRadius: 4,
     alignSelf: 'flex-start',
   },
   chatBubbleUser: {
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     borderBottomRightRadius: 4,
     alignSelf: 'flex-end',
   },
-  chatRole: { color: colors.textDim, fontSize: 9.5, fontWeight: '600', marginBottom: 1 },
+  chatRole: { color: theme.colors.textDim, fontSize: 9.5, fontWeight: '600', marginBottom: 1 },
   chatRoleUser: { color: 'rgba(255,255,255,0.72)' },
-  chatText: { color: colors.text, fontSize: 12, lineHeight: 17 },
+  chatText: { color: theme.colors.text, fontSize: 12, lineHeight: 17 },
   chatTextUser: { color: '#fff' },
   // Inline terminal actions: a command plus two 20px text buttons per row.
   messageActionRow: { gap: 3, marginTop: 6 },
@@ -2116,12 +2133,12 @@ const styles = StyleSheet.create({
     minHeight: 20,
     paddingTop: 3,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderSoft,
+    borderTopColor: theme.colors.borderSoft,
   },
   messageActionCommand: {
     flex: 1,
     minWidth: 0,
-    color: colors.textMuted,
+    color: theme.colors.textMuted,
     fontSize: 10,
     fontFamily: monoFont.family,
   },
@@ -2129,11 +2146,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 5,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
   },
   messageActionButtonRun: { backgroundColor: 'rgba(10, 132, 255, 0.16)' },
-  messageActionText: { color: colors.textMuted, fontSize: 10, fontWeight: '600' },
-  messageActionRunText: { color: systemColors.systemBlue },
+  messageActionText: { color: theme.colors.textMuted, fontSize: 10, fontWeight: '600' },
+  messageActionRunText: { color: theme.system.systemBlue },
   aiActionNote: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2144,10 +2161,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(48, 209, 88, 0.12)',
     marginBottom: 4,
   },
-  aiActionNoteText: { flex: 1, color: systemColors.systemGreen, fontSize: 10.5 },
+  aiActionNoteText: { flex: 1, color: theme.system.systemGreen, fontSize: 10.5 },
   typing: { flexDirection: 'row', gap: 4, paddingVertical: 2 },
-  typingDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.textDim },
-  aiError: { color: colors.red, fontSize: 11, lineHeight: 16, marginBottom: 4 },
+  typingDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.textDim },
+  aiError: { color: theme.colors.red, fontSize: 11, lineHeight: 16, marginBottom: 4 },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -2161,15 +2178,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: corner.control,
-    backgroundColor: colors.panel,
-    color: colors.text,
+    backgroundColor: theme.colors.panel,
+    color: theme.colors.text,
     fontSize: 12.5,
   },
   sendButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2178,21 +2195,54 @@ const styles = StyleSheet.create({
     minHeight: 62,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
   },
-  historyCommand: { color: colors.text, fontFamily: monoFont.family, fontSize: 13 },
-  historyMeta: { color: colors.textDim, fontSize: 11, marginTop: 5 },
+  historyCommand: { color: theme.colors.text, fontFamily: monoFont.family, fontSize: 13 },
+  historyMeta: { color: theme.colors.textDim, fontSize: 11, marginTop: 5 },
   settingGroup: {
     marginTop: spacing.md,
     borderRadius: corner.grouped,
     overflow: 'hidden',
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
   },
+  appearanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  appearanceLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  appearanceTitle: {
+    color: theme.colors.text,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  appearanceSegment: {
+    flexDirection: 'row',
+    gap: 2,
+    padding: 2,
+    borderRadius: 8,
+    backgroundColor: theme.colors.panelHover,
+  },
+  appearanceChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  appearanceChipActive: { backgroundColor: theme.colors.panelRaised },
+  appearanceChipText: {
+    color: theme.colors.textDim,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  appearanceChipTextActive: { color: theme.colors.text },
   settingRow: {
     minHeight: 56,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
+    borderBottomColor: theme.colors.borderSoft,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -2202,62 +2252,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingTitle: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '500' },
-  settingValue: { color: colors.textDim, fontSize: 12, maxWidth: '54%', textAlign: 'right' },
+  settingTitle: { flex: 1, color: theme.colors.text, fontSize: 14, fontWeight: '500' },
+  settingValue: { color: theme.colors.textDim, fontSize: 12, maxWidth: '54%', textAlign: 'right' },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   secondaryAction: {
     minHeight: 44,
     paddingHorizontal: spacing.md,
     borderRadius: 10,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  secondaryActionText: { color: colors.accent, fontSize: 12, fontWeight: '600' },
+  secondaryActionText: { color: theme.colors.accent, fontSize: 12, fontWeight: '600' },
   dangerAction: { backgroundColor: 'rgba(255, 69, 58, 0.1)' },
-  dangerText: { color: colors.red },
+  dangerText: { color: theme.colors.red },
   providerCard: {
     padding: 14,
     borderRadius: 14,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     gap: 8,
   },
-  providerCardActive: { backgroundColor: colors.selection },
+  providerCardActive: { backgroundColor: theme.colors.selection },
   providerCardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  providerName: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  providerEndpoint: { color: colors.textDim, fontSize: 11, marginTop: 3, fontFamily: monoFont.family },
-  providerKey: { color: colors.green, fontSize: 11, fontFamily: monoFont.family },
+  providerName: { color: theme.colors.text, fontSize: 15, fontWeight: '600' },
+  providerEndpoint: { color: theme.colors.textDim, fontSize: 11, marginTop: 3, fontFamily: monoFont.family },
+  providerKey: { color: theme.colors.green, fontSize: 11, fontFamily: monoFont.family },
   modelChipRow: { gap: 6, paddingRight: spacing.md },
   modelChip: {
     minHeight: 44,
     paddingHorizontal: 12,
     borderRadius: radius.pill,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     justifyContent: 'center',
   },
-  modelChipActive: { backgroundColor: colors.accentSoft },
-  modelText: { color: colors.textMuted, fontSize: typography.caption, fontFamily: monoFont.family },
-  modelTextActive: { color: colors.accent },
+  modelChipActive: { backgroundColor: theme.colors.accentSoft },
+  modelText: { color: theme.colors.textMuted, fontSize: typography.caption, fontFamily: monoFont.family },
+  modelTextActive: { color: theme.colors.accent },
   providerActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   coverageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   coverageItem: {
     minHeight: 32,
     paddingHorizontal: 10,
     borderRadius: radius.pill,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
   },
-  coverageText: { color: colors.textMuted, fontSize: 11 },
+  coverageText: { color: theme.colors.textMuted, fontSize: 11 },
 });
 
-const App: FC = () => (
-  <SafeAreaProvider>
-    <AppContent />
-  </SafeAreaProvider>
-);
+const App: FC = () => {
+  const config = useAppConfig();
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider appearance={config.appearance}>
+        <AppContent />
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+};
 
 export default App;

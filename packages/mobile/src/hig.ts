@@ -60,6 +60,61 @@ export const systemColors = {
   scrim: 'rgba(0, 0, 0, 0.55)',
 } as const;
 
+/**
+ * The same system colour table in the light appearance. HIG requires both
+ * appearances to be first-class, so the tokens are declared per scheme
+ * rather than baked into the styles.
+ */
+export const lightSystemColors = {
+  // Backgrounds — system / grouped hierarchy (base → elevated).
+  systemBackground: '#FFFFFF',
+  secondarySystemBackground: '#F2F2F7',
+  tertiarySystemBackground: '#FFFFFF',
+  systemGroupedBackground: '#F2F2F7',
+  secondarySystemGroupedBackground: '#FFFFFF',
+  tertiarySystemGroupedBackground: '#F2F2F7',
+
+  // Labels.
+  label: '#000000',
+  secondaryLabel: 'rgba(60, 60, 67, 0.60)',
+  tertiaryLabel: 'rgba(60, 60, 67, 0.30)',
+  quaternaryLabel: 'rgba(60, 60, 67, 0.18)',
+
+  // Fills and separators.
+  systemFill: 'rgba(120, 120, 128, 0.20)',
+  secondarySystemFill: 'rgba(120, 120, 128, 0.16)',
+  tertiarySystemFill: 'rgba(118, 118, 128, 0.12)',
+  quaternarySystemFill: 'rgba(116, 116, 128, 0.08)',
+  separator: 'rgba(60, 60, 67, 0.29)',
+  opaqueSeparator: '#C6C6C8',
+
+  // Accents (light variant).
+  systemBlue: '#007AFF',
+  systemGreen: '#34C759',
+  systemIndigo: '#5856D6',
+  systemOrange: '#FF9500',
+  systemPink: '#FF2D55',
+  systemPurple: '#AF52DE',
+  systemRed: '#FF3B30',
+  systemTeal: '#30B0C7',
+  systemYellow: '#FFCC00',
+  systemCyan: '#32ADE6',
+  systemMint: '#00C7BE',
+
+  // Neutral gray ramp.
+  systemGray: '#8E8E93',
+  systemGray2: '#AEAEB2',
+  systemGray3: '#C7C7CC',
+  systemGray4: '#D1D1D6',
+  systemGray5: '#E5E5EA',
+  systemGray6: '#F2F2F7',
+
+  // Sheet scrim.
+  scrim: 'rgba(0, 0, 0, 0.28)',
+} as const;
+
+export type ColorScheme = 'light' | 'dark';
+
 export interface TypeStyle {
   fontSize: number;
   lineHeight: number;
@@ -117,6 +172,12 @@ export const materials = {
   chrome: 'rgba(28, 28, 30, 0.90)',
 } as const;
 
+/** The light appearance uses a pale chrome instead of a dark one. */
+export const lightMaterials = {
+  bar: 'rgba(249, 249, 249, 0.94)',
+  chrome: 'rgba(249, 249, 249, 0.92)',
+} as const;
+
 /**
  * iOS shadows are neutral black — a tinted shadow reads as a Material
  * elevation halo rather than an Apple surface lift.
@@ -125,6 +186,13 @@ export const elevation = {
   level1: { shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   level2: { shadowOpacity: 0.22, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
   level3: { shadowOpacity: 0.34, shadowRadius: 26, shadowOffset: { width: 0, height: 10 } },
+} as const;
+
+/** Light surfaces read their lift from the shadow, so it is dialed back. */
+export const lightElevation = {
+  level1: { shadowOpacity: 0.10, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  level2: { shadowOpacity: 0.14, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
+  level3: { shadowOpacity: 0.20, shadowRadius: 26, shadowOffset: { width: 0, height: 10 } },
 } as const;
 
 /** Monospaced face for console surfaces (SF Mono on Apple platforms). */

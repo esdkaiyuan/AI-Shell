@@ -1,42 +1,17 @@
 import { useEffect, useMemo, useState, type FC } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nativeAvailable } from '../native/nativeBridge';
 import { listProviderModels } from '../services/ai';
-import {
-  COMMAND_PLATFORM_LABELS,
-  COMMAND_PLATFORM_OPTIONS,
-  type RemoteCommandPlatform,
-} from '../services/commandCatalog';
-import {
-  PROVIDER_PRESETS,
-  activeProvider,
-  configStore,
-  presetById,
-  providerFromPreset,
-  sshProfilePlatform,
-  useAppConfig,
-  type ProviderPreset,
-  type SSHProfile,
-} from '../services/config';
+import { COMMAND_PLATFORM_LABELS, COMMAND_PLATFORM_OPTIONS, type RemoteCommandPlatform } from '../services/commandCatalog';
+import { PROVIDER_PRESETS, activeProvider, configStore, presetById, providerFromPreset, sshProfilePlatform, useAppConfig, type ProviderPreset, type SSHProfile } from '../services/config';
 import { runtimeStore, useRuntime } from '../services/runtimeStore';
 import { pickPrivateKeyFile } from '../services/sshKeyFiles';
 import { parsePrivateKey } from '../services/sshKeys';
-import { corner, monoFont, systemColors, typeScale } from '../hig';
-import { colors, radius, spacing } from '../theme';
+import { corner, monoFont } from '../hig';
+import { useTheme, useThemedStyles } from '../theme-context';
+import { radius, spacing, type Theme } from '../theme';
 import { HORIZONTAL_FADE_LENGTH } from '../layout';
 
 type StepKey = 'environment' | 'ai' | 'ssh' | 'finish';
@@ -70,6 +45,8 @@ export const SetupWizard: FC<SetupWizardProps> = ({
   onComplete,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const runtime = useRuntime();
   const config = useAppConfig();
@@ -281,7 +258,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
           <View style={styles.header}>
             <View style={styles.brand}>
               <View style={styles.brandMark}>
-                <Ionicons name="terminal" size={18} color={colors.accent} />
+                <Ionicons name="terminal" size={18} color={theme.colors.accent} />
               </View>
               <View>
                 <Text style={styles.eyebrow}>AI SHELL SETUP</Text>
@@ -290,7 +267,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
             </View>
             {onClose ? (
               <Pressable style={styles.closeButton} onPress={onClose}>
-                <Ionicons name="close" size={20} color={colors.textMuted} />
+                <Ionicons name="close" size={20} color={theme.colors.textMuted} />
               </Pressable>
             ) : null}
           </View>
@@ -369,7 +346,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         value={apiKey}
                         onChangeText={setApiKey}
                         placeholder={preset.keyPlaceholder}
-                        placeholderTextColor={colors.textDim}
+                        placeholderTextColor={theme.colors.textDim}
                         secureTextEntry={!showKey}
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -382,7 +359,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         <Ionicons
                           name={showKey ? 'eye-off-outline' : 'eye-outline'}
                           size={18}
-                          color={colors.textMuted}
+                          color={theme.colors.textMuted}
                         />
                       </Pressable>
                     </View>
@@ -395,7 +372,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                       value={model}
                       onChangeText={setModel}
                       placeholder="例如 gpt-4o-mini"
-                      placeholderTextColor={colors.textDim}
+                      placeholderTextColor={theme.colors.textDim}
                       autoCapitalize="none"
                       autoCorrect={false}
                       style={styles.input}
@@ -428,7 +405,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                       value={baseURL}
                       onChangeText={setBaseURL}
                       placeholder={preset.baseURL}
-                      placeholderTextColor={colors.textDim}
+                      placeholderTextColor={theme.colors.textDim}
                       autoCapitalize="none"
                       autoCorrect={false}
                       style={styles.input}
@@ -442,9 +419,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     disabled={fetchingModels}
                   >
                     {fetchingModels ? (
-                      <ActivityIndicator size="small" color={colors.accent} />
+                      <ActivityIndicator size="small" color={theme.colors.accent} />
                     ) : (
-                      <Ionicons name="refresh" size={16} color={colors.accent} />
+                      <Ionicons name="refresh" size={16} color={theme.colors.accent} />
                     )}
                     <Text style={styles.secondaryActionText}>获取模型列表</Text>
                   </Pressable>
@@ -491,7 +468,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                             ])
                           }
                         >
-                          <Ionicons name="trash-outline" size={16} color={colors.red} />
+                          <Ionicons name="trash-outline" size={16} color={theme.colors.red} />
                         </Pressable>
                       </View>
                     ))}
@@ -507,7 +484,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         setSshForm(prev => ({ ...prev, name: value }))
                       }
                       placeholder="生产服务器"
-                      placeholderTextColor={colors.textDim}
+                      placeholderTextColor={theme.colors.textDim}
                       style={styles.input}
                     />
                   </View>
@@ -520,7 +497,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                           setSshForm(prev => ({ ...prev, host: value }))
                         }
                         placeholder="192.168.1.10"
-                        placeholderTextColor={colors.textDim}
+                        placeholderTextColor={theme.colors.textDim}
                         autoCapitalize="none"
                         autoCorrect={false}
                         style={styles.input}
@@ -546,7 +523,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         setSshForm(prev => ({ ...prev, username: value }))
                       }
                       placeholder="root"
-                      placeholderTextColor={colors.textDim}
+                      placeholderTextColor={theme.colors.textDim}
                       autoCapitalize="none"
                       autoCorrect={false}
                       style={styles.input}
@@ -601,7 +578,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         setKeyFileLabel('');
                       }}
                       placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-                      placeholderTextColor={colors.textDim}
+                      placeholderTextColor={theme.colors.textDim}
                       multiline
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -616,12 +593,12 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         disabled={pickingKey}
                       >
                         {pickingKey ? (
-                          <ActivityIndicator size="small" color={colors.accent} />
+                          <ActivityIndicator size="small" color={theme.colors.accent} />
                         ) : (
                           <Ionicons
                             name="document-attach-outline"
                             size={16}
-                            color={colors.accent}
+                            color={theme.colors.accent}
                           />
                         )}
                         <Text style={styles.secondaryActionText}>
@@ -638,7 +615,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                             setKeyFileLabel('');
                           }}
                         >
-                          <Ionicons name="close" size={18} color={colors.textMuted} />
+                          <Ionicons name="close" size={18} color={theme.colors.textMuted} />
                         </Pressable>
                       ) : null}
                     </View>
@@ -653,7 +630,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     </Text>
                   </View>
                   <Pressable style={styles.secondaryAction} onPress={addSshProfile}>
-                    <Ionicons name="add" size={17} color={colors.accent} />
+                    <Ionicons name="add" size={17} color={theme.colors.accent} />
                     <Text style={styles.secondaryActionText}>保存 SSH 配置</Text>
                   </Pressable>
                   {sshMessage ? <Text style={styles.message}>{sshMessage}</Text> : null}
@@ -664,7 +641,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
             {step === 'finish' ? (
               <View>
                 <View style={styles.finishIcon}>
-                  <Ionicons name="checkmark" size={34} color={colors.green} />
+                  <Ionicons name="checkmark" size={34} color={theme.colors.green} />
                 </View>
                 <Text style={[styles.title, styles.centerText]}>{finishTitle}</Text>
                 <Text style={[styles.subtitle, styles.centerText]}>{finishDescription}</Text>
@@ -719,7 +696,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                 style={styles.backButton}
                 onPress={() => setStep(STEPS[stepIndex - 1].key)}
               >
-                <Ionicons name="chevron-back" size={18} color={colors.textMuted} />
+                <Ionicons name="chevron-back" size={18} color={theme.colors.textMuted} />
                 <Text style={styles.backText}>上一步</Text>
               </Pressable>
             ) : (
@@ -776,7 +753,10 @@ export const SetupWizard: FC<SetupWizardProps> = ({
   );
 };
 
-const EnvironmentStep: FC<{ runtime: ReturnType<typeof useRuntime> }> = ({ runtime }) => (
+const EnvironmentStep: FC<{ runtime: ReturnType<typeof useRuntime> }> = ({ runtime }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
   <View>
     <Text style={styles.title}>内置 Linux 环境</Text>
     <Text style={styles.subtitle}>
@@ -786,7 +766,7 @@ const EnvironmentStep: FC<{ runtime: ReturnType<typeof useRuntime> }> = ({ runti
     <View style={styles.card}>
       <View style={styles.envHeader}>
         <View style={styles.envIcon}>
-          <Ionicons name="layers-outline" size={24} color={colors.accent} />
+          <Ionicons name="layers-outline" size={24} color={theme.colors.accent} />
         </View>
         <View style={styles.flex}>
           <Text style={styles.envTitle}>{runtime.status.distro || 'Alpine Linux 3.20.3'}</Text>
@@ -820,7 +800,7 @@ const EnvironmentStep: FC<{ runtime: ReturnType<typeof useRuntime> }> = ({ runti
         </View>
       ) : runtime.status.installed ? (
         <View style={styles.successRow}>
-          <Ionicons name="checkmark-circle" size={18} color={colors.green} />
+          <Ionicons name="checkmark-circle" size={18} color={theme.colors.green} />
           <Text style={styles.successText}>Alpine Linux 已安装，可直接离线使用。</Text>
         </View>
       ) : (
@@ -845,22 +825,30 @@ const EnvironmentStep: FC<{ runtime: ReturnType<typeof useRuntime> }> = ({ runti
     </View>
   </View>
 );
+};
 
-const Bullet: FC<{ icon: keyof typeof Ionicons.glyphMap; text: string }> = ({ icon, text }) => (
+const Bullet: FC<{ icon: keyof typeof Ionicons.glyphMap; text: string }> = ({ icon, text }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
   <View style={styles.bullet}>
-    <Ionicons name={icon} size={15} color={colors.textMuted} />
+    <Ionicons name={icon} size={15} color={theme.colors.textMuted} />
     <Text style={styles.bulletText}>{text}</Text>
   </View>
 );
+};
 
 const SummaryRow: FC<{
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
-}> = ({ icon, label, value }) => (
+}> = ({ icon, label, value }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
   <View style={styles.summaryRow}>
     <View style={styles.summaryIcon}>
-      <Ionicons name={icon} size={18} color={colors.accent} />
+      <Ionicons name={icon} size={18} color={theme.colors.accent} />
     </View>
     <Text style={styles.summaryLabel}>{label}</Text>
     <Text style={styles.summaryValue} numberOfLines={1}>
@@ -868,11 +856,12 @@ const SummaryRow: FC<{
     </Text>
   </View>
 );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.appBg,
+    backgroundColor: theme.colors.appBg,
   },
   flex: { flex: 1 },
   header: {
@@ -888,22 +877,22 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 11,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   eyebrow: {
-    color: colors.accent,
+    color: theme.colors.accent,
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.8,
   },
-  headerTitle: { color: colors.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
+  headerTitle: { color: theme.colors.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
   closeButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -918,29 +907,29 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepDotActive: { backgroundColor: colors.accentSoft },
-  stepDotCurrent: { backgroundColor: colors.accent },
-  stepDotText: { color: colors.textDim, fontSize: 11, fontWeight: '600' },
-  stepDotTextActive: { color: colors.text },
-  stepLabel: { color: colors.textDim, fontSize: 10, fontWeight: '500' },
-  stepLabelActive: { color: colors.text },
+  stepDotActive: { backgroundColor: theme.colors.accentSoft },
+  stepDotCurrent: { backgroundColor: theme.colors.accent },
+  stepDotText: { color: theme.colors.textDim, fontSize: 11, fontWeight: '600' },
+  stepDotTextActive: { color: theme.colors.text },
+  stepLabel: { color: theme.colors.textDim, fontSize: 10, fontWeight: '500' },
+  stepLabelActive: { color: theme.colors.text },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
-  title: { color: colors.text, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
+  title: { color: theme.colors.text, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
   subtitle: {
-    color: colors.textMuted,
+    color: theme.colors.textMuted,
     fontSize: 14,
     lineHeight: 21,
     marginTop: spacing.sm,
     marginBottom: spacing.lg,
   },
   sectionLabel: {
-    color: colors.textMuted,
-    fontSize: typeScale.footnote.fontSize,
+    color: theme.colors.textMuted,
+    fontSize: theme.type.footnote.fontSize,
     fontWeight: '600',
     marginBottom: spacing.sm,
     marginTop: spacing.sm,
@@ -951,31 +940,31 @@ const styles = StyleSheet.create({
     minHeight: 64,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     justifyContent: 'center',
     gap: 3,
   },
-  providerChipActive: { backgroundColor: colors.selection },
-  providerName: { color: colors.textMuted, fontSize: typeScale.footnote.fontSize, fontWeight: '600' },
-  providerNameActive: { color: colors.text },
-  providerDesc: { color: colors.textDim, fontSize: typeScale.caption2.fontSize },
+  providerChipActive: { backgroundColor: theme.colors.selection },
+  providerName: { color: theme.colors.textMuted, fontSize: theme.type.footnote.fontSize, fontWeight: '600' },
+  providerNameActive: { color: theme.colors.text },
+  providerDesc: { color: theme.colors.textDim, fontSize: theme.type.caption2.fontSize },
   card: {
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     borderRadius: corner.grouped,
     padding: spacing.lg,
     gap: spacing.md,
     marginBottom: spacing.md,
   },
   field: { gap: 6 },
-  fieldLabel: { color: colors.textMuted, fontSize: typeScale.footnote.fontSize, fontWeight: '500' },
+  fieldLabel: { color: theme.colors.textMuted, fontSize: theme.type.footnote.fontSize, fontWeight: '500' },
   input: {
     minHeight: 44,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: colors.bg,
-    color: colors.text,
-    fontSize: typeScale.subheadline.fontSize,
+    backgroundColor: theme.colors.bg,
+    color: theme.colors.text,
+    fontSize: theme.type.subheadline.fontSize,
   },
   keyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   keyInput: {
@@ -984,44 +973,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: colors.bg,
-    color: colors.text,
-    fontSize: typeScale.subheadline.fontSize,
+    backgroundColor: theme.colors.bg,
+    color: theme.colors.text,
+    fontSize: theme.type.subheadline.fontSize,
   },
   eyeButton: {
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: colors.bg,
+    backgroundColor: theme.colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hint: { color: colors.textDim, fontSize: typeScale.caption1.fontSize,
-    lineHeight: typeScale.caption1.lineHeight },
+  hint: { color: theme.colors.textDim, fontSize: theme.type.caption1.fontSize,
+    lineHeight: theme.type.caption1.lineHeight },
   modelRow: { gap: 6, paddingTop: 8, paddingRight: spacing.md },
   modelChip: {
     minHeight: 44,
     paddingHorizontal: 12,
     borderRadius: radius.pill,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     justifyContent: 'center',
   },
-  modelChipActive: { backgroundColor: colors.accentSoft },
-  modelText: { color: colors.textMuted, fontSize: 11, fontFamily: monoFont.family },
-  modelTextActive: { color: colors.accent },
+  modelChipActive: { backgroundColor: theme.colors.accentSoft },
+  modelText: { color: theme.colors.textMuted, fontSize: 11, fontFamily: monoFont.family },
+  modelTextActive: { color: theme.colors.accent },
   secondaryAction: {
     minHeight: 44,
     borderRadius: 10,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingHorizontal: spacing.md,
   },
-  secondaryActionText: { color: colors.accent, fontSize: 12, fontWeight: '600' },
-  message: { color: colors.yellow, fontSize: 12, lineHeight: 18 },
-  skipHint: { color: colors.textDim, fontSize: 11, textAlign: 'center', marginTop: spacing.sm },
+  secondaryActionText: { color: theme.colors.accent, fontSize: 12, fontWeight: '600' },
+  message: { color: theme.colors.yellow, fontSize: 12, lineHeight: 18 },
+  skipHint: { color: theme.colors.textDim, fontSize: 11, textAlign: 'center', marginTop: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.md },
   portField: { width: 92, gap: 6 },
   keyTextarea: { minHeight: 110, textAlignVertical: 'top', fontFamily: monoFont.family, fontSize: 11 },
@@ -1030,38 +1019,38 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  keyFileLabel: { color: colors.green, fontSize: 11, lineHeight: 16 },
+  keyFileLabel: { color: theme.colors.green, fontSize: 11, lineHeight: 16 },
   platformRow: { gap: 6, paddingRight: spacing.md },
   platformChip: {
     minHeight: 44,
     paddingHorizontal: 13,
     borderRadius: radius.pill,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     justifyContent: 'center',
   },
-  platformChipActive: { backgroundColor: colors.accentSoft },
-  platformChipText: { color: colors.textMuted, fontSize: 11.5, fontWeight: '600' },
-  platformChipTextActive: { color: colors.accent },
+  platformChipActive: { backgroundColor: theme.colors.accentSoft },
+  platformChipText: { color: theme.colors.textMuted, fontSize: 11.5, fontWeight: '600' },
+  platformChipTextActive: { color: theme.colors.accent },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
+    borderBottomColor: theme.colors.borderSoft,
   },
   profileInfo: { flex: 1, minWidth: 0 },
-  profileName: { color: colors.text, fontSize: 13, fontWeight: '600' },
-  profileHost: { color: colors.textDim, fontSize: 11, marginTop: 2, fontFamily: monoFont.family },
+  profileName: { color: theme.colors.text, fontSize: 13, fontWeight: '600' },
+  profileHost: { color: theme.colors.textDim, fontSize: 11, marginTop: 2, fontFamily: monoFont.family },
   removeButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1070,29 +1059,29 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 12,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  envTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  envMeta: { color: colors.textDim, fontSize: 11, marginTop: 3 },
+  envTitle: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
+  envMeta: { color: theme.colors.textDim, fontSize: 11, marginTop: 3 },
   statusPill: {
     minHeight: 24,
     paddingHorizontal: 9,
     borderRadius: radius.pill,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     justifyContent: 'center',
   },
-  statusPillReady: { backgroundColor: systemColors.systemFill },
-  statusText: { color: colors.textMuted, fontSize: 10, fontWeight: '600' },
-  statusTextReady: { color: colors.green },
+  statusPillReady: { backgroundColor: theme.system.systemFill },
+  statusText: { color: theme.colors.textMuted, fontSize: 10, fontWeight: '600' },
+  statusTextReady: { color: theme.colors.green },
   bulletList: { gap: 9 },
   bullet: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  bulletText: { color: colors.textMuted, fontSize: 12.5 },
+  bulletText: { color: theme.colors.textMuted, fontSize: 12.5 },
   installButton: {
     height: 48,
     borderRadius: 12,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1101,18 +1090,18 @@ const styles = StyleSheet.create({
   installText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   progressBlock: { gap: 8 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressPhase: { color: colors.textMuted, fontSize: 12 },
-  progressPercent: { color: colors.accent, fontSize: 12, fontWeight: '600' },
+  progressPhase: { color: theme.colors.textMuted, fontSize: 12 },
+  progressPercent: { color: theme.colors.accent, fontSize: 12, fontWeight: '600' },
   progressTrack: {
     height: 8,
     borderRadius: radius.pill,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     overflow: 'hidden',
   },
-  progressFill: { height: '100%', backgroundColor: colors.accent, borderRadius: radius.pill },
+  progressFill: { height: '100%', backgroundColor: theme.colors.accent, borderRadius: radius.pill },
   successRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  successText: { color: colors.green, fontSize: 12.5 },
-  errorText: { color: colors.red, fontSize: 12, lineHeight: 18 },
+  successText: { color: theme.colors.green, fontSize: 12.5 },
+  errorText: { color: theme.colors.red, fontSize: 12, lineHeight: 18 },
   finishIcon: {
     width: 72,
     height: 72,
@@ -1135,14 +1124,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  summaryLabel: { color: colors.textMuted, fontSize: 13, flex: 1 },
-  summaryValue: { color: colors.text, fontSize: 12, maxWidth: '52%', textAlign: 'right' },
+  summaryLabel: { color: theme.colors.textMuted, fontSize: 13, flex: 1 },
+  summaryValue: { color: theme.colors.text, fontSize: 12, maxWidth: '52%', textAlign: 'right' },
   footerHint: {
-    color: colors.yellow,
+    color: theme.colors.yellow,
     fontSize: 12,
     textAlign: 'center',
     paddingHorizontal: spacing.lg,
@@ -1155,15 +1144,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.borderSoft,
-    backgroundColor: colors.bg,
+    borderTopColor: theme.colors.borderSoft,
+    backgroundColor: theme.colors.bg,
   },
   primaryButton: {
     minHeight: 48,
     minWidth: 132,
     paddingHorizontal: spacing.lg,
     borderRadius: 12,
-    backgroundColor: colors.accent,
+    backgroundColor: theme.colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1178,7 +1167,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  backText: { color: colors.textMuted, fontSize: 13 },
+  backText: { color: theme.colors.textMuted, fontSize: 13 },
   skipButton: { height: 48, paddingHorizontal: spacing.md, justifyContent: 'center' },
-  skipText: { color: colors.textMuted, fontSize: 12 },
+  skipText: { color: theme.colors.textMuted, fontSize: 12 },
 });

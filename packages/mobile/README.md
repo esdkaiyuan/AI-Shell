@@ -26,7 +26,7 @@ APK 打包以下资源，不包含任何真实凭据：
 - 侧窗遵循 HIG Modality：遮罩变暗、grabber、固定导航条（「功能」返回 / 标题 / 「完成」关闭）；Reduce Motion 降级为零时长动画。
 - 关闭方式：完成、点遮罩、Android 硬件返回键（非根分区先回功能清单）。
 
-设计令牌集中在 `src/hig.ts`（系统色与灰阶、动态字阶、间距网格、连续圆角、动效、材质、中性投影层级、等宽字体、侧窗尺寸），`theme.ts` 对齐系统色并保留既有 key；页面 / 侧窗 / 卡片三级表面按 HIG 层级分配。
+设计令牌集中在 `src/hig.ts`（深浅两套系统色与灰阶、动态字阶、间距网格、连续圆角、动效、材质、中性投影层级、等宽字体、侧窗尺寸）。`src/theme.ts` 用 `createTheme(scheme, fontScale)` 组装成完整主题（界面色 / 表面 / 终端色 / 投影 / 缩放后的字阶），`src/theme-context.tsx` 的 `ThemeProvider` 随系统外观与「文字大小」设置注入，组件样式以 `makeStyles(theme)` 工厂编写并在主题变化时重建。页面 / 侧窗 / 卡片三级表面按 HIG 层级分配，终端控制台保留独立配色、始终为深色。
 
 ## 终端
 
@@ -81,7 +81,8 @@ SSH 配置可选择远端系统。历史命令会记录系统标签，避免在 
 
 ## 设计
 
-- Apple HIG 深色体系：中性三级表面、系统蓝单一强调色；终端输出区是沉浸式控制台（无圆角无边框，仅顶部 hairline），与窗口背景靠层次而非描边区分。
+- Apple HIG 双外观体系：深浅两套系统色随系统外观自动切换，中性三级表面、系统蓝单一强调色；终端输出区是沉浸式控制台（无圆角无边框，仅顶部 hairline），与窗口背景靠层次而非描边区分。设置页「外观」可跟随系统或强制浅色 / 深色。
+- 字号随系统「文字大小」设置缩放（Dynamic Type），字阶统一由主题层施加。
 - 页面标题与上下文副标题分离，状态语义用统一的色点胶囊表达。
 - 移动触控目标至少 44dp；标签、工具按钮、发送键均在 44dp 以上。
 - 四周安全区（状态栏、手势区、横屏挖孔）；≥720dp 宽屏内容列居中并限宽 560dp。
@@ -160,6 +161,8 @@ src/components/AIAssistButton.tsx        主页面唯一主操作按钮
 src/components/AiCapabilitySwitcher.tsx AI 权限开关（读取/填入/执行），随对话卡片出现
 src/aiTerminal.ts / aiTerminal.test.ts   AI 终端能力定义、命令提取安全边界与动作规划
 src/hig.ts / src/hig.test.ts             Apple HIG 设计令牌与尺寸/字阶单测
+src/theme.ts                           主题工厂：系统色、终端色、投影与 Dynamic Type 缩放
+src/theme-context.tsx                  ThemeProvider / useTheme / useThemedStyles
 src/navigation.ts                        侧窗分区、标题、分组与内容模式
 src/components/TerminalPreview.tsx       终端输出区
 src/layout.ts                            紧凑模式、宽屏限宽、渐隐长度等布局决策

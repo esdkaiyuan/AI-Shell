@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import type { FC } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FileItem } from '../data';
-import { monoFont, typeScale } from '../hig';
-import { colors, radius, spacing } from '../theme';
+import { monoFont } from '../hig';
+import { useThemedStyles, useTheme } from '../theme-context';
+import { radius, spacing, type Theme } from '../theme';
 
 interface FileRowProps {
   item: FileItem;
@@ -11,7 +12,10 @@ interface FileRowProps {
   onPress: (itemId: string) => void;
 }
 
-export const FileRow: FC<FileRowProps> = ({ item, active = false, onPress }) => (
+export const FileRow: FC<FileRowProps> = ({ item, active = false, onPress }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
   <Pressable
     accessibilityRole="button"
     accessibilityLabel={`${item.type === 'directory' ? '目录' : '文件'} ${item.name}，路径 ${item.path}`}
@@ -25,7 +29,7 @@ export const FileRow: FC<FileRowProps> = ({ item, active = false, onPress }) => 
   >
     <Ionicons
       name={item.type === 'directory' ? 'folder-outline' : 'document-text-outline'}
-      color={item.type === 'directory' ? colors.accent : colors.textMuted}
+      color={item.type === 'directory' ? theme.colors.accent : theme.colors.textMuted}
       size={20}
     />
     <View style={styles.body}>
@@ -38,39 +42,40 @@ export const FileRow: FC<FileRowProps> = ({ item, active = false, onPress }) => 
     </View>
   </Pressable>
 );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   row: {
     minHeight: 64,
     paddingHorizontal: 14,
     paddingVertical: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
   },
   pressed: {
-    backgroundColor: colors.selection,
+    backgroundColor: theme.colors.selection,
   },
   active: {
-    backgroundColor: colors.selection,
+    backgroundColor: theme.colors.selection,
   },
   body: {
     flex: 1,
     minWidth: 0,
   },
   name: {
-    color: colors.text,
-    fontSize: typeScale.subheadline.fontSize,
-    lineHeight: typeScale.subheadline.lineHeight,
+    color: theme.colors.text,
+    fontSize: theme.type.subheadline.fontSize,
+    lineHeight: theme.type.subheadline.lineHeight,
     fontWeight: '500',
-    letterSpacing: typeScale.subheadline.letterSpacing,
+    letterSpacing: theme.type.subheadline.letterSpacing,
   },
   path: {
-    color: colors.textDim,
-    fontSize: typeScale.caption1.fontSize,
-    lineHeight: typeScale.caption1.lineHeight,
+    color: theme.colors.textDim,
+    fontSize: theme.type.caption1.fontSize,
+    lineHeight: theme.type.caption1.lineHeight,
     marginTop: 3,
   },
   trailing: {
@@ -78,14 +83,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   modified: {
-    color: colors.textDim,
-    fontSize: typeScale.caption2.fontSize,
-    lineHeight: typeScale.caption2.lineHeight,
+    color: theme.colors.textDim,
+    fontSize: theme.type.caption2.fontSize,
+    lineHeight: theme.type.caption2.lineHeight,
   },
   size: {
-    color: colors.textMuted,
-    fontSize: typeScale.caption1.fontSize,
-    lineHeight: typeScale.caption1.lineHeight,
+    color: theme.colors.textMuted,
+    fontSize: theme.type.caption1.fontSize,
+    lineHeight: theme.type.caption1.lineHeight,
     fontFamily: monoFont.family,
   },
 });

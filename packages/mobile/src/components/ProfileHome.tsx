@@ -4,8 +4,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { MainView } from '../mobileState';
 import type { LinuxStatus } from '../native/nativeBridge';
 import { activeProvider, type AppConfig } from '../services/config';
-import { corner, typeScale } from '../hig';
-import { colors, radius, spacing } from '../theme';
+import { corner } from '../hig';
+import { useThemedStyles, useTheme } from '../theme-context';
+import { radius, spacing, type Theme } from '../theme';
 import { SectionHeader } from './SectionHeader';
 import { StatusPill } from './StatusPill';
 
@@ -39,6 +40,8 @@ const destinations: Array<{
 ];
 
 export const ProfileHome: FC<ProfileHomeProps> = ({ config, runtime, onOpen }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const provider = activeProvider(config);
 
   return (
@@ -46,7 +49,7 @@ export const ProfileHome: FC<ProfileHomeProps> = ({ config, runtime, onOpen }) =
       <View style={styles.summary}>
         <View style={styles.summaryTop}>
           <View style={styles.mark}>
-            <Ionicons name="terminal" size={24} color={colors.accent} />
+            <Ionicons name="terminal" size={24} color={theme.colors.accent} />
           </View>
           <View style={styles.summaryText}>
             <Text style={styles.title}>AI Shell</Text>
@@ -93,13 +96,13 @@ export const ProfileHome: FC<ProfileHomeProps> = ({ config, runtime, onOpen }) =
             ]}
           >
             <View style={styles.rowIcon}>
-              <Ionicons name={destination.icon} size={19} color={colors.accent} />
+              <Ionicons name={destination.icon} size={19} color={theme.colors.accent} />
             </View>
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>{destination.title}</Text>
               <Text style={styles.rowSubtitle}>{destination.subtitle}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={17} color={colors.textDim} />
+            <Ionicons name="chevron-forward" size={17} color={theme.colors.textDim} />
           </Pressable>
         ))}
       </View>
@@ -108,12 +111,12 @@ export const ProfileHome: FC<ProfileHomeProps> = ({ config, runtime, onOpen }) =
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: { gap: spacing.md },
   summary: {
     padding: spacing.lg,
     borderRadius: radius.lg,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
   },
   summaryTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   mark: {
@@ -122,37 +125,37 @@ const styles = StyleSheet.create({
     borderRadius: corner.card,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
   },
   summaryText: { flex: 1, minWidth: 0 },
   title: {
-    color: colors.text,
-    fontSize: typeScale.title3.fontSize,
-    lineHeight: typeScale.title3.lineHeight,
+    color: theme.colors.text,
+    fontSize: theme.type.title3.fontSize,
+    lineHeight: theme.type.title3.lineHeight,
     fontWeight: '600',
-    letterSpacing: typeScale.title3.letterSpacing,
+    letterSpacing: theme.type.title3.letterSpacing,
   },
   subtitle: {
-    color: colors.textMuted,
-    fontSize: typeScale.caption1.fontSize,
-    lineHeight: typeScale.caption1.lineHeight,
+    color: theme.colors.textMuted,
+    fontSize: theme.type.caption1.fontSize,
+    lineHeight: theme.type.caption1.lineHeight,
     marginTop: 3,
   },
   metrics: { marginTop: spacing.lg, gap: spacing.md },
   metric: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   metricLabel: {
-    color: colors.textDim,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
+    color: theme.colors.textDim,
+    fontSize: theme.type.footnote.fontSize,
+    lineHeight: theme.type.footnote.lineHeight,
   },
   metricValue: {
     flex: 1,
-    color: colors.text,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
+    color: theme.colors.text,
+    fontSize: theme.type.footnote.fontSize,
+    lineHeight: theme.type.footnote.lineHeight,
     textAlign: 'right',
   },
-  group: { overflow: 'hidden', borderRadius: radius.md, backgroundColor: colors.panelRaised },
+  group: { overflow: 'hidden', borderRadius: radius.md, backgroundColor: theme.colors.panelRaised },
   row: {
     minHeight: 68,
     paddingHorizontal: spacing.lg,
@@ -160,27 +163,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  rowBorder: { borderTopWidth: 1, borderTopColor: colors.borderSoft },
+  rowBorder: { borderTopWidth: 1, borderTopColor: theme.colors.borderSoft },
   rowIcon: { width: 28, alignItems: 'center' },
   rowText: { flex: 1, minWidth: 0 },
   rowTitle: {
-    color: colors.text,
-    fontSize: typeScale.subheadline.fontSize,
-    lineHeight: typeScale.subheadline.lineHeight,
+    color: theme.colors.text,
+    fontSize: theme.type.subheadline.fontSize,
+    lineHeight: theme.type.subheadline.lineHeight,
     fontWeight: '600',
-    letterSpacing: typeScale.subheadline.letterSpacing,
+    letterSpacing: theme.type.subheadline.letterSpacing,
   },
   rowSubtitle: {
-    color: colors.textDim,
-    fontSize: typeScale.caption1.fontSize,
-    lineHeight: typeScale.caption1.lineHeight,
+    color: theme.colors.textDim,
+    fontSize: theme.type.caption1.fontSize,
+    lineHeight: theme.type.caption1.lineHeight,
     marginTop: 3,
   },
-  pressed: { backgroundColor: colors.selection },
+  pressed: { backgroundColor: theme.colors.selection },
   footnote: {
-    color: colors.textDim,
-    fontSize: typeScale.caption1.fontSize,
-    lineHeight: typeScale.caption1.lineHeight,
+    color: theme.colors.textDim,
+    fontSize: theme.type.caption1.fontSize,
+    lineHeight: theme.type.caption1.lineHeight,
     textAlign: 'center',
   },
 });

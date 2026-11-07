@@ -1,5 +1,18 @@
 declare module 'react' {
   export type FC<P = Record<string, never>> = (props: P) => JSX.Element | null;
+  export type ReactNode =
+    | JSX.Element
+    | string
+    | number
+    | boolean
+    | null
+    | undefined
+    | ReactNode[];
+  export interface Context<T> {
+    Provider: (props: { value: T; children?: ReactNode }) => JSX.Element | null;
+  }
+  export function createContext<T>(defaultValue: T): Context<T>;
+  export function useContext<T>(context: Context<T>): T;
   export function useMemo<T>(factory: () => T, deps: unknown[]): T;
   export function useReducer<R, I>(reducer: R, initializerArg: I, initializer: (arg: I) => unknown): unknown;
   export function useState<T>(initial: T): [T, (value: T | ((previous: T) => T)) => void];
@@ -80,6 +93,11 @@ declare module 'react-native' {
     height: number;
     scale: number;
     fontScale: number;
+  };
+  export function useColorScheme(): 'light' | 'dark' | null;
+  export const PixelRatio: {
+    get(): number;
+    getFontScale(): number;
   };
   export const DeviceEventEmitter: {
     addListener: (event: string, listener: (...args: any[]) => void) => { remove: () => void };

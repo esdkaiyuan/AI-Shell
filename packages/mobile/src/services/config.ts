@@ -202,9 +202,13 @@ export interface WorkspaceSession {
   updatedAt: number;
 }
 
+/** The user may override the system appearance, as HIG allows. */
+export type AppearancePreference = 'system' | 'light' | 'dark';
+
 export interface AppConfig {
   version: 1;
   setupCompleted: boolean;
+  appearance: AppearancePreference;
   aiProviders: AIProviderConfig[];
   activeProviderId: string;
   sshProfiles: SSHProfile[];
@@ -216,6 +220,7 @@ export interface AppConfig {
 export const DEFAULT_CONFIG: AppConfig = {
   version: 1,
   setupCompleted: false,
+  appearance: 'system',
   aiProviders: [],
   activeProviderId: '',
   sshProfiles: [],
@@ -307,6 +312,8 @@ const normalizeConfig = (raw: unknown): AppConfig => {
   return {
     version: 1,
     setupCompleted: value.setupCompleted === true,
+    appearance:
+      value.appearance === 'light' || value.appearance === 'dark' ? value.appearance : 'system',
     aiProviders: providers,
     activeProviderId:
       typeof value.activeProviderId === 'string' &&

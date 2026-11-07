@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { FC } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { MIN_TOUCH_TARGET, corner, grid, systemColors, typeScale } from '../hig';
+import { MIN_TOUCH_TARGET, corner, grid } from '../hig';
+import type { Theme } from '../theme';
+import { useThemedStyles } from '../theme-context';
 
 interface AIAssistButtonProps {
   onPress: () => void;
@@ -13,27 +15,31 @@ interface AIAssistButtonProps {
  * HIG prominent tinted button. It is the single action on the terminal main
  * page: tapping it presents the trailing sheet with the AI assistant.
  */
-export const AIAssistButton: FC<AIAssistButtonProps> = ({ onPress, active }) => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel="AI 辅助"
-    accessibilityHint="展开侧窗口，使用 AI 助手与全部功能"
-    style={({ pressed }: { pressed: boolean }) => [styles.button, pressed && styles.pressed]}
-    onPress={onPress}
-  >
-    <Ionicons name="sparkles" size={16} color="#FFFFFF" />
-    <Text style={styles.label}>AI 辅助</Text>
-    {active ? <View style={styles.dot} /> : null}
-  </Pressable>
-);
+export const AIAssistButton: FC<AIAssistButtonProps> = ({ onPress, active }) => {
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="AI 辅助"
+      accessibilityHint="展开侧窗口，使用 AI 助手与全部功能"
+      style={({ pressed }: { pressed: boolean }) => [styles.button, pressed && styles.pressed]}
+      onPress={onPress}
+    >
+      <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+      <Text style={styles.label}>AI 辅助</Text>
+      {active ? <View style={styles.dot} /> : null}
+    </Pressable>
+  );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
   button: {
     minHeight: MIN_TOUCH_TARGET,
     paddingHorizontal: grid.base,
     paddingVertical: grid.unit,
     borderRadius: corner.pill,
-    backgroundColor: systemColors.systemBlue,
+    backgroundColor: theme.system.systemBlue,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -44,10 +50,10 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.72 },
   label: {
     color: '#FFFFFF',
-    fontSize: typeScale.subheadline.fontSize,
-    lineHeight: typeScale.subheadline.lineHeight,
+    fontSize: theme.type.subheadline.fontSize,
+    lineHeight: theme.type.subheadline.lineHeight,
     fontWeight: '600',
-    letterSpacing: typeScale.subheadline.letterSpacing,
+    letterSpacing: theme.type.subheadline.letterSpacing,
   },
   dot: {
     width: 6,
@@ -55,4 +61,4 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#FFFFFF',
   },
-});
+  });

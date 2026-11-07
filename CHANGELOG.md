@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 终端标签重命名/拖拽排序、Tab 路径补全、快捷命令片段和 AI 面板拖拽尺寸
 - 桌面状态栏与页面空状态移除虚假连接和演示数据
 - **按 Apple HIG 重做窗口与视觉体系**：大标题改为 34pt Regular 并去掉副标题；终端输出区从圆角卡片改为沉浸式控制台（无圆角无边框、左右拉通、仅顶部 hairline）；侧窗与卡片按「页面 / 侧窗 / 卡片」三级表面分层；状态徽章与能力芯片改用 `systemFill` 中性底 + 系统色文字，去掉十六进制拼色与彩色投影；新增 `materials` / `elevation` / `monoFont` 令牌，等宽字体与字阶统一走令牌
+- **浅色外观与 Dynamic Type**：补齐 iOS 浅色系统色表，`createTheme(scheme, fontScale)` 组装主题、`ThemeProvider` 随系统外观与「文字大小」注入，所有样式表改为 `makeStyles(theme)` 工厂；终端控制台保留独立配色且始终为深色，保证 ANSI 语义色可读；设置页新增「外观」选项，可跟随系统或强制浅色 / 深色
 
 ### Fixed
 

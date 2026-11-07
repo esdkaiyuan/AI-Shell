@@ -1,37 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { FC } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  BackHandler,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { AccessibilityInfo, Animated, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  barHeight,
-  corner,
-  elevation,
-  grabber,
-  grid,
-  motion,
-  sidePanelTopInset,
-  sidePanelWidth,
-  systemColors,
-  transitionDuration,
-  typeScale,
-  usesFullHeightSheet,
-} from '../hig';
+import { barHeight, corner, grabber, grid, motion, sidePanelTopInset, sidePanelWidth, transitionDuration, usesFullHeightSheet } from '../hig';
 import { KEYBOARD_WINDOW_SHRINK } from '../layout';
 import { isPanelRoot, panelContentMode, panelTitle, type PanelSection } from '../navigation';
-import { surfaces } from '../theme';
+import { useThemedStyles, useTheme } from '../theme-context';
+import { type Theme } from '../theme';
 
 interface SidePanelProps {
   /** `false` keeps the sheet mounted but slides it out of the way. */
@@ -61,6 +37,8 @@ export const SidePanel: FC<SidePanelProps> = ({
   onBack,
   children,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const metrics = useMemo(() => ({ width, height }), [width, height]);
@@ -213,7 +191,7 @@ export const SidePanel: FC<SidePanelProps> = ({
                 ]}
                 onPress={onBack}
               >
-                <Ionicons name="chevron-back" size={22} color={systemColors.systemBlue} />
+                <Ionicons name="chevron-back" size={22} color={theme.system.systemBlue} />
                 <Text style={styles.backText}>功能</Text>
               </Pressable>
             )}
@@ -252,7 +230,7 @@ export const SidePanel: FC<SidePanelProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0,
@@ -267,7 +245,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: systemColors.scrim,
+    backgroundColor: theme.system.scrim,
   },
   scrimHit: { flex: 1 },
   sheet: {
@@ -276,11 +254,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     // One elevation step above the grouped page, the way a presented sheet
     // sits above its context.
-    backgroundColor: surfaces.sheet,
+    backgroundColor: theme.surfaces.sheet,
     shadowColor: '#000000',
-    shadowOpacity: elevation.level3.shadowOpacity,
-    shadowRadius: elevation.level3.shadowRadius,
-    shadowOffset: elevation.level3.shadowOffset,
+    shadowOpacity: theme.elevation.level3.shadowOpacity,
+    shadowRadius: theme.elevation.level3.shadowRadius,
+    shadowOffset: theme.elevation.level3.shadowOffset,
     elevation: 16,
     overflow: 'hidden',
   },
@@ -289,7 +267,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: corner.sheet,
     borderBottomLeftRadius: corner.sheet,
     borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: systemColors.separator,
+    borderLeftColor: theme.system.separator,
     shadowOffset: { width: -8, height: 0 },
   },
   /** Compact AI card: full width, anchored to the bottom, slides upward. */
@@ -298,7 +276,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: corner.sheet,
     borderTopRightRadius: corner.sheet,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: systemColors.separator,
+    borderTopColor: theme.system.separator,
     shadowOffset: { width: 0, height: -8 },
   },
   grabber: {
@@ -317,7 +295,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: grid.unit,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: systemColors.separator,
+    borderBottomColor: theme.system.separator,
   },
   navSide: { minWidth: 68, alignItems: 'flex-start' },
   navSideRight: { alignItems: 'flex-end' },
@@ -327,11 +305,11 @@ const styles = StyleSheet.create({
   navTitle: {
     flex: 1,
     textAlign: 'center',
-    color: systemColors.label,
-    fontSize: typeScale.headline.fontSize,
-    lineHeight: typeScale.headline.lineHeight,
-    fontWeight: typeScale.headline.fontWeight,
-    letterSpacing: typeScale.headline.letterSpacing,
+    color: theme.system.label,
+    fontSize: theme.type.headline.fontSize,
+    lineHeight: theme.type.headline.lineHeight,
+    fontWeight: theme.type.headline.fontWeight,
+    letterSpacing: theme.type.headline.letterSpacing,
   },
   backButton: {
     minHeight: 44,
@@ -342,9 +320,9 @@ const styles = StyleSheet.create({
     paddingLeft: grid.unit,
   },
   backText: {
-    color: systemColors.systemBlue,
-    fontSize: typeScale.body.fontSize,
-    letterSpacing: typeScale.body.letterSpacing,
+    color: theme.system.systemBlue,
+    fontSize: theme.type.body.fontSize,
+    letterSpacing: theme.type.body.letterSpacing,
   },
   doneButton: {
     minHeight: 44,
@@ -353,10 +331,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   doneText: {
-    color: systemColors.systemBlue,
-    fontSize: typeScale.headline.fontSize,
+    color: theme.system.systemBlue,
+    fontSize: theme.type.headline.fontSize,
     fontWeight: '600',
-    letterSpacing: typeScale.headline.letterSpacing,
+    letterSpacing: theme.type.headline.letterSpacing,
   },
   pressed: { opacity: 0.55 },
   container: { flex: 1 },

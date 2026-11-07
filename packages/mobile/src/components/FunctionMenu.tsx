@@ -6,8 +6,9 @@ import {
   corner,
   grid,
   systemColors,
-  typeScale,
 } from '../hig';
+import type { Theme } from '../theme';
+import { useThemedStyles } from '../theme-context';
 import {
   panelGroups,
   type PanelDestination,
@@ -35,7 +36,9 @@ const handleItemPress = (
  * HIG inset-grouped list: a large title, grouped rounded containers, hairline
  * separators inset to the text, 44pt minimum rows and descriptive footers.
  */
-export const FunctionMenu: FC<FunctionMenuProps> = ({ section, onSelect, onAction }) => (
+export const FunctionMenu: FC<FunctionMenuProps> = ({ section, onSelect, onAction }) => {
+  const styles = useThemedStyles(makeStyles);
+  return (
   <View style={styles.container}>
     <Text style={styles.largeTitle}>功能</Text>
     <Text style={styles.intro}>
@@ -84,47 +87,49 @@ export const FunctionMenu: FC<FunctionMenuProps> = ({ section, onSelect, onActio
       </View>
     ))}
   </View>
-);
+  );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
   container: { gap: grid.loose },
   largeTitle: {
-    color: systemColors.label,
-    fontSize: typeScale.largeTitle.fontSize,
-    lineHeight: typeScale.largeTitle.lineHeight,
+    color: theme.system.label,
+    fontSize: theme.type.largeTitle.fontSize,
+    lineHeight: theme.type.largeTitle.lineHeight,
     fontWeight: '400',
-    letterSpacing: typeScale.largeTitle.letterSpacing,
+    letterSpacing: theme.type.largeTitle.letterSpacing,
   },
   intro: {
-    color: systemColors.secondaryLabel,
-    fontSize: typeScale.subheadline.fontSize,
-    lineHeight: typeScale.subheadline.lineHeight,
-    letterSpacing: typeScale.subheadline.letterSpacing,
+    color: theme.system.secondaryLabel,
+    fontSize: theme.type.subheadline.fontSize,
+    lineHeight: theme.type.subheadline.lineHeight,
+    letterSpacing: theme.type.subheadline.letterSpacing,
     marginTop: grid.half,
   },
   group: { gap: grid.unit },
   groupHeader: {
-    color: systemColors.secondaryLabel,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
+    color: theme.system.secondaryLabel,
+    fontSize: theme.type.footnote.fontSize,
+    lineHeight: theme.type.footnote.lineHeight,
     fontWeight: '600',
     letterSpacing: 0.8,
     paddingHorizontal: grid.base,
   },
   groupFooter: {
-    color: systemColors.tertiaryLabel,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
+    color: theme.system.tertiaryLabel,
+    fontSize: theme.type.footnote.fontSize,
+    lineHeight: theme.type.footnote.lineHeight,
     paddingHorizontal: grid.base,
   },
   card: {
     borderRadius: corner.grouped,
-    backgroundColor: systemColors.tertiarySystemGroupedBackground,
+    backgroundColor: theme.system.tertiarySystemGroupedBackground,
     overflow: 'hidden',
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: systemColors.separator,
+    backgroundColor: theme.system.separator,
     marginLeft: grid.base * 2 + 32 + grid.tight,
   },
   row: {
@@ -135,7 +140,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: grid.tight,
   },
-  rowPressed: { backgroundColor: systemColors.quaternarySystemFill },
+  rowPressed: { backgroundColor: theme.system.quaternarySystemFill },
   iconBox: {
     width: 32,
     height: 32,
@@ -146,16 +151,16 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1, minWidth: 0, gap: 2 },
   rowTitle: {
-    color: systemColors.label,
-    fontSize: typeScale.body.fontSize,
-    lineHeight: typeScale.body.lineHeight,
+    color: theme.system.label,
+    fontSize: theme.type.body.fontSize,
+    lineHeight: theme.type.body.lineHeight,
     fontWeight: '500',
-    letterSpacing: typeScale.body.letterSpacing,
+    letterSpacing: theme.type.body.letterSpacing,
   },
   rowSubtitle: {
-    color: systemColors.secondaryLabel,
-    fontSize: typeScale.footnote.fontSize,
-    lineHeight: typeScale.footnote.lineHeight,
-    letterSpacing: typeScale.footnote.letterSpacing,
+    color: theme.system.secondaryLabel,
+    fontSize: theme.type.footnote.fontSize,
+    lineHeight: theme.type.footnote.lineHeight,
+    letterSpacing: theme.type.footnote.letterSpacing,
   },
 });

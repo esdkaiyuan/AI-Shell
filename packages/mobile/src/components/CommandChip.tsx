@@ -1,14 +1,17 @@
 import type { FC } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { monoFont } from '../hig';
-import { colors, radius, spacing } from '../theme';
+import { useThemedStyles } from '../theme-context';
+import { radius, spacing, type Theme } from '../theme';
 
 interface CommandChipProps {
   command: string;
   onPress: (command: string) => void;
 }
 
-export const CommandChip: FC<CommandChipProps> = ({ command, onPress }) => (
+export const CommandChip: FC<CommandChipProps> = ({ command, onPress }) => {
+  const styles = useThemedStyles(makeStyles);
+  return (
   <Pressable
     accessibilityRole="button"
     accessibilityLabel={`填入命令 ${command}`}
@@ -20,21 +23,22 @@ export const CommandChip: FC<CommandChipProps> = ({ command, onPress }) => (
     </Text>
   </Pressable>
 );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   chip: {
     maxWidth: 280,
     minHeight: 44,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
-    backgroundColor: colors.panelRaised,
+    backgroundColor: theme.colors.panelRaised,
     justifyContent: 'center',
   },
   pressed: {
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
   },
   text: {
-    color: colors.textMuted,
+    color: theme.colors.textMuted,
     fontFamily: monoFont.family,
     fontSize: 12.5,
   },

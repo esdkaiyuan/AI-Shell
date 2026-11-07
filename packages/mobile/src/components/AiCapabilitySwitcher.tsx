@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import type { FC } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AI_CAPABILITIES, hasCapability, type AICapability } from '../aiTerminal';
-import { systemColors } from '../hig';
-import { colors, radius, spacing } from '../theme';
+
+import { useThemedStyles, useTheme } from '../theme-context';
+import { radius, spacing, type Theme } from '../theme';
 
 interface AiCapabilitySwitcherProps {
   capabilities: AICapability[];
@@ -19,7 +20,10 @@ interface AiCapabilitySwitcherProps {
 export const AiCapabilitySwitcher: FC<AiCapabilitySwitcherProps> = ({
   capabilities,
   onToggle,
-}) => (
+}) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
   <View style={styles.row}>
     {AI_CAPABILITIES.map(option => {
       const checked = hasCapability(capabilities, option.id);
@@ -42,7 +46,7 @@ export const AiCapabilitySwitcher: FC<AiCapabilitySwitcherProps> = ({
           <Ionicons
             name={checked ? 'checkmark-circle' : 'ellipse-outline'}
             size={11}
-            color={sensitive ? '#FFFFFF' : checked ? systemColors.systemBlue : colors.textDim}
+            color={sensitive ? '#FFFFFF' : checked ? theme.system.systemBlue : theme.colors.textDim}
           />
           <Text numberOfLines={1} style={[styles.label, checked && styles.labelChecked]}>
             {option.label}
@@ -60,8 +64,9 @@ export const AiCapabilitySwitcher: FC<AiCapabilitySwitcherProps> = ({
     ) : null}
   </View>
 );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -76,25 +81,25 @@ const styles = StyleSheet.create({
     height: 22,
     paddingHorizontal: 7,
     borderRadius: radius.pill,
-    backgroundColor: colors.panel,
+    backgroundColor: theme.colors.panel,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSoft,
+    borderColor: theme.colors.borderSoft,
   },
   chipChecked: {
-    backgroundColor: colors.accentSoft,
+    backgroundColor: theme.colors.accentSoft,
     borderColor: 'rgba(10, 132, 255, 0.42)',
   },
   chipSensitive: {
-    backgroundColor: systemColors.systemOrange,
-    borderColor: systemColors.systemOrange,
+    backgroundColor: theme.system.systemOrange,
+    borderColor: theme.system.systemOrange,
   },
   pressed: { opacity: 0.6 },
   label: {
-    color: colors.textDim,
+    color: theme.colors.textDim,
     fontSize: 10.5,
     fontWeight: '600',
   },
-  labelChecked: { color: colors.text },
+  labelChecked: { color: theme.colors.text },
   notice: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -104,7 +109,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: systemColors.systemOrange,
+    backgroundColor: theme.system.systemOrange,
   },
-  noticeText: { color: systemColors.systemOrange, fontSize: 9.5 },
+  noticeText: { color: theme.system.systemOrange, fontSize: 9.5 },
 });
