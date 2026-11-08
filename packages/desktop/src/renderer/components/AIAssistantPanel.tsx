@@ -398,6 +398,8 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
         <div className="panel-controls">
           <button
             className={`panel-control-btn ${agentMode ? 'active-toggle' : ''}`}
+            aria-label="Agent 模式"
+            aria-pressed={agentMode}
             onClick={() => {
               const next = !agentMode;
               setAgentMode(next);
@@ -417,6 +419,8 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           </button>
           <button
             className={`panel-control-btn ${showHistory ? 'active-toggle' : ''}`}
+            aria-label="命令历史"
+            aria-pressed={showHistory}
             onClick={() => setShowHistory(!showHistory)}
             title="命令历史"
           >
@@ -424,6 +428,8 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           </button>
           <button
             className="panel-control-btn"
+            aria-label="自动获取终端上下文"
+            aria-pressed={autoContext}
             onClick={() => setAutoContext(!autoContext)}
             title={autoContext ? '自动获取上下文：开' : '自动获取上下文：关'}
           >

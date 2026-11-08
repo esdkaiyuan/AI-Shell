@@ -7,6 +7,7 @@ import SystemMonitor from './components/SystemMonitor';
 import SSHManager from './components/SSHManager';
 import SessionManager from './components/SessionManager';
 import SnippetManager from './components/SnippetManager';
+import CommandHistory from './components/CommandHistory';
 import TerminalTabBar from './components/TerminalTabBar';
 import { terminalBus } from './terminalBus';
 import { appSettings, PANEL_LIMITS, clamp } from './appSettings';
@@ -34,6 +35,7 @@ import {
   KeyboardIcon,
   MonitorIcon,
   ZapIcon,
+  HistoryIcon,
 } from './components/Icons';
 import './App.css';
 
@@ -93,6 +95,7 @@ const App: React.FC = () => {
   const [shortcuts, setShortcuts] = useState<ShortcutMap>(() => appSettings.get().shortcuts);
   const [showSessionManager, setShowSessionManager] = useState(false); // 会话管理器显示状态
   const [showSnippetManager, setShowSnippetManager] = useState(false); // 快捷命令管理器显示状态
+  const [showCommandHistory, setShowCommandHistory] = useState(false); // 命令历史显示状态
   const [panelSizes, setPanelSizes] = useState(() => {
     const s = appSettings.get();
     return {
@@ -546,6 +549,15 @@ const App: React.FC = () => {
                     </button>
                     <button
                       className="terminal-tool-button"
+                      aria-label="命令历史"
+                      title="命令历史"
+                      onClick={() => setShowCommandHistory(true)}
+                    >
+                      <HistoryIcon size={15} />
+                      <span className="terminal-tool-label">历史</span>
+                    </button>
+                    <button
+                      className="terminal-tool-button"
                       aria-label="切换分屏"
                       title={`分屏 (${shortcutLabel('toggleSplit')})`}
                       onClick={toggleSplit}
@@ -719,6 +731,19 @@ const App: React.FC = () => {
 
       {/* 快捷命令管理器对话框 */}
       {showSnippetManager && <SnippetManager onClose={() => setShowSnippetManager(false)} />}
+
+      {/* 命令历史对话框 */}
+      {showCommandHistory && (
+        <CommandHistory
+          onClose={() => setShowCommandHistory(false)}
+          onInsert={command => {
+            const inserted = terminalBus.insertToActive(command);
+            if (inserted) {
+              setShowCommandHistory(false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

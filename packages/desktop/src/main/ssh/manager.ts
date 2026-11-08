@@ -3,6 +3,7 @@ import { Client } from 'ssh2';
 import { LocalStorage, SSHConfig } from '@ai-shell/core';
 import { EventEmitter } from 'events';
 import { BrowserWindow } from 'electron';
+import { extractSubmittedCommand } from '../commandHistory';
 
 interface SSHSession {
   id: string;
@@ -100,6 +101,20 @@ export class SSHManager {
     } catch (error) {
       console.error(`Failed to write to SSH session ${sessionId}:`, error);
       throw error;
+    }
+
+    // Record submitted commands the same way the local shell does, tagging
+    // them with the remote host so a history entry says where it ran.
+    if (data.endsWith('\n') || data.endsWith('\r')) {
+      const command = extractSubmittedCommand(data);
+      if (command) {
+        try {
+          const host = session.config.host || 'remote';
+          this.storage?.saveCommand(command, `ssh://${host}`, 0);
+        } catch (error) {
+          console.error('Failed to save SSH command to history:', error);
+        }
+      }
     }
   }
 

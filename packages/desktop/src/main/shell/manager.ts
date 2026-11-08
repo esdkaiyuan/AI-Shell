@@ -3,11 +3,18 @@ import * as pty from 'node-pty';
 import { LocalStorage } from '@ai-shell/core';
 import { EventEmitter } from 'events';
 import { BrowserWindow } from 'electron';
+import { extractSubmittedCommand } from '../commandHistory';
 
 interface ShellSession {
   id: string;
   ptyProcess: IPty;
   emitter: EventEmitter;
+  /**
+   * The directory the shell starts in. The PTY cannot report a `cd` back to
+   * us, so this stays at the launch directory — which is still far more useful
+   * than recording the app's own working directory for every session.
+   */
+  cwd: string;
 }
 
 export class ShellManager {
@@ -29,12 +36,13 @@ export class ShellManager {
 
     // Determine shell based on platform
     const shellPath = shell || this.getDefaultShell();
+    const workingDirectory = cwd || process.env.HOME || process.env.USERPROFILE || process.cwd();
 
     const ptyProcess = pty.spawn(shellPath, [], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
-      cwd: cwd || process.env.HOME || process.env.USERPROFILE || process.cwd(),
+      cwd: workingDirectory,
       env: process.env as any,
     });
 
@@ -64,6 +72,7 @@ export class ShellManager {
       id: sessionId,
       ptyProcess,
       emitter,
+      cwd: workingDirectory,
     });
 
     return sessionId;
@@ -77,12 +86,14 @@ export class ShellManager {
 
     session.ptyProcess.write(data);
 
-    // Save to history if it's a complete command (ends with newline)
+    // Record a submitted command. Only a line that ends the input is a real
+    // command; control characters such as backspace or arrow keys arrive in
+    // the same stream and must not end up in the history.
     if (data.endsWith('\n') || data.endsWith('\r')) {
-      const command = data.trim();
+      const command = extractSubmittedCommand(data);
       if (command) {
         try {
-          this.storage?.saveCommand(command, process.cwd(), 0);
+          this.storage?.saveCommand(command, session.cwd, 0);
         } catch (error) {
           console.error('Failed to save command to history:', error);
         }

@@ -326,15 +326,17 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
 
               <div className="form-group">
                 <label>认证方式</label>
-                <div className="auth-type-selector">
+                <div className="auth-type-selector" role="group" aria-label="认证方式">
                   <button
                     className={`auth-type-btn ${authType === 'password' ? 'active' : ''}`}
+                    aria-pressed={authType === 'password'}
                     onClick={() => setAuthType('password')}
                   >
                     密码
                   </button>
                   <button
                     className={`auth-type-btn ${authType === 'key' ? 'active' : ''}`}
+                    aria-pressed={authType === 'key'}
                     onClick={() => setAuthType('key')}
                   >
                     密钥

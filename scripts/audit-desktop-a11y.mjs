@@ -104,6 +104,21 @@ for (const file of walk(RENDERER)) {
     }
   }
 
+  // A toggle or a selectable item must expose its state, not only paint it.
+  // A `selected` / `active` class is invisible to a screen reader.
+  for (const m of src.matchAll(/<button\b/g)) {
+    const tag = openingTag(src, m.index);
+    const line = src.slice(0, m.index).split('\n').length;
+    if (!/selected|active|checked/.test(tag)) continue;
+    if (/aria-pressed|aria-selected|aria-current|aria-checked/.test(tag)) continue;
+    issues.push({
+      file: rel,
+      line,
+      kind: 'state-without-semantics',
+      detail: '按钮视觉上有选中态，但没有 aria-pressed / aria-selected / aria-current',
+    });
+  }
+
   // A div standing in for a button must be keyboard reachable.
   for (const m of src.matchAll(/role="button"/g)) {
     const start = src.lastIndexOf('<', m.index);

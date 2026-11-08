@@ -69,9 +69,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
         )}
       </div>
 
-      <div className="search-options">
+      <div className="search-options" role="group" aria-label="搜索选项">
         <button
           className={`search-option-btn ${caseSensitive ? 'active' : ''}`}
+          aria-label="区分大小写"
+          aria-pressed={caseSensitive}
           onClick={() => setCaseSensitive(!caseSensitive)}
           title="区分大小写"
         >
@@ -79,6 +81,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
         </button>
         <button
           className={`search-option-btn ${wholeWord ? 'active' : ''}`}
+          aria-label="全字匹配"
+          aria-pressed={wholeWord}
           onClick={() => setWholeWord(!wholeWord)}
           title="全字匹配"
         >
@@ -86,6 +90,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
         </button>
         <button
           className={`search-option-btn ${regex ? 'active' : ''}`}
+          aria-label="正则表达式"
+          aria-pressed={regex}
           onClick={() => setRegex(!regex)}
           title="正则表达式"
         >

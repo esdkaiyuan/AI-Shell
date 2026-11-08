@@ -17,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) => {
       <nav className="sidebar-nav">
         <button
           className={`nav-item ${currentView === 'terminal' ? 'active' : ''}`}
+          aria-current={currentView === 'terminal' ? 'page' : undefined}
           onClick={() => onViewChange('terminal')}
         >
           <span className="icon">
@@ -27,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) => {
 
         <button
           className={`nav-item ${currentView === 'ai' ? 'active' : ''}`}
+          aria-current={currentView === 'ai' ? 'page' : undefined}
           onClick={() => onViewChange('ai')}
         >
           <span className="icon">
@@ -37,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) => {
 
         <button
           className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
+          aria-current={currentView === 'settings' ? 'page' : undefined}
           onClick={() => onViewChange('settings')}
         >
           <span className="icon">

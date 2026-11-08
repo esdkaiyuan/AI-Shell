@@ -93,6 +93,8 @@ const ModelSelector: React.FC = () => {
                 {provider.models.length === 0 ? (
                   <button
                     className={`model-selector-item ${selectedProvider === provider.name ? 'selected' : ''}`}
+                    role="menuitemradio"
+                    aria-checked={selectedProvider === provider.name}
                     onClick={() => handleSelect(provider.name, '')}
                   >
                     默认模型
@@ -104,6 +106,10 @@ const ModelSelector: React.FC = () => {
                       className={`model-selector-item ${
                         selectedProvider === provider.name && selectedModel === model ? 'selected' : ''
                       }`}
+                      role="menuitemradio"
+                      aria-checked={
+                        selectedProvider === provider.name && selectedModel === model
+                      }
                       onClick={() => handleSelect(provider.name, model)}
                     >
                       {model}

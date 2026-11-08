@@ -547,27 +547,35 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="settings-content">
-        <div className="settings-tabs">
+        <div className="settings-tabs" role="tablist" aria-label="设置分类">
           <button
             className={`tab ${activeTab === 'ai' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'ai'}
             onClick={() => setActiveTab('ai')}
           >
             AI 提供商
           </button>
           <button
             className={`tab ${activeTab === 'ssh' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'ssh'}
             onClick={() => setActiveTab('ssh')}
           >
             SSH 配置
           </button>
           <button
             className={`tab ${activeTab === 'general' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'general'}
             onClick={() => setActiveTab('general')}
           >
             通用设置
           </button>
           <button
             className={`tab ${activeTab === 'shortcuts' ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === 'shortcuts'}
             onClick={() => setActiveTab('shortcuts')}
           >
             快捷键
@@ -915,6 +923,8 @@ const Settings: React.FC = () => {
                         <button
                           key={themeName}
                           className={`theme-card ${generalSettings.theme === themeName ? 'selected' : ''}`}
+                          aria-label={`终端主题 ${labels[themeName]}`}
+                          aria-pressed={generalSettings.theme === themeName}
                           onClick={() => updateGeneralSetting({ theme: themeName })}
                         >
                           <div
@@ -983,6 +993,8 @@ const Settings: React.FC = () => {
                         <button
                           key={style}
                           className={`auth-type-btn ${generalSettings.cursorStyle === style ? 'active' : ''}`}
+                          aria-label={`光标样式 ${labels[style]}`}
+                          aria-pressed={generalSettings.cursorStyle === style}
                           onClick={() => updateGeneralSetting({ cursorStyle: style })}
                         >
                           {labels[style]}

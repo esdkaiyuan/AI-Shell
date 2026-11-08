@@ -222,9 +222,11 @@ const FileExplorer: React.FC = () => {
         </button>
       </div>
 
-      <div className="file-explorer-toolbar">
+      <div className="file-explorer-toolbar" role="group" aria-label="根目录">
         <button
           className={`root-button ${rootMode === 'workspace' ? 'active' : ''}`}
+          aria-label="工作区根目录"
+          aria-pressed={rootMode === 'workspace'}
           onClick={() => setRootMode('workspace')}
         >
           <HardDriveIcon size={14} />
@@ -232,6 +234,8 @@ const FileExplorer: React.FC = () => {
         </button>
         <button
           className={`root-button ${rootMode === 'home' ? 'active' : ''}`}
+          aria-label="用户主目录"
+          aria-pressed={rootMode === 'home'}
           onClick={() => setRootMode('home')}
         >
           <HomeIcon size={14} />

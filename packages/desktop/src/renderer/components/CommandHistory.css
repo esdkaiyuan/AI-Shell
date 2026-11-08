@@ -1,0 +1,215 @@
+.command-history-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--material-overlay);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.command-history {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  width: min(720px, calc(100vw - 48px));
+  height: min(620px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.command-history-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border-primary);
+  flex-shrink: 0;
+}
+
+.command-history-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.command-history-count {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-right: auto;
+}
+
+.command-history-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border-primary);
+  flex-shrink: 0;
+}
+
+.command-history-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  color: var(--color-text-tertiary);
+}
+
+.command-history-search:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.command-history-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-family: inherit;
+}
+
+.command-history-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.command-history-error {
+  margin: 10px 16px 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 69, 58, 0.12);
+  color: var(--color-danger, #ff453a);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.command-history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0 12px;
+}
+
+.command-history-hint {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: 12.5px;
+}
+
+.command-history-group {
+  margin-bottom: 6px;
+}
+
+.command-history-day {
+  margin: 0;
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  position: sticky;
+  top: 0;
+  background-color: var(--color-bg-secondary);
+}
+
+.command-history-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 12px 0 16px;
+}
+
+.command-history-row:hover {
+  background-color: var(--color-bg-hover, rgba(255, 255, 255, 0.04));
+}
+
+.command-history-command {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  padding: 7px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.command-history-command code {
+  font-family: 'SF Mono', 'Cascadia Code', Consolas, 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-history-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--color-text-tertiary);
+  max-width: 100%;
+}
+
+.command-history-time {
+  flex-shrink: 0;
+}
+
+.command-history-cwd,
+.command-history-remote {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-history-remote {
+  color: var(--color-accent);
+}
+
+.command-history-insert {
+  flex-shrink: 0;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.command-history-row:hover .command-history-insert,
+.command-history-insert:focus-visible {
+  opacity: 1;
+}
+
+.command-history-insert:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-accent);
+}
