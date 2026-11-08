@@ -82,7 +82,12 @@ const ChatConversationBar: React.FC<ChatConversationBarProps> = ({ compact = fal
         <div className="conversation-menu">
           <div className="conversation-menu-header">
             <span>对话记录 ({conversations.length})</span>
-            <button className="conversation-new" onClick={handleNew} title="新建对话">
+            <button
+              className="conversation-new"
+              onClick={handleNew}
+              title="新建对话"
+              aria-label="新建对话"
+            >
               <PlusIcon size={13} />
             </button>
           </div>
@@ -99,6 +104,7 @@ const ChatConversationBar: React.FC<ChatConversationBarProps> = ({ compact = fal
                   {renamingId === c.id ? (
                     <input
                       className="conversation-rename"
+                      aria-label="对话名称"
                       value={renameValue}
                       autoFocus
                       onChange={e => setRenameValue(e.target.value)}

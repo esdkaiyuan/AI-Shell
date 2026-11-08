@@ -96,6 +96,8 @@ const TerminalTabBar: React.FC<TerminalTabBarProps> = ({
           } ${dragOverId === tab.id ? 'drag-over' : ''}`}
           role="button"
           tabIndex={0}
+          aria-label={`终端标签 ${tab.title}`}
+          aria-current={activeId === tab.id}
           draggable={editingId !== tab.id}
           onClick={() => !editingId && onSelect(tab.id)}
           onDoubleClick={() => startRename(tab)}
@@ -119,6 +121,7 @@ const TerminalTabBar: React.FC<TerminalTabBarProps> = ({
             <input
               ref={inputRef}
               className="terminal-tab-rename"
+              aria-label="终端标签名称"
               value={editValue}
               onChange={e => setEditValue(e.target.value)}
               onBlur={commitRename}
@@ -144,14 +147,30 @@ const TerminalTabBar: React.FC<TerminalTabBarProps> = ({
               e.stopPropagation();
               onClose(tab.id);
             }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose(tab.id);
+              }
+            }}
             role="button"
+            // A div acting as a button must be reachable by keyboard, or the
+            // close action simply does not exist for keyboard users.
+            tabIndex={0}
+            aria-label={`关闭终端 ${tab.title}`}
             title="关闭"
           >
             <CloseIcon size={12} />
           </span>
         </div>
       ))}
-      <button className="add-tab-btn" onClick={onCreate} title="新建终端">
+      <button
+        className="add-tab-btn"
+        onClick={onCreate}
+        title="新建终端"
+        aria-label="新建终端"
+      >
         <PlusIcon size={14} />
       </button>
     </div>

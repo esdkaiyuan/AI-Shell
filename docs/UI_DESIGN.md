@@ -155,6 +155,9 @@
 - **所有可交互元素都有可访问名称**：纯图标按钮必须写 `accessibilityLabel`（RN 的读屏不会推断图标含义），输入框必须写 `accessibilityLabel`（`placeholder` 不等于标签）。语义化的控件还要给出角色与状态：分段控件用 `tab` + `selected`，单选用 `radio` + `selected`，开关用 `checkbox` + `checked`，禁用态用 `disabled`。
 - **变化要播报**：终端输出与 AI 回复用 `accessibilityLiveRegion="polite"`，不打断用户当前朗读；错误用 `assertive` 立即播报。
 - **Reduce Motion 全局生效**：`useReduceMotion` 是唯一判断来源，侧窗动效据此退化；持续转动的加载指示器（`ActivityIndicator`）在 Reduce Motion 下换成静态文字提示，避免前庭功能障碍用户不适。
+- **桌面端同理**：`aria-label` 才是读屏器读到的名字，`title` 只是鼠标悬停提示，触屏与部分读屏器不朗读 —— 纯图标按钮两者都要有。所有 `<input>` / `<textarea>` / `<select>` 都要有 `aria-label`（视觉 `<label>` 没有 `htmlFor` 时对读屏器无效）。
+- **用 `div` 冒充按钮时必须补 `tabIndex={0}` 与键盘响应**，否则键盘用户根本够不到该操作；同时给 `role="button"` 的元素配 `aria-label` 与 `aria-current` / `aria-selected` 表达状态。
+- **焦点环用 `box-shadow` 绘制**（`0 0 0 3px var(--color-focus-ring)`）而不是 `outline`，这是 Apple HIG 的做法；`button` / `a` / `[role='button']` / `checkbox` / 各组件输入框都要覆盖 `:focus-visible`。
 
 ## 9. 禁止项
 

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **无障碍完整度**：全部 65 个可交互元素与 12 个输入框都具备可访问名称；纯图标按钮（目录上下翻页、隐藏文件、刷新、密钥显隐、格式切换、安装、关闭等）不再对读屏器隐身；分段控件用 `tab`、单选用 `radio`、开关用 `checkbox`，并带正确的选中与禁用状态
+- **桌面端无障碍对齐**：7 个纯图标按钮（刷新上下文、停止生成、发送、停止任务、清空轨迹、新建对话、关闭搜索、新建终端）补 `aria-label` —— `title` 只是悬停提示，读屏器读不到；31 个表单控件（输入框 / 下拉 / 文本域）全部补 `aria-label`；AI 对话流与 Agent 执行轨迹加 `aria-live="polite"` 播报；终端标签的关闭按钮补 `tabIndex` 与键盘响应，标签本身补 `aria-label` 与 `aria-current`
 - **状态播报**：终端输出与 AI 回复用 `accessibilityLiveRegion="polite"` 温和播报，不打断用户当前朗读；AI 错误用 `assertive` 立即播报
 - **Reduce Motion 全局生效**：新增 `src/hooks/useReduceMotion.ts` 作为系统「减弱动态效果」的唯一判断来源；新增 `src/components/BusyIndicator.tsx`，持续转动的加载指示器在该设置下转为静态文字提示，避免前庭功能障碍用户不适
 - **Agent 自主执行模式**：AI 助手可多步调用工具完成任务（列目录 / 读写文件 / 执行命令 / 查历史 / 取终端上下文），根据结果继续推理，不再只给命令建议

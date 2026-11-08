@@ -700,6 +700,7 @@ const Settings: React.FC = () => {
                     <input
                       type="password"
                       className="form-input"
+                      aria-label="API 密钥"
                       value={formData.apiKey}
                       onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
                       placeholder={selectedTemplate.keyPlaceholder}
@@ -739,6 +740,7 @@ const Settings: React.FC = () => {
                           <label key={model} className="model-checkbox">
                             <input
                               type="checkbox"
+                              aria-label={`选择模型 ${model}`}
                               checked={formData.selectedModels.includes(model)}
                               onChange={() => handleModelToggle(model)}
                             />
@@ -753,6 +755,7 @@ const Settings: React.FC = () => {
                       <input
                         type="text"
                         className="form-input"
+                        aria-label="手动输入模型名"
                         value={manualModelInput}
                         onChange={e => setManualModelInput(e.target.value)}
                         onKeyDown={e => {
@@ -784,6 +787,7 @@ const Settings: React.FC = () => {
                       <input
                         type="text"
                         className="form-input"
+                        aria-label="自定义 API 地址"
                         value={formData.baseURL}
                         onChange={e => setFormData({ ...formData, baseURL: e.target.value })}
                         placeholder={selectedTemplate.defaultBaseURL || '使用默认地址'}
@@ -936,6 +940,7 @@ const Settings: React.FC = () => {
                     min={10}
                     max={24}
                     step={1}
+                    aria-label="终端字体大小"
                     value={generalSettings.fontSize}
                     onChange={e => updateGeneralSetting({ fontSize: parseInt(e.target.value, 10) })}
                     className="form-range"
@@ -947,6 +952,7 @@ const Settings: React.FC = () => {
                   <label>字体</label>
                   <select
                     className="form-input"
+                    aria-label="终端字体"
                     value={generalSettings.fontFamily}
                     onChange={e => updateGeneralSetting({ fontFamily: e.target.value })}
                   >
@@ -991,6 +997,7 @@ const Settings: React.FC = () => {
                   <label className="switch-row">
                     <input
                       type="checkbox"
+                      aria-label="光标闪烁"
                       checked={generalSettings.cursorBlink}
                       onChange={e => updateGeneralSetting({ cursorBlink: e.target.checked })}
                     />
@@ -1006,6 +1013,7 @@ const Settings: React.FC = () => {
                     min={100}
                     max={10000}
                     step={100}
+                    aria-label="回滚缓冲行数"
                     value={generalSettings.scrollback}
                     onChange={e =>
                       updateGeneralSetting({ scrollback: parseInt(e.target.value, 10) })
@@ -1020,6 +1028,7 @@ const Settings: React.FC = () => {
                   <label className="switch-row">
                     <input
                       type="checkbox"
+                      aria-label="AI 助手默认使用 Agent 模式"
                       checked={generalSettings.agentMode}
                       onChange={e => updateGeneralSetting({ agentMode: e.target.checked })}
                     />
@@ -1028,6 +1037,7 @@ const Settings: React.FC = () => {
                   <label className="switch-row">
                     <input
                       type="checkbox"
+                      aria-label="写操作免确认自动执行"
                       checked={generalSettings.agentAutoApprove}
                       onChange={e => updateGeneralSetting({ agentAutoApprove: e.target.checked })}
                     />
@@ -1039,6 +1049,7 @@ const Settings: React.FC = () => {
                     min={3}
                     max={30}
                     step={1}
+                    aria-label="单任务最大推理步数"
                     value={generalSettings.agentMaxSteps}
                     onChange={e =>
                       updateGeneralSetting({ agentMaxSteps: parseInt(e.target.value, 10) })
@@ -1135,6 +1146,7 @@ const Settings: React.FC = () => {
               <div className="scheme-save-row">
                 <input
                   className="form-input"
+                  aria-label="快捷方式方案名称"
                   value={schemeName}
                   maxLength={32}
                   placeholder="方案名称，例如：Mac 习惯"

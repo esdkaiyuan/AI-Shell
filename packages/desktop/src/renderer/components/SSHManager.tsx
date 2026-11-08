@@ -257,6 +257,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                 <label>连接名称 *</label>
                 <input
                   type="text"
+                  aria-label="连接名称"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="例如：生产服务器"
@@ -269,6 +270,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                   <label>主机地址 *</label>
                   <input
                     type="text"
+                    aria-label="主机地址"
                     value={formData.host}
                     onChange={e => setFormData({ ...formData, host: e.target.value })}
                     placeholder="例如：192.168.1.100"
@@ -278,6 +280,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                   <label>端口</label>
                   <input
                     type="number"
+                    aria-label="端口"
                     value={formData.port}
                     min={1}
                     max={65535}
@@ -293,6 +296,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                 <label>用户名 *</label>
                 <input
                   type="text"
+                  aria-label="用户名"
                   value={formData.username}
                   onChange={e => setFormData({ ...formData, username: e.target.value })}
                   placeholder="例如：root"
@@ -302,6 +306,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
               <div className="form-group">
                 <label>远端系统</label>
                 <select
+                  aria-label="远端系统"
                   value={coerceCommandPlatform(formData.platform)}
                   onChange={e =>
                     setFormData({
@@ -342,6 +347,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                   <label>密码</label>
                   <input
                     type="password"
+                    aria-label="密码"
                     value={formData.password || ''}
                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                     placeholder={editing?.hasPassword ? '留空保留已保存密码' : '留空则连接时输入'}
@@ -353,6 +359,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                     <label>私钥路径</label>
                     <input
                       type="text"
+                      aria-label="私钥路径"
                       value={formData.privateKey || ''}
                       onChange={e => setFormData({ ...formData, privateKey: e.target.value })}
                       placeholder={
@@ -364,6 +371,7 @@ const SSHManager: React.FC<SSHManagerProps> = ({ onClose, onConnect }) => {
                     <label>密钥密码（可选）</label>
                     <input
                       type="password"
+                      aria-label="密钥密码"
                       value={formData.passphrase || ''}
                       onChange={e => setFormData({ ...formData, passphrase: e.target.value })}
                       placeholder={

@@ -142,6 +142,7 @@ const SnippetManager: React.FC<SnippetManagerProps> = ({ onClose }) => {
         <div className="snippet-toolbar">
           <input
             className="snippet-search"
+            aria-label="搜索命令片段"
             placeholder="搜索命令..."
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -157,17 +158,20 @@ const SnippetManager: React.FC<SnippetManagerProps> = ({ onClose }) => {
         {editing && (
           <div className="snippet-form">
             <input
+              aria-label="片段名称"
               placeholder="名称（如：查看日志）"
               value={formName}
               onChange={e => setFormName(e.target.value)}
               autoFocus
             />
             <input
+              aria-label="命令内容"
               placeholder="命令（如：tail -f app.log）"
               value={formCommand}
               onChange={e => setFormCommand(e.target.value)}
             />
             <input
+              aria-label="分组"
               placeholder="分组"
               value={formGroup}
               onChange={e => setFormGroup(e.target.value)}

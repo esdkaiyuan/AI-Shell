@@ -411,6 +411,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
             className="panel-control-btn"
             onClick={handleRefreshContext}
             title="获取终端上下文"
+            aria-label="获取终端上下文"
           >
             <RefreshIcon size={14} />
           </button>
@@ -528,7 +529,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
         </div>
       )}
 
-      <div className="panel-messages">
+      <div className="panel-messages" aria-live="polite" aria-label="对话内容">
         {messages.length === 0 && (
           <div className="empty-state">
             <div className="empty-icon">
@@ -612,6 +613,7 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
       <div className="panel-input">
         <textarea
           value={input}
+          aria-label={agentMode ? '给 Agent 派任务' : '向 AI 提问'}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
@@ -623,11 +625,21 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ position, onPositio
           rows={2}
         />
         {loading ? (
-          <button className="stop-button" onClick={handleStop} title="停止生成">
+          <button
+            className="stop-button"
+            onClick={handleStop}
+            title="停止生成"
+            aria-label="停止生成"
+          >
             <StopIcon size={16} />
           </button>
         ) : (
-          <button onClick={() => handleSend()} disabled={!input.trim()}>
+          <button
+            onClick={() => handleSend()}
+            disabled={!input.trim()}
+            title="发送"
+            aria-label="发送"
+          >
             <SendIcon size={16} />
           </button>
         )}

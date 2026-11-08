@@ -277,6 +277,7 @@ const SessionManager: React.FC<SessionManagerProps> = ({
                 <label>会话名称</label>
                 <input
                   type="text"
+                  aria-label="会话名称"
                   value={sessionName}
                   onChange={e => setSessionName(e.target.value)}
                   placeholder="例如：开发环境"

@@ -94,7 +94,12 @@ const AgentTrace: React.FC<AgentTraceProps> = ({
             {autoApprove ? '自动执行：开' : '自动执行：关'}
           </button>
           {state.running ? (
-            <button className="agent-trace-btn danger" onClick={onStop} title="停止当前任务">
+            <button
+              className="agent-trace-btn danger"
+              onClick={onStop}
+              title="停止当前任务"
+              aria-label="停止当前任务"
+            >
               <StopIcon size={13} />
             </button>
           ) : (
@@ -103,6 +108,7 @@ const AgentTrace: React.FC<AgentTraceProps> = ({
               onClick={onClear}
               disabled={state.steps.length === 0}
               title="清空轨迹"
+              aria-label="清空轨迹"
             >
               <CloseIcon size={13} />
             </button>
@@ -111,7 +117,14 @@ const AgentTrace: React.FC<AgentTraceProps> = ({
       </div>
 
       {request && (
-        <div className="agent-confirm" role="alertdialog" aria-label="确认工具执行">
+        // An inline confirmation inside the panel, not a modal overlay — so it
+        // announces assertively rather than trapping focus.
+        <div
+          className="agent-confirm"
+          role="alert"
+          aria-live="assertive"
+          aria-label="确认工具执行"
+        >
           <div className="agent-confirm-title">
             <span className="agent-confirm-risk">{request.risk === 'write' ? '写操作' : '工具调用'}</span>
             Agent 请求执行 <code>{request.tool}</code>
@@ -136,7 +149,7 @@ const AgentTrace: React.FC<AgentTraceProps> = ({
         <div className="agent-trace-summary">{state.summary}</div>
       )}
 
-      <div className="agent-trace-list">
+      <div className="agent-trace-list" aria-live="polite" aria-label="Agent 执行轨迹">
         {state.steps.length === 0 ? (
           <div className="agent-trace-empty">
             <PlayIcon size={14} />

@@ -125,7 +125,7 @@ const AIChat: React.FC = () => {
         <ChatConversationBar />
       </div>
 
-      <div className="chat-messages">
+      <div className="chat-messages" aria-live="polite" aria-label="对话内容">
         {messages.length === 0 && (
           <div className="empty-state">
             <div className="empty-icon">
@@ -168,6 +168,7 @@ const AIChat: React.FC = () => {
       <div className="chat-input">
         <textarea
           value={input}
+          aria-label="输入消息"
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="输入消息…（Enter 发送，Shift+Enter 换行）"

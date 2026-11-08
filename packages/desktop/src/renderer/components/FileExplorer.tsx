@@ -240,6 +240,7 @@ const FileExplorer: React.FC = () => {
         <label className="hidden-toggle">
           <input
             type="checkbox"
+            aria-label="显示隐藏文件"
             checked={showHidden}
             onChange={event => setShowHidden(event.target.checked)}
           />

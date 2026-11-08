@@ -55,6 +55,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <input
           ref={inputRef}
           type="text"
+          aria-label="搜索终端内容"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -111,7 +112,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
         </button>
       </div>
 
-      <button className="search-close-btn" onClick={onClose} title="关闭 (Esc)">
+      <button
+        className="search-close-btn"
+        onClick={onClose}
+        title="关闭 (Esc)"
+        aria-label="关闭搜索"
+      >
         <CloseIcon size={14} />
       </button>
     </div>

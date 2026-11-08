@@ -513,7 +513,11 @@ const Terminal: React.FC<TerminalProps> = ({
       <div ref={terminalRef} className="terminal" />
       {/* Tab 补全候选浮层 */}
       {showSuggestions && suggestions.length > 0 && (
-        <div className="terminal-suggestions" role="listbox">
+        <div
+          className="terminal-suggestions"
+          role="listbox"
+          aria-label="Tab 补全候选"
+        >
           <div className="suggestions-header">
             {COMMAND_PLATFORM_LABELS[completionPlatform]} · Tab 循环选择 · Enter 接受 · Esc 关闭
           </div>
