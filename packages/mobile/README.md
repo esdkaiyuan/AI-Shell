@@ -85,6 +85,8 @@ SSH 配置可选择远端系统。历史命令会记录系统标签，避免在 
 - 字号随系统「文字大小」设置缩放（Dynamic Type）：由 React Native 的 `allowFontScaling` 原生完成，应用层不预乘 `fontScale`（否则会双重缩放）；承载文字的容器用 `minHeight` 并通过 `theme.scale(n)` 跟随字号成长，大字号下不裁切。
 - 页面标题与上下文副标题分离，状态语义用统一的色点胶囊表达。
 - 移动触控目标至少 44dp；标签、工具按钮、发送键均在 44dp 以上。
+- **无障碍**：全部 65 个可交互元素与 12 个输入框都有可访问名称（纯图标按钮显式写 `accessibilityLabel`，不靠读屏猜测图标含义）；分段控件、单选项、开关带正确的角色与选中状态；终端输出与 AI 回复用 `accessibilityLiveRegion="polite"` 播报，错误用 `assertive`。
+- **Reduce Motion**：由 `src/hooks/useReduceMotion.ts` 统一判断，侧窗动效据此退化；持续转动的加载指示器在 Reduce Motion 下换成静态文字提示（`src/components/BusyIndicator.tsx`）。
 - 四周安全区（状态栏、手势区、横屏挖孔）；≥720dp 宽屏内容列居中并限宽 560dp。
 - 自适应密度：软键盘弹出或窗口高度低于 620dp 时，自动收起终端控制键、快捷命令与 AI 上下文卡片，始终保留输出区与输入栏。决策集中在 `src/layout.ts`，并有 `src/layout.test.ts` 覆盖。
 - 终端命令坞：控制键、补全/常用命令与输入栏合并为底部固定分组，输出区 `flex: 1` 独占剩余高度，消除横向滚动条在 flex 列中被拉伸造成的中段空洞。
@@ -159,6 +161,7 @@ src/components/SidePanel.tsx             Apple HIG 右侧模态侧窗（动画/�
 src/components/FunctionMenu.tsx          侧窗功能清单与终端操作分组
 src/components/AIAssistButton.tsx        主页面唯一主操作按钮
 src/components/AiCapabilitySwitcher.tsx AI 权限开关（读取/填入/执行），随对话卡片出现
+src/components/BusyIndicator.tsx        尊重 Reduce Motion 的进度指示（关闭动效时转为静态文字）
 src/aiTerminal.ts / aiTerminal.test.ts   AI 终端能力定义、命令提取安全边界与动作规划
 src/hig.ts / src/hig.test.ts             Apple HIG 设计令牌与尺寸/字阶单测
 src/theme.ts                           主题工厂：系统色、终端色、投影与 Dynamic Type 缩放
@@ -168,6 +171,7 @@ src/components/TerminalPreview.tsx       终端输出区
 src/layout.ts                            紧凑模式、宽屏限宽、渐隐长度等布局决策
 src/layout.test.ts                       布局决策单元测试
 src/hooks/useKeyboardVisible.ts          由窗口高度差推断软键盘状态（不依赖不可靠的键盘事件）
+src/hooks/useReduceMotion.ts             系统「减弱动态效果」状态，全应用唯一判断来源
 src/hooks/useTerminalRuntime.ts          会话启动、ANSI 过滤、重启与历史平台
 src/services/config.ts                   加密配置与数据模型
 src/services/ai.ts                       Provider HTTP 客户端

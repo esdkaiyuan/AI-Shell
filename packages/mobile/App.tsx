@@ -373,7 +373,12 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
   return (
     <>
       {!runtime.installed ? (
-        <Pressable style={styles.runtimeBanner} onPress={() => onOpenSetup('environment')}>
+        <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="打开环境与配置向导"
+              style={styles.runtimeBanner}
+              onPress={() => onOpenSetup('environment')}
+            >
           <View style={styles.runtimeBannerIcon}>
             <Ionicons name="download-outline" size={20} color={theme.colors.accent} />
           </View>
@@ -442,6 +447,7 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
         <View style={styles.searchPanel}>
           <Ionicons name="search" size={16} color={theme.colors.textDim} />
           <TextInput
+            accessibilityLabel="过滤终端输出"
             value={state.searchQuery}
             onChangeText={(value: string) => dispatch({ type: 'setSearchQuery', query: value })}
             placeholder="过滤终端输出"
@@ -457,6 +463,9 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
           {activeTerminal.split.panes.map(pane => (
             <Pressable
               key={pane.id}
+              accessibilityRole="tab"
+              accessibilityLabel={`分栏 ${pane.title}`}
+              accessibilityState={{ selected: pane.id === activeTerminal.split.activePaneId }}
               style={[
                 styles.paneButton,
                 pane.id === activeTerminal.split.activePaneId && styles.paneButtonActive,
@@ -470,7 +479,12 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
       ) : null}
 
       {activePane.sessionStatus === 'exited' ? (
-        <Pressable style={styles.reconnectBanner} onPress={() => terminalApi.restartActive()}>
+        <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="会话已结束，重新连接"
+              style={styles.reconnectBanner}
+              onPress={() => terminalApi.restartActive()}
+            >
           <Ionicons name="refresh" size={16} color={theme.colors.yellow} />
           <Text style={styles.reconnectText}>会话已结束，点击重新连接</Text>
         </Pressable>
@@ -567,6 +581,8 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
 
         <View style={styles.commandBar}>
           <TextInput
+            accessibilityLabel="终端命令输入"
+            accessibilityHint="输入要执行的命令，然后发送"
             value={state.commandInput}
             onChangeText={(value: string) => dispatch({ type: 'setCommandInput', value })}
             placeholder={
@@ -600,7 +616,12 @@ const TerminalWorkspace: FC<TerminalWorkspaceProps> = ({
 const TerminalKey: FC<{ label: string; onPress: () => void }> = ({ label, onPress }) => {
   const styles = useThemedStyles(makeStyles);
   return (
-  <Pressable style={styles.keyButton} onPress={onPress}>
+  <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`控制键 ${label}`}
+      style={styles.keyButton}
+      onPress={onPress}
+    >
     <Text style={styles.keyText}>{label}</Text>
   </Pressable>
 );
@@ -634,7 +655,12 @@ const SSHWorkspace: FC<SSHWorkspaceProps> = ({ config, dispatch, onOpenSetup }) 
             ? `${config.sshProfiles.length} 个已保存连接`
             : 'OpenSSH 已内置'}
         </Text>
-        <Pressable style={styles.smallAction} onPress={() => onOpenSetup('ssh')}>
+        <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="新增 SSH 连接"
+        style={styles.smallAction}
+        onPress={() => onOpenSetup('ssh')}
+      >
           <Ionicons name="add" size={16} color={theme.colors.text} />
           <Text style={styles.smallActionText}>新增连接</Text>
         </Pressable>
@@ -649,7 +675,12 @@ const SSHWorkspace: FC<SSHWorkspaceProps> = ({ config, dispatch, onOpenSetup }) 
           <Text style={styles.emptyText}>
             内置环境已包含 OpenSSH 客户端。添加主机后可直接在 Linux 终端中连接。
           </Text>
-          <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ssh')}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="配置 SSH 连接"
+            style={styles.emptyButton}
+            onPress={() => onOpenSetup('ssh')}
+          >
             <Ionicons name="add" size={17} color="#fff" />
             <Text style={styles.emptyButtonText}>配置 SSH</Text>
           </Pressable>
@@ -756,13 +787,19 @@ const SessionWorkspace: FC<SessionWorkspaceProps> = ({ config, state, dispatch }
 
       <View style={styles.saveBar}>
         <TextInput
+          accessibilityLabel="会话名称"
           value={name}
           onChangeText={setName}
           placeholder="会话名称（可选）"
           placeholderTextColor={theme.colors.textDim}
           style={styles.saveInput}
         />
-        <Pressable style={styles.smallAction} onPress={save}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="保存会话"
+          style={styles.smallAction}
+          onPress={save}
+        >
           <Ionicons name="save-outline" size={16} color={theme.colors.text} />
           <Text style={styles.smallActionText}>保存</Text>
         </Pressable>
@@ -951,7 +988,12 @@ const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({
   return (
     <>
       {!runtime.installed ? (
-        <Pressable style={styles.runtimeBanner} onPress={() => onOpenSetup('environment')}>
+        <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="打开环境与配置向导"
+              style={styles.runtimeBanner}
+              onPress={() => onOpenSetup('environment')}
+            >
           <View style={styles.runtimeBannerIcon}>
             <Ionicons name="download-outline" size={20} color={theme.colors.accent} />
           </View>
@@ -964,13 +1006,23 @@ const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({
       ) : (
         <>
           <View style={styles.pathBar}>
-            <Pressable style={styles.pathButton} onPress={() => load(parentPath)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="返回上级目录"
+              style={styles.pathButton}
+              onPress={() => load(parentPath)}
+            >
               <Ionicons name="arrow-up" size={16} color={theme.colors.textMuted} />
             </Pressable>
             <Text numberOfLines={1} style={styles.pathText}>
               {state.currentPath}
             </Text>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                state.hiddenFilesVisible ? '隐藏隐藏文件' : '显示隐藏文件'
+              }
+              accessibilityState={{ selected: state.hiddenFilesVisible }}
               style={styles.pathButton}
               onPress={() => dispatch({ type: 'toggleHiddenFiles' })}
             >
@@ -980,7 +1032,12 @@ const ExplorerWorkspace: FC<ExplorerWorkspaceProps> = ({
                 color={theme.colors.textMuted}
               />
             </Pressable>
-            <Pressable style={styles.pathButton} onPress={() => load(state.currentPath)}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="刷新目录"
+              style={styles.pathButton}
+              onPress={() => load(state.currentPath)}
+            >
               <Ionicons name="refresh" size={16} color={theme.colors.textMuted} />
             </Pressable>
           </View>
@@ -1143,6 +1200,9 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
     <>
       <View style={styles.segmentedControl}>
         <Pressable
+          accessibilityRole="tab"
+          accessibilityLabel="对话"
+          accessibilityState={{ selected: chatActive }}
           style={[styles.segmentButton, chatActive && styles.segmentButtonActive]}
           onPress={() => dispatch({ type: 'openAiChat' })}
         >
@@ -1154,6 +1214,9 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
           <Text style={[styles.segmentText, chatActive && styles.segmentTextActive]}>对话</Text>
         </Pressable>
         <Pressable
+          accessibilityRole="tab"
+          accessibilityLabel="模型"
+          accessibilityState={{ selected: !chatActive }}
           style={[styles.segmentButton, !chatActive && styles.segmentButtonActive]}
           onPress={() => dispatch({ type: 'openAiProviders' })}
         >
@@ -1183,6 +1246,8 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                 {provider ? provider.model : '未配置模型'}
               </Text>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="切换模型"
                 hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                 style={styles.aiContextAction}
                 onPress={() => dispatch({ type: 'openAiProviders' })}
@@ -1295,6 +1360,8 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
 
           <View style={styles.inputRow}>
             <TextInput
+              accessibilityLabel="向 AI 提问"
+              accessibilityHint="描述你想让 AI 做的事，例如分析当前报错"
               value={state.aiPrompt}
               onChangeText={(prompt: string) => dispatch({ type: 'setAiPrompt', prompt })}
               placeholder="询问 AI，例如：分析当前报错并给出命令"
@@ -1321,7 +1388,12 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
             </Pressable>
           </View>
           {!provider ? (
-            <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ai')}>
+            <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="配置 AI 提供商"
+            style={styles.emptyButton}
+            onPress={() => onOpenSetup('ai')}
+          >
               <Ionicons name="key-outline" size={16} color="#fff" />
               <Text style={styles.emptyButtonText}>配置 AI 提供商</Text>
             </Pressable>
@@ -1343,7 +1415,12 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                 Key 使用 Android Keystore 加密保存。支持
                 OpenAI、Claude、DeepSeek、GLM、通义、Kimi、Ollama 与文心。
               </Text>
-              <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ai')}>
+              <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="配置 AI 提供商"
+            style={styles.emptyButton}
+            onPress={() => onOpenSetup('ai')}
+          >
                 <Ionicons name="add" size={17} color="#fff" />
                 <Text style={styles.emptyButtonText}>添加提供商</Text>
               </Pressable>
@@ -1383,6 +1460,9 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                         return (
                           <Pressable
                             key={model}
+                            accessibilityRole="radio"
+                            accessibilityLabel={`模型 ${model}`}
+                            accessibilityState={{ selected }}
                             style={[styles.modelChip, selected && styles.modelChipActive]}
                             onPress={(event: MobilePressEvent) => {
                               event.stopPropagation();
@@ -1398,6 +1478,8 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                     </ScrollView>
                     <View style={styles.providerActions}>
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`删除提供商 ${item.displayName}`}
                         style={styles.secondaryAction}
                         onPress={(event: MobilePressEvent) => {
                           event.stopPropagation();
@@ -1418,6 +1500,8 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                       </Pressable>
                       {active ? (
                         <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`编辑提供商 ${item.displayName}`}
                           style={styles.secondaryAction}
                           onPress={(event: MobilePressEvent) => {
                             event.stopPropagation();
@@ -1432,7 +1516,12 @@ const AIWorkspace: FC<AIWorkspaceProps> = ({
                   </Pressable>
                 );
               })}
-              <Pressable style={styles.emptyButton} onPress={() => onOpenSetup('ai')}>
+              <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="配置 AI 提供商"
+            style={styles.emptyButton}
+            onPress={() => onOpenSetup('ai')}
+          >
                 <Ionicons name="add" size={17} color="#fff" />
                 <Text style={styles.emptyButtonText}>添加提供商</Text>
               </Pressable>
@@ -1457,6 +1546,9 @@ const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => {
     <View style={styles.pageActionRow}>
       <Text style={styles.pageActionLabel}>{config.history.length} 条已提交命令</Text>
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="清空命令历史"
+        accessibilityState={{ disabled: config.history.length === 0 }}
         style={[styles.smallAction, config.history.length === 0 && styles.runButtonDisabled]}
         onPress={() =>
           Alert.alert('清空命令历史', '将删除全部已提交命令记录，此操作无法撤销。', [
@@ -1488,6 +1580,9 @@ const HistoryWorkspace: FC<HistoryWorkspaceProps> = ({ config, dispatch }) => {
         {config.history.map(item => (
           <Pressable
             key={item.id}
+            accessibilityRole="button"
+            accessibilityLabel={`命令历史 ${item.command}`}
+            accessibilityHint="点击把这条命令填入终端"
             style={styles.historyRow}
             onPress={() => dispatch({ type: 'insertCommand', command: item.command })}
           >
@@ -1602,12 +1697,19 @@ const SettingsWorkspace: FC<SettingsWorkspaceProps> = ({
       </View>
 
       <View style={styles.actionRow}>
-        <Pressable style={styles.secondaryAction} onPress={() => onOpenSetup('environment')}>
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="打开环境与配置向导"
+            style={styles.secondaryAction}
+            onPress={() => onOpenSetup('environment')}
+          >
           <Ionicons name="settings-outline" size={16} color={theme.colors.accent} />
           <Text style={styles.secondaryActionText}>环境与配置向导</Text>
         </Pressable>
         {runtime.installed ? (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="重置内置环境"
             style={[styles.secondaryAction, styles.dangerAction]}
             onPress={() =>
               Alert.alert(

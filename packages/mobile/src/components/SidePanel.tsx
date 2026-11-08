@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { FC } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { barHeight, corner, grabber, grid, motion, sidePanelTopInset, sidePanelWidth, transitionDuration, usesFullHeightSheet } from '../hig';
+import { useReduceMotion } from '../hooks/useReduceMotion';
 import { KEYBOARD_WINDOW_SHRINK } from '../layout';
 import { isPanelRoot, panelContentMode, panelTitle, type PanelSection } from '../navigation';
 import { useThemedStyles, useTheme } from '../theme-context';
@@ -39,6 +40,7 @@ export const SidePanel: FC<SidePanelProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const reduceMotion = useReduceMotion();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const metrics = useMemo(() => ({ width, height }), [width, height]);
@@ -57,7 +59,6 @@ export const SidePanel: FC<SidePanelProps> = ({
   const topInset = compact
     ? 0
     : sidePanelTopInset(metrics) + (usesFullHeightSheet(metrics) ? insets.top : 0);
-  const [reduceMotion, setReduceMotion] = useState(false);
   const [showContent, setShowContent] = useState(open);
   const progress = useRef(new Animated.Value(open ? 1 : 0)).current;
   /** Keep the newest dismiss handlers reachable without re-subscribing on every render. */
@@ -67,24 +68,6 @@ export const SidePanel: FC<SidePanelProps> = ({
   const duration = transitionDuration(open ? motion.presentMs : motion.dismissMs, reduceMotion);
   const mode = panelContentMode(section);
   const root = isPanelRoot(section);
-
-  useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then(value => {
-        if (alive) setReduceMotion(value);
-      })
-      .catch(() => undefined);
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', () => {
-      AccessibilityInfo.isReduceMotionEnabled()
-        .then(value => setReduceMotion(value))
-        .catch(() => undefined);
-    });
-    return () => {
-      alive = false;
-      subscription?.remove?.();
-    };
-  }, []);
 
   useEffect(() => {
     Animated.timing(progress, {

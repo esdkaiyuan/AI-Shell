@@ -152,6 +152,9 @@
 - 页面无横向溢出；长文本可换行或截断，操作不因换行遮挡。
 - 动画简短，并尊重 `prefers-reduced-motion`。
 - 图标按钮提供 `aria-label` 或 `accessibilityLabel`。
+- **所有可交互元素都有可访问名称**：纯图标按钮必须写 `accessibilityLabel`（RN 的读屏不会推断图标含义），输入框必须写 `accessibilityLabel`（`placeholder` 不等于标签）。语义化的控件还要给出角色与状态：分段控件用 `tab` + `selected`，单选用 `radio` + `selected`，开关用 `checkbox` + `checked`，禁用态用 `disabled`。
+- **变化要播报**：终端输出与 AI 回复用 `accessibilityLiveRegion="polite"`，不打断用户当前朗读；错误用 `assertive` 立即播报。
+- **Reduce Motion 全局生效**：`useReduceMotion` 是唯一判断来源，侧窗动效据此退化；持续转动的加载指示器（`ActivityIndicator`）在 Reduce Motion 下换成静态文字提示，避免前庭功能障碍用户不适。
 
 ## 9. 禁止项
 

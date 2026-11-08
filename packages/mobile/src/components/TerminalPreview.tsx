@@ -56,7 +56,11 @@ export const TerminalPreview: FC<TerminalPreviewProps> = ({ title, lines, status
         <Text numberOfLines={1} style={styles.title}>
           {title}
         </Text>
-        <View style={styles.badge}>
+        <View
+          accessibilityRole="text"
+          accessibilityLabel={`终端状态 ${meta.label}`}
+          style={styles.badge}
+        >
           <View style={[styles.dot, { backgroundColor: meta.color }]} />
           <Text style={[styles.badgeText, { color: meta.color }]}>{meta.label}</Text>
         </View>
@@ -69,26 +73,39 @@ export const TerminalPreview: FC<TerminalPreviewProps> = ({ title, lines, status
         showsVerticalScrollIndicator={false}
       >
         {lines.length === 0 ? (
-          <View style={styles.empty}>
+          <View
+            accessible
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={`${emptyText[status]}。${emptyHint[status]}`}
+            style={styles.empty}
+          >
             <Text style={styles.emptyTitle}>{emptyText[status]}</Text>
             <Text style={styles.emptyHint}>{emptyHint[status]}</Text>
           </View>
         ) : (
-          lines.map((line, index) => (
-            <Text
-              key={`${index}-${line.text.slice(0, 12)}`}
-              selectable
-              style={[
-                styles.line,
-                line.kind === 'prompt' ? styles.prompt : null,
-                line.kind === 'info' ? styles.info : null,
-                line.kind === 'warning' ? styles.warning : null,
-                line.kind === 'error' ? styles.error : null,
-              ]}
-            >
-              {line.text}
-            </Text>
-          ))
+          // New output is announced politely: a screen reader follows the
+          // session without interrupting what the user is reading.
+          <View
+            accessible
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={`终端输出，共 ${lines.length} 行`}
+          >
+            {lines.map((line, index) => (
+              <Text
+                key={`${index}-${line.text.slice(0, 12)}`}
+                selectable
+                style={[
+                  styles.line,
+                  line.kind === 'prompt' ? styles.prompt : null,
+                  line.kind === 'info' ? styles.info : null,
+                  line.kind === 'warning' ? styles.warning : null,
+                  line.kind === 'error' ? styles.error : null,
+                ]}
+              >
+                {line.text}
+              </Text>
+            ))}
+          </View>
         )}
       </ScrollView>
     </View>

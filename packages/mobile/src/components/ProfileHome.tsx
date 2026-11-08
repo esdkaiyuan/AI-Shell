@@ -88,6 +88,8 @@ export const ProfileHome: FC<ProfileHomeProps> = ({ config, runtime, onOpen }) =
           <Pressable
             key={`${destination.key}-${destination.title}`}
             accessibilityRole="button"
+            accessibilityLabel={destination.title}
+            accessibilityHint={destination.subtitle}
             onPress={() => onOpen(destination.key)}
             style={({ pressed }: { pressed: boolean }) => [
               styles.row,

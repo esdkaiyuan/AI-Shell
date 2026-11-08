@@ -266,7 +266,12 @@ export const SetupWizard: FC<SetupWizardProps> = ({
               </View>
             </View>
             {onClose ? (
-              <Pressable style={styles.closeButton} onPress={onClose}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="关闭设置向导"
+                style={styles.closeButton}
+                onPress={onClose}
+              >
                 <Ionicons name="close" size={20} color={theme.colors.textMuted} />
               </Pressable>
             ) : null}
@@ -322,6 +327,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     return (
                       <Pressable
                         key={item.id}
+                        accessibilityRole="radio"
+                        accessibilityLabel={`${item.displayName} 提供商`}
+                        accessibilityState={{ selected: active }}
                         style={[styles.providerChip, active && styles.providerChipActive]}
                         onPress={() => selectPreset(item)}
                       >
@@ -343,6 +351,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     </Text>
                     <View style={styles.keyRow}>
                       <TextInput
+                        accessibilityLabel="API 密钥"
                         value={apiKey}
                         onChangeText={setApiKey}
                         placeholder={preset.keyPlaceholder}
@@ -353,6 +362,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         style={styles.keyInput}
                       />
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={showKey ? '隐藏 API 密钥' : '显示 API 密钥'}
+                        accessibilityState={{ selected: showKey }}
                         style={styles.eyeButton}
                         onPress={() => setShowKey(value => !value)}
                       >
@@ -369,6 +381,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                   <View style={styles.field}>
                     <Text style={styles.fieldLabel}>模型</Text>
                     <TextInput
+                      accessibilityLabel="模型名称"
                       value={model}
                       onChangeText={setModel}
                       placeholder="例如 gpt-4o-mini"
@@ -387,6 +400,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                         return (
                           <Pressable
                             key={item}
+                            accessibilityRole="radio"
+                            accessibilityLabel={`模型 ${item}`}
+                            accessibilityState={{ selected: active }}
                             style={[styles.modelChip, active && styles.modelChipActive]}
                             onPress={() => setModel(item)}
                           >
@@ -402,6 +418,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                   <View style={styles.field}>
                     <Text style={styles.fieldLabel}>API 地址</Text>
                     <TextInput
+                      accessibilityLabel="接口地址"
                       value={baseURL}
                       onChangeText={setBaseURL}
                       placeholder={preset.baseURL}
@@ -414,6 +431,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                   </View>
 
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="获取模型列表"
+                    accessibilityState={{ disabled: fetchingModels }}
                     style={styles.secondaryAction}
                     onPress={handleFetchModels}
                     disabled={fetchingModels}
@@ -479,6 +499,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                   <View style={styles.field}>
                     <Text style={styles.fieldLabel}>名称</Text>
                     <TextInput
+                      accessibilityLabel="连接名称"
                       value={sshForm.name}
                       onChangeText={(value: string) =>
                         setSshForm(prev => ({ ...prev, name: value }))
@@ -492,6 +513,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     <View style={[styles.field, styles.flex]}>
                       <Text style={styles.fieldLabel}>主机</Text>
                       <TextInput
+                        accessibilityLabel="主机地址"
                         value={sshForm.host}
                         onChangeText={(value: string) =>
                           setSshForm(prev => ({ ...prev, host: value }))
@@ -506,6 +528,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                     <View style={styles.portField}>
                       <Text style={styles.fieldLabel}>端口</Text>
                       <TextInput
+                        accessibilityLabel="端口"
                         value={sshForm.port}
                         onChangeText={(value: string) =>
                           setSshForm(prev => ({ ...prev, port: value }))
@@ -518,6 +541,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                   <View style={styles.field}>
                     <Text style={styles.fieldLabel}>用户名</Text>
                     <TextInput
+                      accessibilityLabel="用户名"
                       value={sshForm.username}
                       onChangeText={(value: string) =>
                         setSshForm(prev => ({ ...prev, username: value }))
@@ -544,7 +568,8 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                           <Pressable
                             key={option.platform}
                             accessibilityRole="radio"
-                            accessibilityState={{ checked: active }}
+                            accessibilityLabel={`远端系统 ${option.label}`}
+                            accessibilityState={{ selected: active }}
                             style={[styles.platformChip, active && styles.platformChipActive]}
                             onPress={() =>
                               setSshForm(previous => ({
@@ -572,6 +597,7 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                   <View style={styles.field}>
                     <Text style={styles.fieldLabel}>私钥（可选）</Text>
                     <TextInput
+                      accessibilityLabel="私钥内容"
                       value={sshForm.privateKey}
                       onChangeText={(value: string) => {
                         setSshForm(prev => ({ ...prev, privateKey: value }));
@@ -629,7 +655,12 @@ export const SetupWizard: FC<SetupWizardProps> = ({
                       请先转换。加密私钥会在连接时提示输入口令。
                     </Text>
                   </View>
-                  <Pressable style={styles.secondaryAction} onPress={addSshProfile}>
+                  <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="添加 SSH 配置"
+              style={styles.secondaryAction}
+              onPress={addSshProfile}
+            >
                     <Ionicons name="add" size={17} color={theme.colors.accent} />
                     <Text style={styles.secondaryActionText}>保存 SSH 配置</Text>
                   </Pressable>
@@ -693,6 +724,8 @@ export const SetupWizard: FC<SetupWizardProps> = ({
           <View style={styles.footer}>
             {stepIndex > 0 ? (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="上一步"
                 style={styles.backButton}
                 onPress={() => setStep(STEPS[stepIndex - 1].key)}
               >
@@ -705,6 +738,9 @@ export const SetupWizard: FC<SetupWizardProps> = ({
 
             {step === 'environment' ? (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="下一步"
+                accessibilityState={{ disabled: !canGoNext }}
                 style={[styles.primaryButton, !canGoNext && styles.primaryButtonDisabled]}
                 disabled={!canGoNext}
                 onPress={() => setStep('ai')}
@@ -715,7 +751,14 @@ export const SetupWizard: FC<SetupWizardProps> = ({
             ) : null}
 
             {step === 'ai' ? (
-              <Pressable style={styles.primaryButton} onPress={saveAi} disabled={aiBusy}>
+              <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="保存并继续"
+            accessibilityState={{ disabled: aiBusy }}
+            style={styles.primaryButton}
+            onPress={saveAi}
+            disabled={aiBusy}
+          >
                 {aiBusy ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
@@ -728,20 +771,33 @@ export const SetupWizard: FC<SetupWizardProps> = ({
             ) : null}
 
             {step === 'ai' && !aiReady ? (
-              <Pressable style={styles.skipButton} onPress={() => setStep('ssh')}>
+              <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="稍后配置"
+              style={styles.skipButton}
+              onPress={() => setStep('ssh')}>
                 <Text style={styles.skipText}>稍后配置</Text>
               </Pressable>
             ) : null}
 
             {step === 'ssh' ? (
-              <Pressable style={styles.primaryButton} onPress={() => setStep('finish')}>
+              <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="继续"
+            style={styles.primaryButton}
+            onPress={() => setStep('finish')}>
                 <Text style={styles.primaryText}>继续</Text>
                 <Ionicons name="arrow-forward" size={17} color="#fff" />
               </Pressable>
             ) : null}
 
             {step === 'finish' ? (
-              <Pressable style={styles.primaryButton} onPress={finish}>
+              <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="进入工作台"
+            style={styles.primaryButton}
+            onPress={finish}
+          >
                 <Text style={styles.primaryText}>进入工作台</Text>
                 <Ionicons name="checkmark" size={18} color="#fff" />
               </Pressable>
@@ -805,6 +861,11 @@ const EnvironmentStep: FC<{ runtime: ReturnType<typeof useRuntime> }> = ({ runti
         </View>
       ) : (
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            nativeAvailable ? '安装内置 Linux' : '安装内置 Linux 需要先安装配套 APK'
+          }
+          accessibilityState={{ disabled: !runtime.supported || runtime.installing }}
           style={[styles.installButton, !runtime.supported && styles.primaryButtonDisabled]}
           onPress={() => runtimeStore.install()}
           disabled={!runtime.supported || runtime.installing}
