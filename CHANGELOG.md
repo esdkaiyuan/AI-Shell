@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Windows 与 Android 构建打通**：桌面端 `pnpm package` 可直接产出 NSIS 安装包、blockmap 与 portable 单文件，无需 MSVC 工具链 —— node-pty 1.1.0 自带 N-API 预编译二进制，ABI 在 Node 与 Electron 间稳定，构建配置改为 `npmRebuild: false`；Android Debug 与 Release APK 均已构建验证，双架构 Alpine rootfs 完整内置
 - **桌面端命令历史面板**：终端工具栏新增「历史」按钮，打开可搜索的历史对话框 —— 按天分组、显示时间与所在目录、远程命令标注主机、一键填入终端、可清空。补齐了此前「主进程与预加载已实现、但桌面端完全没有界面」的半成品功能
 - **无障碍完整度**：全部 65 个可交互元素与 12 个输入框都具备可访问名称；纯图标按钮（目录上下翻页、隐藏文件、刷新、密钥显隐、格式切换、安装、关闭等）不再对读屏器隐身；分段控件用 `tab`、单选用 `radio`、开关用 `checkbox`，并带正确的选中与禁用状态
 - **桌面端无障碍对齐**：7 个纯图标按钮（刷新上下文、停止生成、发送、停止任务、清空轨迹、新建对话、关闭搜索、新建终端）补 `aria-label` —— `title` 只是悬停提示，读屏器读不到；31 个表单控件（输入框 / 下拉 / 文本域）全部补 `aria-label`；AI 对话流与 Agent 执行轨迹加 `aria-live="polite"` 播报；终端标签的关闭按钮补 `tabIndex` 与键盘响应，标签本身补 `aria-label` 与 `aria-current`

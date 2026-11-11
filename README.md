@@ -170,7 +170,7 @@ API Key 在桌面端使用 Electron `safeStorage` 加密，但系统密钥环不
 
 ## 验证范围
 
-当前开发环境完成 Windows Electron、桌面生产构建、移动 Web 导出和 Android Debug APK 构建。源码包含 macOS 菜单与快捷键适配，但物理 macOS 界面、真机 Android SSH/PTY 仍需在对应设备上验收。
+当前开发环境完成 Windows Electron（含 NSIS 安装包与 portable 单文件）、桌面生产构建、移动 Web 导出，以及 Android Debug 与 Release APK 构建。源码包含 macOS 菜单与快捷键适配，但物理 macOS 界面、真机 Android SSH/PTY 仍需在对应设备上验收。
 
 无障碍方面：桌面端 122 个按钮与 31 个表单控件全部具备读屏器可读的名字（图标按钮用 `aria-label`，视觉 `<label>` 未与控件关联时不算数），动态区域用 `aria-live` 播报，键盘可达性由 `pnpm audit:a11y` 在每次提交前静态校验。移动端同样为全部 65 个可交互元素与 12 个输入框提供可访问名称，并支持系统「减弱动态效果」。
 

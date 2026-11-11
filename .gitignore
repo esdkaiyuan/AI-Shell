@@ -39,6 +39,7 @@ pnpm-debug.log*
 # Electron
 packages/desktop/dist/
 packages/desktop/release/
+packages/desktop/release-win/
 !packages/desktop/build/
 !packages/desktop/build/icon.ico
 !packages/desktop/build/icon.png

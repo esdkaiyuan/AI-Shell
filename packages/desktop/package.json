@@ -58,8 +58,9 @@
     "productName": "AI Shell",
     "icon": "build/icon",
     "directories": {
-      "output": "release"
+      "output": "release-win"
     },
+    "npmRebuild": false,
     "files": [
       "dist/**/*",
       "package.json"

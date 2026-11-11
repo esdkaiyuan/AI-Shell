@@ -7,7 +7,7 @@
 - Windows 10+、macOS 或主流 Linux。
 - 4 GB 内存；推荐 8 GB+。
 - Node.js >= 18、pnpm >= 8。
-- 安装与打包原生依赖需要 C++ 构建工具。
+- 打包安装包**不需要** C++ 构建工具（node-pty 使用 N-API 预编译二进制）；仅在从源码安装依赖时才需要。
 
 ### Android 构建
 
@@ -57,13 +57,15 @@ pnpm build:desktop
 pnpm --filter @ai-shell/desktop package
 ```
 
-输出位于 `packages/desktop/release/`。electron-builder 配置包含：
+输出位于 `packages/desktop/release-win/`。electron-builder 配置包含：
 
 - Windows：NSIS + portable。
 - macOS：DMG + ZIP。
 - Linux：AppImage + DEB。
 
 macOS 原生菜单、Command 快捷键和窗口行为必须在 macOS 上打包并验收。
+
+**Windows 打包无需 MSVC 工具链**。node-pty 1.1.0 自带 N-API 预编译二进制（`prebuilds/win32-x64/`），N-API 的 ABI 在 Node 与 Electron 之间稳定，因此构建配置里设了 `npmRebuild: false` 跳过原生模块重编译。缺少完整 MSVC（只有 VS 运行时）的机器也能直接打包。
 
 ## 4. Android APK
 
@@ -128,8 +130,8 @@ pnpm --filter @ai-shell/mobile build:web
 
 当对应版本的 GitHub Release 提供产物时，文件名由 electron-builder 和 Gradle 配置决定。不要假设所有平台都有现成安装包；当前仓库验证基线为：
 
-- Windows Electron 开发与生产构建。
-- Android Debug APK 构建。
+- Windows Electron 开发、生产构建与安装包（NSIS + portable）。
+- Android Debug 与 Release APK 构建。
 - 移动 Web 导出。
 
 macOS/Linux 安装包需要分别在对应系统上构建。
