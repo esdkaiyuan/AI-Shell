@@ -40,6 +40,9 @@ pnpm-debug.log*
 packages/desktop/dist/
 packages/desktop/release/
 packages/desktop/release-win/
+packages/desktop/release-final/
+packages/desktop/release-verify*/
+packages/desktop/release-win-*/
 !packages/desktop/build/
 !packages/desktop/build/icon.ico
 !packages/desktop/build/icon.png

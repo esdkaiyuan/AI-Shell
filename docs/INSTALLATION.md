@@ -67,6 +67,25 @@ macOS 原生菜单、Command 快捷键和窗口行为必须在 macOS 上打包�
 
 **Windows 打包无需 MSVC 工具链**。node-pty 1.1.0 自带 N-API 预编译二进制（`prebuilds/win32-x64/`），N-API 的 ABI 在 Node 与 Electron 之间稳定，因此构建配置里设了 `npmRebuild: false` 跳过原生模块重编译。缺少完整 MSVC（只有 VS 运行时）的机器也能直接打包。
 
+#### 安装向导（assisted installer）
+
+NSIS 目标使用 `oneClick: false` 的 assisted installer，安装时依次经过：
+
+1. 欢迎页；
+2. **软件许可与使用协议**（含「我接受」勾选框，不勾选无法继续）；
+3. 安装范围（仅当前用户 / 所有用户）；
+4. **安装目录选择**；
+5. 安装进度；
+6. 完成页（安装完成后可直接启动应用）。
+
+卸载时同样有独立的卸载向导。
+
+协议文本放在 `packages/desktop/build/license_zh_CN.txt` 与 `license_en.txt`，electron-builder 会按系统语言自动匹配（简体中文系统显示中文协议，英文系统显示英文协议）。**文件名必须带 `_语言` 后缀** —— 若存在单个 `license.txt`，electron-builder 会优先命中它并锁定为单语言，所有系统都显示同一份文本。
+
+协议同时随应用分发到 `resources/licenses/`，供应用内「关于」与合规检查查阅。
+
+快捷方式：安装后创建桌面与开始菜单快捷方式，卸载时一并清除；控制面板的卸载条目名为 `AI Shell <版本>`。
+
 ## 4. Android APK
 
 ### Debug APK

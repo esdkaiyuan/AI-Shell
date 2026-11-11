@@ -1,7 +1,7 @@
 {
   "name": "@ai-shell/desktop",
   "version": "0.1.0",
-  "description": "AI Shell Desktop Application",
+  "description": "AI Shell —— 跨平台图形化 Shell 与 AI 助手，内置本地终端、SSH、文件浏览与命令补全",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "npm run build:preload && concurrently \"npm run dev:main\" \"npm run dev:preload\" \"npm run dev:renderer\"",
@@ -83,6 +83,35 @@
         "AppImage",
         "deb"
       ]
-    }
-  }
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "selectPerMachineByDefault": false,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AI Shell",
+      "menuCategory": false,
+      "uninstallDisplayName": "AI Shell ${version}",
+      "runAfterFinish": true
+    },
+    "extraResources": [
+      {
+        "from": "build/license_zh_CN.txt",
+        "to": "licenses/license.txt"
+      },
+      {
+        "from": "build/license_en.txt",
+        "to": "licenses/license_en.txt"
+      }
+    ]
+  },
+  "author": {
+    "name": "AI Shell Contributors",
+    "email": "esdkaiyuan@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/esdkaiyuan/AI-Shell",
+  "license": "MIT"
 }
