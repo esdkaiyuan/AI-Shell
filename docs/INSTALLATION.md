@@ -82,9 +82,29 @@ NSIS 目标使用 `oneClick: false` 的 assisted installer，安装时依次经�
 
 协议文本放在 `packages/desktop/build/agreement_zh_CN.txt` 与 `agreement_en.txt`，安装向导使用 `agreement.html`（由 `node scripts/build-license-html.mjs` 生成，协议正文改动后需重新执行）。
 
-**协议页为什么用 HTML 而不是纯文本**：NSIS 的 `MUI_PAGE_LICENSE` 在编译期用 makensis 所在机器的 ANSI 码页读取协议文本（中文 Windows 为 GBK/936），UTF-8 文件会被误解码成乱码。加 UTF-8 BOM 与 UTF-16LE BOM 都无效——NSIS 3.04 的 `LoadLicenseFile` 固定走 `AnsiCP` 分支。改用 HTML 协议页后由 `EmbedHTML` 走系统浏览器控件渲染，页面自带 `<meta charset="utf-8">`，任何系统语言下都能正确显示中文，同时获得正文排版与滚动能力。
+安装向导的中文乱码有三个独立来源，都已处理：
 
-**语言切换**：HTML 内嵌脚本读取 `navigator.language`，中文系统显示中文、其余显示英文。默认渲染中文块，因此即使脚本被系统安全策略禁用也不会出现空白页。
+**1. 协议正文（HTML 协议页）**
+
+NSIS 的 `MUI_PAGE_LICENSE` 在编译期用 makensis 所在机器的 ANSI 码页读取协议文本（中文 Windows 为 GBK/936），UTF-8 文件会被误解码成乱码。加 UTF-8 BOM 与 UTF-16LE BOM 都无效——NSIS 3.04 的 `LoadLicenseFile` 固定走 `AnsiCP` 分支。改用 HTML 协议页后由 `EmbedHTML` 走系统浏览器控件渲染，页面自带 `<meta charset="utf-8">`，任何系统语言下都能正确显示中文，同时获得正文排版与滚动能力。
+
+HTML 文件本身**必须带 UTF-8 BOM**：MSHTML（EmbedHTML 使用的 IE 内核）对无 BOM 的本地文件会先按系统 ANSI 码页做编码嗅探，`<meta charset>` 要等嗅探之后才生效，中文因此仍会乱码。
+
+**2. 安装向导界面文案（LangString 覆盖）**
+
+NSIS 3.0.4.1 自带的 `SimpChinese.nlf` 头部声明 `Codepage 936`（GBK），但文件内容存的是 UTF-8 字节——NSIS 按 GBK 解码后，页面标题、按钮文字会出现「检閱協议」这类简繁混杂的乱码。
+
+解决办法：在 NSIS 加载语言文件**之前**，用 `LangString <key> 2052 "<text>"` 预先定义简体中文（LCID 2052）的字符串表条目。NSIS 采用「先定义者优先」，因此这些定义会覆盖 `.nlf` 里的乱码值，且不触发 "set multiple times" 警告（electron-builder 传了 `-WX`，警告会被升级为错误）。按 LCID 定向，不影响英文等其他语言。
+
+文案原文取自 NSIS 自带的 `SimpChinese.nlf`（字符串表，已固化到 `build/nsis/zh-CN-strings.json`），由 `node scripts/build-nsis-messages.mjs` 生成 `build/installer.nsh`。
+
+> `.nsh` 里的 MUI 文案（副标题、底部提示等）**不需要**覆盖 —— makensis 按 `-INPUTCHARSET UTF8` 读取它们，本身就是正确的；重复定义反而会触发警告。
+
+> `^Name` 是产品名，由 electron-builder 传入的 `${PRODUCT_NAME}` 通过 NSIS 的 `Name` 命令设置，不能用语言文件里的默认值「名称」覆盖。
+
+**3. 协议页语言切换**
+
+HTML 内嵌脚本读取 `navigator.language`，中文系统显示中文、其余显示英文。默认渲染中文块，因此即使脚本被系统安全策略禁用也不会出现空白页。
 
 **文件名约束**：协议源文件**不要**以 `license_` 开头 —— electron-builder 会自动扫描 `license_*` / `eula_*` 并生成多语言文本协议页，与 HTML 方案冲突。当前使用 `agreement_` 前缀规避。
 

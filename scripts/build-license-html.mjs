@@ -146,8 +146,15 @@ const readSource = (name) => stripBom(readFileSync(join(buildDir, name))).toStri
 const zhHtml = toHtml(readSource('agreement_zh_CN.txt'));
 const enHtml = toHtml(readSource('agreement_en.txt'));
 
-writeFileSync(join(buildDir, 'agreement_zh_CN.html'), zhHtml, 'utf8');
-writeFileSync(join(buildDir, 'agreement_en.html'), enHtml, 'utf8');
+// MSHTML（NSIS EmbedHTML 使用的 IE 内核）对无 BOM 的本地文件会先按系统
+// ANSI 码页做编码嗅探，<meta charset> 要等嗅探之后才生效，中文因此变成乱码。
+// 写入 UTF-8 BOM 让内核无需嗅探即可确定编码。
+const BOM = '\ufeff';
+const writeHtml = (file, content) =>
+  writeFileSync(join(buildDir, file), BOM + content, 'utf8');
+
+writeHtml('agreement_zh_CN.html', zhHtml);
+writeHtml('agreement_en.html', enHtml);
 
 const combined = [
   '<!DOCTYPE html>',
@@ -160,7 +167,7 @@ const combined = [
   '</body></html>',
 ].join('\n');
 
-writeFileSync(join(buildDir, 'agreement.html'), combined, 'utf8');
+writeHtml('agreement.html', combined);
 
 console.log('agreement.html        %d bytes', Buffer.byteLength(combined));
 console.log('agreement_zh_CN.html  %d bytes', Buffer.byteLength(zhHtml));

@@ -14,6 +14,7 @@
     "build:main:bundle": "node scripts/build-main.mjs",
     "build:renderer": "vite build",
     "build:license": "node ../../scripts/build-license-html.mjs",
+    "build:nsis-messages": "node ../../scripts/build-nsis-messages.mjs",
     "start": "electron .",
     "package": "electron-builder",
     "type-check": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json --noEmit && tsc -p tsconfig.renderer.json --noEmit"

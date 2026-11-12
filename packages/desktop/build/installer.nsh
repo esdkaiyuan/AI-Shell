@@ -1,0 +1,101 @@
+; AI Shell —— NSIS 简体中文文案覆盖
+;
+; 由 scripts/build-nsis-messages.mjs 生成，请勿手工编辑。
+;
+; NSIS 3.0.4.1 自带的 SimpChinese.nlf 声明 Codepage 936（GBK），内容却是 UTF-8
+; 字节 —— NSIS 按 GBK 解码后，安装向导的页面标题与按钮文字会出现「检閱協议」
+; 这类简繁混杂的乱码。
+;
+; 这里在 NSIS 加载语言文件之前，用 LangString 预先定义简体中文（LCID 2052）
+; 的全部字符串。NSIS 采用「先定义者优先」，因此这些定义会覆盖 .nlf 里的乱码值，
+; 且不会触发 "set multiple times" 警告。按 LCID 定向，不影响其他语言。
+;
+; 协议正文另由 HTML 协议页承载（EmbedHTML 渲染），见 build-license-html.mjs。
+
+!ifndef AI_SHELL_NSIS_MESSAGES
+  !define AI_SHELL_NSIS_MESSAGES
+
+  LangString ^SetupCaption 2052 "$(^Name) 安装"
+  LangString ^UninstallCaption 2052 "$(^Name) 解除安装"
+  LangString ^LicenseSubCaption 2052 ": 许可证协议"
+  LangString ^ComponentsSubCaption 2052 ": 安装选项"
+  LangString ^DirSubCaption 2052 ": 安装文件夹"
+  LangString ^InstallingSubCaption 2052 ": 正在安装"
+  LangString ^CompletedSubCaption 2052 ": 已完成"
+  LangString ^UnComponentsSubCaption 2052 ": 解除安装选项"
+  LangString ^UnDirSubCaption 2052 ": 解除安装文件夹"
+  LangString ^ConfirmSubCaption 2052 ": 确认"
+  LangString ^UninstallingSubCaption 2052 ": 正在解除安装"
+  LangString ^UnCompletedSubCaption 2052 ": 完成"
+  LangString ^BackBtn 2052 "< 上一步(&P)"
+  LangString ^NextBtn 2052 "下一步(&N) >"
+  LangString ^AgreeBtn 2052 "我同意(&I)"
+  LangString ^AcceptBtn 2052 "我接受“许可证协议”中的条款(&A)"
+  LangString ^DontAcceptBtn 2052 "我不接受“许可证协议”中的条款(&N)"
+  LangString ^InstallBtn 2052 "安装(&I)"
+  LangString ^UninstallBtn 2052 "解除安装(&U)"
+  LangString ^CancelBtn 2052 "取消(&C)"
+  LangString ^CloseBtn 2052 "关闭(&L)"
+  LangString ^BrowseBtn 2052 "浏览(&B)..."
+  LangString ^ShowDetailsBtn 2052 "显示细节(&D)"
+  LangString ^ClickNext 2052 "单击 [下一步(N)] 继续。"
+  LangString ^ClickInstall 2052 "单击 [安装(I)] 开始安装进程。"
+  LangString ^ClickUninstall 2052 "单击 [解除安装(U)] 开始解除安装进程。"
+  LangString ^Completed 2052 "已完成"
+  LangString ^LicenseText 2052 "在安装 $(^NameDA) 之前请检阅许可证协议。如果你接受协议中所有条款，单击 [我同意(I)] 。"
+  LangString ^LicenseTextCB 2052 "在安装 $(^NameDA) 之前请检阅许可证协议。如果你接受协议中所有条款，单击下方的勾选框。 $_CLICK"
+  LangString ^LicenseTextRB 2052 "在安装 $(^NameDA) 之前请检阅许可证协议。如果你接受协议中所有条款，选择下方的第一个选项。 $_CLICK"
+  LangString ^UnLicenseText 2052 "在解除安装 $(^NameDA) 之前请检阅许可证协议。如果你接受协议中所有条款，单击 [我同意(I)] 。"
+  LangString ^UnLicenseTextCB 2052 "在解除安装 $(^NameDA) 之前请检阅许可证协议。如果你接受协议中所有条款，单击下方的勾选框。 $_CLICK"
+  LangString ^UnLicenseTextRB 2052 "在解除安装 $(^NameDA) 之前请检阅许可证协议。如果你接受协议中所有条款，选择下方的第一个选项。 $_CLICK"
+  LangString ^Custom 2052 "自定义"
+  LangString ^ComponentsText 2052 "勾选你想要安装的组件，并解除勾选你不希望安装的组件。 $_CLICK"
+  LangString ^ComponentsSubText1 2052 "选定安装的类型: "
+  LangString ^ComponentsSubText2_NoInstTypes 2052 "选定安装的组件: "
+  LangString ^ComponentsSubText2 2052 "或者，自定义选定想安装的组件: "
+  LangString ^UnComponentsText 2052 "勾选你想要解除安装的组件，并解除勾选你不想要望解除安装的组件。 $_CLICK"
+  LangString ^UnComponentsSubText1 2052 "选择解除安装的类型: "
+  LangString ^UnComponentsSubText2_NoInstTypes 2052 "选择要解除安装的组件: "
+  LangString ^UnComponentsSubText2 2052 "或是，选择想要解除安装的可选项组件: "
+  LangString ^DirText 2052 "Setup 将安装 $(^NameDA) 在下列文件夹。要安装到不同文件夹，单击 [浏览(B)...] 并选择其他的文件夹。 $_CLICK"
+  LangString ^DirSubText 2052 "目标文件夹"
+  LangString ^DirBrowseText 2052 "选择要安装 $(^NameDA) 的文件夹位置: "
+  LangString ^UnDirText 2052 "Setup 将自下列文件夹解除安装 $(^NameDA) 。要解除安装到不同文件夹，单击 [浏览(B)...] 并选择其他的文件夹。 $_CLICK"
+  LangString ^UnDirBrowseText 2052 "选择要解除安装 $(^NameDA) 的文件夹: "
+  LangString ^SpaceAvailable 2052 "$\"可用空间: $\""
+  LangString ^SpaceRequired 2052 "$\"所需空间: $\""
+  LangString ^UninstallingText 2052 "这个向导将从你的计算机解除安装 $(^NameDA) 。 $_CLICK"
+  LangString ^UninstallingSubText 2052 "解除安装目录: "
+  LangString ^FileError 2052 "不能打开要写入的文件: \r\n\t$\"$0$\"\r\n单击 [Abort] 停止安装，\r\n [Retry] 重新尝试写入文件，或\r\n [Ignore] 忽略这个文件。"
+  LangString ^FileError_NoIgnore 2052 "不能打开要写入的文件: \r\n\t$\"$0$\"\r\n单击 [Retry] 重新尝试写入文件，或\r\n [Cancel] 停止安装。"
+  LangString ^CantWrite 2052 "$\"无法写入: $\""
+  LangString ^CopyFailed 2052 "$\"复制失败 $\""
+  LangString ^CopyTo 2052 "$\"复制到: $\""
+  LangString ^Registering 2052 "$\"正在注册: $\""
+  LangString ^Unregistering 2052 "$\"正在解除注册: $\""
+  LangString ^SymbolNotFound 2052 "$\"无法找到符号: $\""
+  LangString ^CouldNotLoad 2052 "$\"无法加载: $\""
+  LangString ^CreateFolder 2052 "$\"创建文件夹: $\" "
+  LangString ^CreateShortcut 2052 "$\"创建快捷方式: $\""
+  LangString ^CreatedUninstaller 2052 "$\"创建解除安装程序: $\""
+  LangString ^Delete 2052 "$\"删除文件: $\""
+  LangString ^DeleteOnReboot 2052 "$\"重新启动后删除: $\""
+  LangString ^ErrorCreatingShortcut 2052 "$\"正在创建快捷方式时发生错误: $\""
+  LangString ^ErrorCreating 2052 "$\"正在创建时发生错误: $\""
+  LangString ^ErrorDecompressing 2052 "$\"正在解压缩数据发生错误！已损坏的安装程序？$\""
+  LangString ^ErrorRegistering 2052 "$\"正在注册 DLL 时发生错误$\""
+  LangString ^ExecShell 2052 "$\"运行壳层程序: $\""
+  LangString ^Exec 2052 "$\"运行: $\""
+  LangString ^Extract 2052 "$\"抽取: $\""
+  LangString ^ErrorWriting 2052 "$\"抽取: 无法写入文件 $\""
+  LangString ^InvalidOpcode 2052 "$\"安装损毁: 无效的操作代码 $\""
+  LangString ^NoOLE 2052 "$\"没有 OLE 用于: $\""
+  LangString ^OutputFolder 2052 "$\"输出目录: $\""
+  LangString ^RemoveFolder 2052 "$\"移除目录: $\""
+  LangString ^RenameOnReboot 2052 "$\"重新启动后重命名: $\""
+  LangString ^Rename 2052 "$\"重命名: $\""
+  LangString ^Skipped 2052 "$\"已跳过: $\""
+  LangString ^CopyDetails 2052 "$\"复制细节到剪贴板 $\""
+  LangString ^LogInstall 2052 "$\"日志安装进程$\""
+
+!endif

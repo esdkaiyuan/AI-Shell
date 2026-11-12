@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Windows 与 Android 构建打通**：桌面端 `pnpm package` 可直接产出 NSIS 安装包、blockmap 与 portable 单文件，无需 MSVC 工具链 —— node-pty 1.1.0 自带 N-API 预编译二进制，ABI 在 Node 与 Electron 间稳定，构建配置改为 `npmRebuild: false`；Android Debug 与 Release APK 均已构建验证，双架构 Alpine rootfs 完整内置
 - **修复安装向导协议页乱码**：协议页改用 HTML（EmbedHTML 渲染），中文不再乱码 —— NSIS 的 MUI_PAGE_LICENSE 在编译期按 makensis 机器的 ANSI 码页读取文本（中文 Windows 为 GBK/936），UTF-8 会被误解码，加 UTF-8 BOM 与 UTF-16LE BOM 均无效；HTML 由浏览器控件渲染，页面自带 `<meta charset="utf-8">` 必定正确显示。协议页按系统语言自动切换中英文，且脚本被禁用时默认回落到中文，不会出现空白页
+- **修复安装向导界面文案乱码**：NSIS 3.0.4.1 自带的 SimpChinese.nlf 声明 Codepage 936（GBK）却存 UTF-8 字节，页面标题与按钮文字会出现「检閱協议」这类简繁混杂的乱码。现用 `LangString <key> 2052` 在加载语言文件之前预先定义简体中文字符串表（82 条），NSIS 采用「先定义者优先」因而覆盖乱码值，且不触发 `-WX` 警告升级为错误；按 LCID 定向不影响英文等其他语言
+- **HTML 协议页补 UTF-8 BOM**：MSHTML（EmbedHTML 使用的 IE 内核）对无 BOM 的本地文件会先按系统 ANSI 码页嗅探编码，`<meta charset>` 要等嗅探之后才生效，中文仍会乱码；补 BOM 后彻底正常
+- 新增 `scripts/build-nsis-messages.mjs`，从固化到 `build/nsis/zh-CN-strings.json` 的文案生成 `build/installer.nsh`，接入 `pnpm build:nsis-messages`
 - **协议排版改进**：协议页从纯文本改为带层级结构的 HTML —— 章节标题、编号条款、版本信息分层呈现，中文行间不再插入多余空格，条款续行正确并入同一段落
 - 新增 `scripts/build-license-html.mjs`，从协议正文生成 HTML 协议页，协议改动后执行 `pnpm --filter @ai-shell/desktop build:license` 即可重新生成
 - **桌面端命令历史面板**：终端工具栏新增「历史」按钮，打开可搜索的历史对话框 —— 按天分组、显示时间与所在目录、远程命令标注主机、一键填入终端、可清空。补齐了此前「主进程与预加载已实现、但桌面端完全没有界面」的半成品功能
