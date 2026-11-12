@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Windows 与 Android 构建打通**：桌面端 `pnpm package` 可直接产出 NSIS 安装包、blockmap 与 portable 单文件，无需 MSVC 工具链 —— node-pty 1.1.0 自带 N-API 预编译二进制，ABI 在 Node 与 Electron 间稳定，构建配置改为 `npmRebuild: false`；Android Debug 与 Release APK 均已构建验证，双架构 Alpine rootfs 完整内置
+- **修复安装向导协议页乱码**：协议页改用 HTML（EmbedHTML 渲染），中文不再乱码 —— NSIS 的 MUI_PAGE_LICENSE 在编译期按 makensis 机器的 ANSI 码页读取文本（中文 Windows 为 GBK/936），UTF-8 会被误解码，加 UTF-8 BOM 与 UTF-16LE BOM 均无效；HTML 由浏览器控件渲染，页面自带 `<meta charset="utf-8">` 必定正确显示。协议页按系统语言自动切换中英文，且脚本被禁用时默认回落到中文，不会出现空白页
+- **协议排版改进**：协议页从纯文本改为带层级结构的 HTML —— 章节标题、编号条款、版本信息分层呈现，中文行间不再插入多余空格，条款续行正确并入同一段落
+- 新增 `scripts/build-license-html.mjs`，从协议正文生成 HTML 协议页，协议改动后执行 `pnpm --filter @ai-shell/desktop build:license` 即可重新生成
 - **桌面端命令历史面板**：终端工具栏新增「历史」按钮，打开可搜索的历史对话框 —— 按天分组、显示时间与所在目录、远程命令标注主机、一键填入终端、可清空。补齐了此前「主进程与预加载已实现、但桌面端完全没有界面」的半成品功能
 - **无障碍完整度**：全部 65 个可交互元素与 12 个输入框都具备可访问名称；纯图标按钮（目录上下翻页、隐藏文件、刷新、密钥显隐、格式切换、安装、关闭等）不再对读屏器隐身；分段控件用 `tab`、单选用 `radio`、开关用 `checkbox`，并带正确的选中与禁用状态
 - **桌面端无障碍对齐**：7 个纯图标按钮（刷新上下文、停止生成、发送、停止任务、清空轨迹、新建对话、关闭搜索、新建终端）补 `aria-label` —— `title` 只是悬停提示，读屏器读不到；31 个表单控件（输入框 / 下拉 / 文本域）全部补 `aria-label`；AI 对话流与 Agent 执行轨迹加 `aria-live="polite"` 播报；终端标签的关闭按钮补 `tabIndex` 与键盘响应，标签本身补 `aria-label` 与 `aria-current`

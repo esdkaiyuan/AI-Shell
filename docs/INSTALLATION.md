@@ -80,7 +80,13 @@ NSIS 目标使用 `oneClick: false` 的 assisted installer，安装时依次经�
 
 卸载时同样有独立的卸载向导。
 
-协议文本放在 `packages/desktop/build/license_zh_CN.txt` 与 `license_en.txt`，electron-builder 会按系统语言自动匹配（简体中文系统显示中文协议，英文系统显示英文协议）。**文件名必须带 `_语言` 后缀** —— 若存在单个 `license.txt`，electron-builder 会优先命中它并锁定为单语言，所有系统都显示同一份文本。
+协议文本放在 `packages/desktop/build/agreement_zh_CN.txt` 与 `agreement_en.txt`，安装向导使用 `agreement.html`（由 `node scripts/build-license-html.mjs` 生成，协议正文改动后需重新执行）。
+
+**协议页为什么用 HTML 而不是纯文本**：NSIS 的 `MUI_PAGE_LICENSE` 在编译期用 makensis 所在机器的 ANSI 码页读取协议文本（中文 Windows 为 GBK/936），UTF-8 文件会被误解码成乱码。加 UTF-8 BOM 与 UTF-16LE BOM 都无效——NSIS 3.04 的 `LoadLicenseFile` 固定走 `AnsiCP` 分支。改用 HTML 协议页后由 `EmbedHTML` 走系统浏览器控件渲染，页面自带 `<meta charset="utf-8">`，任何系统语言下都能正确显示中文，同时获得正文排版与滚动能力。
+
+**语言切换**：HTML 内嵌脚本读取 `navigator.language`，中文系统显示中文、其余显示英文。默认渲染中文块，因此即使脚本被系统安全策略禁用也不会出现空白页。
+
+**文件名约束**：协议源文件**不要**以 `license_` 开头 —— electron-builder 会自动扫描 `license_*` / `eula_*` 并生成多语言文本协议页，与 HTML 方案冲突。当前使用 `agreement_` 前缀规避。
 
 协议同时随应用分发到 `resources/licenses/`，供应用内「关于」与合规检查查阅。
 

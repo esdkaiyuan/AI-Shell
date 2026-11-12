@@ -1,4 +1,4 @@
-AI Shell — Software License and User Agreement
+﻿AI Shell — Software License and User Agreement
 
 Version 0.1.0    Last updated: November 2026
 

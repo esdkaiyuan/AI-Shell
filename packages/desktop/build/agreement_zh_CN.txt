@@ -1,4 +1,4 @@
-AI Shell —— 软件许可与使用协议
+﻿AI Shell —— 软件许可与使用协议
 Software License and User Agreement
 
 版本 0.1.0    更新日期：2026 年 11 月

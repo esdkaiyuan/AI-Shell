@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style>body{font-family:'Microsoft YaHei','Segoe UI',sans-serif;font-size:12px;line-height:1.8;
+     margin:0;padding:14px 18px;color:#1a1a1a;background:#fff;}
+h1{font-size:15px;margin:0 0 2px;color:#111;font-weight:600;}
+.sub{font-size:11.5px;color:#666;margin:0 0 4px;}
+.meta{font-size:11px;color:#888;margin:0 0 16px;}
+h2{font-size:12.5px;margin:20px 0 8px;padding-left:8px;border-left:3px solid #0a84ff;color:#111;font-weight:600;}
+p{margin:0 0 9px;}
+hr{border:none;border-top:1px solid #e6e6e6;margin:16px 0;}
+#en{display:none;}</style></head><body>
+<h1>AI Shell —— 软件许可与使用协议</h1>
+<p class="sub">Software License and User Agreement</p>
+<p class="meta">版本 0.1.0    更新日期：2026 年 11 月</p>
+<p>本协议是您（下列称"用户"）与 AI Shell 开源项目（下列称"本软件"）之间就安装、使用本软件所订立的协议。安装本软件即表示您已阅读、理解并同意接受本协议全部条款；如您不同意，请立即停止安装并删除本软件。</p>
+<hr>
+<h2>一、软件说明</h2>
+<hr>
+<p>1.1  AI Shell 是一款跨平台的图形化 Shell 与 AI 助手工具，包含本地终端、SSH远程连接、文件浏览、命令历史、命令补全，以及可选的 AI 辅助能力。</p>
+<p>1.2  本软件按「现状」提供，作者与贡献者不对其适用性或特定用途的适用性作出任何明示或默示的担保。</p>
+<p>1.3  本软件开源发布，其源代码遵循 MIT 许可协议。MIT 许可证全文随安装包一并提供，可在安装目录的 licenses 文件夹中查阅。</p>
+<hr>
+<h2>二、系统要求</h2>
+<hr>
+<p>2.1  Windows 10 或更高版本，macOS 或主流 Linux 发行版。</p>
+<p>2.2  需 4 GB 以上内存，推荐 8 GB 及以上。</p>
+<p>2.3  本软件的终端与文件能力需要操作系统的相应权限。Windows 环境下安装程序可能请求管理员权限，该权限仅用于写入程序目录与创建快捷方式。</p>
+<hr>
+<h2>三、数据存储与隐私</h2>
+<hr>
+<p>3.1  本软件的配置数据、会话记录与命令历史保存在您本机的应用数据目录中，不会自动上传至任何服务器。</p>
+<p>3.2  您填写的 AI 提供商 API 密钥使用操作系统的安全存储机制加密后保存（Windows 下为 Windows 凭据管理器 / DPAPI，macOS 下为 Keychain）。若操作系统不提供安全存储，密钥将以明文形式保存在本地配置中。</p>
+<p>3.3  当您使用 AI 助手功能时，您的提问内容、附带的终端上下文以及命令历史查询结果，会被发送至「由您自行配置」的 AI 服务提供商（可能是 OpenAI、Anthropic、DeepSeek、Ollama 或其他第三方）。该传输由您主动触发，本软件不向任何固定的服务器转发您的数据。</p>
+<p>3.4  AI 响应由第三方模型生成，可能存在错误。请勿在未经验证的情况下直接执行 AI 建议的命令。</p>
+<p>3.5  远程连接（SSH）功能会与您指定的主机建立加密连接。主机地址、端口、用户名与认证凭据仅保存在本机。</p>
+<hr>
+<h2>四、许可与限制</h2>
+<hr>
+<p>4.1  许可：您可以自由使用、复制、修改、合并、发布、分发、再许可及销售本软件的副本，但须保留本协议与版权声明。</p>
+<p>4.2  限制：您不得移除或遮挡本软件中的版权与署名声明。</p>
+<p>4.3  免责声明：软件按「现状」提供，作者与贡献者不对因使用或无法使用本软件而产生的任何直接、间接、偶然、特殊或后果性损害承担责任，无论该损害因何种原因导致。</p>
+<p>4.4  在法律允许的最大范围内，即使已被告知发生损害的可能性，作者与贡献者仍不对任何间接、附带或后果性损害承担责任。</p>
+<hr>
+<h2>五、第三方组件</h2>
+<hr>
+<p>5.1  本软件使用了开源的第三方组件，其中包括但不限于 Electron、React、xterm.js、node-pty、ssh2 等。各组件均遵循其各自的许可协议，其版权与许可声明保留在相应组件的源代码与分发包中。</p>
+<p>5.2  内置的 Alpine Linux 运行环境按其自身许可协议分发。</p>
+<hr>
+<h2>六、终止</h2>
+<hr>
+<p>6.1  您可以随时通过操作系统的「卸载程序」卸载本软件，并自行删除残留的应用数据目录与本地配置。</p>
+<p>6.2  若您严重违反本协议，作者与贡献者保留终止您使用本软件的权利。</p>
+<hr>
+<h2>七、条款变更</h2>
+<hr>
+<p>7.1  本软件的后续版本可能更新本协议。安装包中所附的协议版本即为该版本软件随附的协议内容。</p>
+<p>7.2  若您已安装本软件，协议更新不影响您在更新前已获授的权利。</p>
+<hr>
+<p>如果您对上述条款有任何疑问，请通过项目仓库的 Issue 反馈。</p>
+<p>Copyright (c) 2024 AI Shell Contributors本协议依据 MIT 许可证编写，MIT 许可证全文见安装目录 licenses 文件夹。</p>
+</body></html>

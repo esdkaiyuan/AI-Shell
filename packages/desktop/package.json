@@ -13,6 +13,7 @@
     "build:preload": "tsc -p tsconfig.preload.json",
     "build:main:bundle": "node scripts/build-main.mjs",
     "build:renderer": "vite build",
+    "build:license": "node ../../scripts/build-license-html.mjs",
     "start": "electron .",
     "package": "electron-builder",
     "type-check": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json --noEmit && tsc -p tsconfig.renderer.json --noEmit"
@@ -95,15 +96,16 @@
       "shortcutName": "AI Shell",
       "menuCategory": false,
       "uninstallDisplayName": "AI Shell ${version}",
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "license": "build/agreement.html"
     },
     "extraResources": [
       {
-        "from": "build/license_zh_CN.txt",
+        "from": "build/agreement_zh_CN.txt",
         "to": "licenses/license.txt"
       },
       {
-        "from": "build/license_en.txt",
+        "from": "build/agreement_en.txt",
         "to": "licenses/license_en.txt"
       }
     ]
